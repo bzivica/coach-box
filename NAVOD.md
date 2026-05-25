@@ -1,7 +1,7 @@
 # Coach Box — Návod k použití
 
 Webová appka pro live zápis basketbalových zápasů, agregaci statistik a správu klubu (Jižní Supi).
-Verze 0.0.5, poslední update 2026-05-25.
+Verze 0.0.6, poslední update 2026-05-25 (po prvním reálném testu — 3-col layout, multi-sub, team-points, plný opp roster).
 
 ---
 
@@ -15,19 +15,42 @@ Verze 0.0.5, poslední update 2026-05-25.
 ### Začátek čtvrtiny
 
 1. Klikni na 5 **našich** hráčů na hřišti (jejich karty se podbarví modře).
-2. Pokud má soupeř rozepsanou soupisku, vyber 5 čísel soupeře v sekci pod sestavou. Bez výběru se zápis bude evidovat agregátně (bez per-hráč soupeře).
+2. Pokud má soupeř rozepsanou soupisku, vyber 5 čísel soupeře v sekci pod sestavou. Bez výběru se zápis bude evidovat agregátně (bez per-hráč soupeře). *Tahle pětice slouží jen pro úvodní orientaci — v live zápise uvidíš plnou soupisku soupeře.*
 3. Klik **Začít Q1**.
 4. Volitelně klikni **▶ Start** stopek. Klok **odpočítává dolů** od délky Q (např. `10:00 → 0:00`). Pokud nestihneš pouštět, akce se zapíší i tak, jen minuty se nepočítají.
+
+### Layout live obrazovky
+
+Obrazovka je rozdělená na **3 sloupce vedle sebe**:
+
+- **Vlevo — MY AKCE** — akce sgrupované do bloků:
+  - **ÚTOK**: dvě řady × 3 sloupce (`✓ 2 body` / `✓ 3 body` / `✓ Trestný` zelené nahoře, `✗ 2 body` / `✗ 3 body` / `✗ Trestný` červené dole)
+  - **DOSKOK**: Útočný / Obranný
+  - **POZITIVNÍ**: Asistence / Zisk / Blok
+  - **NEGATIVNÍ**: Faul… / Ztráta
+  - **RYCHLÝ ZÁPIS BODŮ — BEZ HRÁČE**: `+2 tým` / `+3 tým` / `+1 tým` (modré dashed buttony, nevyžadují výběr hráče)
+  - **Tech. lavička** (full width, bez hráče)
+- **Uprostřed — HRÁČI** — 5 svislých karet s avatarem, číslem a příjmením (větší velikost pro rychlou identifikaci). Dole modré tlačítko **⇄ Střídání** (otevře multi-sub modal).
+- **Vpravo — SOUPEŘ** — plná soupiska soupeře jako chips (#číslo + příjmení), dole opp akce v 2-col gridu (+2 / +3 / +1 / Faul / dosk útoč. / dosk obr.).
+
+**Pod hlavními sloupci**:
+- **Live totals** — chip strip MY + SOUPEŘ (PTS, 2P, 3P, FT, OFF, DEF, REB, AST, STL, TO, BLK, PF + zbývající TO).
+- **Timeouts** — velká MY / SOUPEŘ tlačítka.
+- **Bench strip** — kompaktní jednořádkový seznam hráčů na lavičce (`#5 Černý · #8 Dvořák · …`). Bez interakce, jen pro orientaci.
+- **Footer** — Konec Q / Ukončit zápas.
+
+**Nahoře — Clock-bar**: stopky, ▶ Start / ⏸ Pauza, ✏️ Čas, ✏️ Q, ↺ Reset, a **↶ Vrátit poslední** (undo).
 
 ### Během hry — co dělat
 
 | Akce | Postup |
 |---|---|
-| **Náš hráč skóroval / fauloval / cokoli** | Klik na hráče na hřišti → klik na tlačítko vpravo (akce v 2 sloupcích: 2 daný/nedaný, 3 daný/nedaný, FT, doskok útoč./obr., Faul, AST, STL, TO, Blok) |
-| **Soupeř — víme kdo** | Klik na číslo soupeře (pětice v opp panelu) → klik na akci (+2/+3/+1, Faul, doskok). Výběr se po akci resetuje. |
-| **Soupeř — nevíme kdo** | Nechej jersey nevybranou → klik přímo na akci. Zapíše se obecně do týmového totálu (v matchEnd v řádku _Bez čísla hráče_). |
-| **Střídání** | Klik na hráče na lavičce → modal výběr OUT/IN → **Provést střídání** |
-| **Omyl (jakákoli změna)** | Klik **↶ Vrátit poslední akci** dole — vrátí akci, změnu Q čísla i ruční nastavení času. |
+| **Náš hráč skóroval / fauloval / cokoli** | Klik na **hráče uprostřed** (karta zmodrá) → klik na akci vlevo. |
+| **Náš tým skóroval, ale nevím kdo** | Sekce **RYCHLÝ ZÁPIS BODŮ — BEZ HRÁČE** vlevo dole: `+2 tým` / `+3 tým` / `+1 tým`. Bez výběru hráče. Sedí semafor, ale nezapočítá se k žádnému hráči (v matchEnd jako řádek _Bez hráče_). |
+| **Soupeř — víme kdo** | Klik na chip s číslem v opp panelu vpravo (zvýrazní se) → klik na akci. Výběr se po akci resetuje. Nebo klik **✕ bez hráče** pro zrušení. |
+| **Soupeř — nevíme kdo** | Nechej chip nevybraný → klik přímo na akci. V matchEnd jako _Bez čísla hráče_. |
+| **Střídání (1 nebo víc hráčů)** | Tlačítko **⇄ Střídání** pod hráčským sloupcem → modal: vlevo "Ven" (na hřišti), vpravo "Dovnitř" (lavička). Klikni libovolný počet hráčů na obou stranách (čísla pořadí se ukážou nad chipy). Počty se musí rovnat. **Provést střídání**. |
+| **Omyl (jakákoli změna)** | Klik **↶ Vrátit poslední** v clock-baru nahoře. Vrátí akci, změnu Q čísla i ruční nastavení času. |
 | **Stopky čas** | ▶ Start / ⏸ Pauza / ✏️ Čas (zbývající MM:SS) / ↺ Reset |
 | **Špatné číslo Q** | Klik ✏️ **Q** → zadej správné (např. `2` pro Q2, `5` pro OT1). Změna se promítne i do událostí této Q. |
 | **Oddech (TO)** | Tlačítka ⏱ TO MY / SOUPEŘ dole. Klok se po kliku automaticky pauzne. FIBA: 2 v 1H, 3 v 2H, 1 v OT. |
@@ -103,7 +126,12 @@ Všichni se v lineup picker pro `nase_kategorie = U17` ukážou.
 
 **Sekce: Soupeři → + Nový soupeř**: Název, Kategorie, soupiska (čísla + jména volitelně).
 
-Rozepsaná soupiska se v live zápase používá pro **per-hráč evidenci soupeře** (klik na číslo před akcí). Rychlé doplnění: **⎘ Hromadně vložit** → textarea ve formátu `číslo jméno [příjmení]` na řádek. Samotná čísla bez jmen jsou OK.
+Rozepsaná soupiska se v live zápase používá pro **per-hráč evidenci soupeře** (klik na číslo před akcí). Rychlé doplnění:
+
+- **⎘ Hromadně vložit** → textarea ve formátu `číslo jméno [příjmení]` na řádek. Přepíše stávající seznam. Samotná čísla bez jmen jsou OK.
+- **↻ Z posledního zápasu** (jen při úpravě existujícího soupeře) — naskenuje události posledního zápasu s tímto týmem a doplní čísla, která jste atribuoval přes chip select. Užitečné když si nepamatujete přesně koho jste zapisoval.
+
+**Pozor — duplicitní čísla:** v přátelácích se mohou objevit dvě hráčské karty se stejným číslem (např. mladší + starší kat.). U **soupeře** aplikace deduplikuje podle čísla a vše agreguje pod jedno. U **našich hráčů** deduplikace nehrozí, klíčujeme přes interní ID — můžete mít klidně 2× `#7`.
 
 ### 2.4 Soutěže
 
@@ -148,11 +176,12 @@ Agreguje napříč ukončenými zápasy.
 **Per game toggle** vpravo nahoře — přepne všechny hodnoty mezi celkovým total a průměrem na zápas (PPG, RPG, MPG atd.).
 
 **Tab Hráči** — kompletní boxscore:
-- # / Avatar / Jméno / GP (games played) / Min / PTS / 2P / 3P / FT / OFF / DEF / AST / STL / TO / BLK / PF / +/- / EFF
+- # / Avatar / Jméno / GP (games played) / Min / PTS / 2P / 3P / FT / OFF / DEF / **REB** / AST / STL / TO / BLK / PF / +/- / EFF
+- REB = OFF + DEF (celkové doskoky).
 
 **Tab Tým** — 3 KPI karty + tabulka týmových statistik + seznam zápasů:
 - KPI: Bilance W–L (–T pokud byly remízy), Body dáno Ø + celkem, Body dostáno Ø + celkem.
-- Týmová tabulka: stejné sloupce jako Hráči (GP, Min, PTS, 2P, 3P, FT, OFF, DEF, AST, STL, TO, BLK, PF) **kromě +/- a EFF**. Reaguje na per game toggle.
+- Týmová tabulka: stejné sloupce jako Hráči (GP, Min, PTS, 2P, 3P, FT, OFF, DEF, **REB**, AST, STL, TO, BLK, PF) **kromě +/- a EFF**. Reaguje na per game toggle.
 - Seznam zápasů s V/P/R. **Klik na řádek** otevře matchEnd view daného zápasu s plným per-Q boxscore a per-hráč staty soupeře.
 
 ### 2.7 Presety filtrů
@@ -216,9 +245,12 @@ EFF je univerzální box-stat ukazatel celkového přínosu hráče.
 - **Foul-out**: 5 osobních faulů → hráč musí být vystřídán, appka vyvolá blokující modal.
 - **Soupeř — per hráč**: body, fauly a doskoky se evidují per jersey, pokud klikneš na číslo soupeře před akcí. AST/STL/TO/BLK pro soupeřovy hráče se nezapisují.
 - **Soupeř — obecně (bez čísla)**: klik na opp akci bez vybrané jersey zapíše do týmového totálu (v matchEnd jako řádek _Bez čísla hráče_).
+- **Soupeř — full roster**: V live zápase je viditelná celá opp soupiska (chips s čísly), ne jen 5 na hřišti. Soupeřovo střídání nesledujeme.
+- **Náš tým — body bez hráče (rychlý zápis)**: tlačítka `+2 tým` / `+3 tým` / `+1 tým` v sekci dole vlevo. Body jdou do skóre (sedí semafor), ale ne k žádnému hráči. V matchEnd zvláštní řádek _Bez hráče_ nad TÝM totalem.
 - **Tmavé dresy**: automaticky u zápasů kde Naše strana = H (hosté).
 - **Oddechy (TO)**: po kliku TO se stopky automaticky pauzují. FIBA: 2 v 1. poločase, 3 v 2. poločase, 1 v každém OT.
-- **Undo (↶ Vrátit poslední akci)**: vrátí zaznamenanou událost, změnu Q čísla i ruční nastavení času. Stack se vyčistí na začátku nové Q.
+- **Undo (↶ Vrátit poslední)**: v clock-baru nahoře. Vrátí zaznamenanou událost, změnu Q čísla i ruční nastavení času. Stack se vyčistí na začátku nové Q.
+- **Bench strip dole**: kompaktní jednořádkový seznam hráčů na lavičce. Bez interakce, jen pro orientaci. Pro střídání použij ⇄ tlačítko v hráčském sloupci.
 
 ---
 
@@ -230,6 +262,7 @@ EFF je univerzální box-stat ukazatel celkového přínosu hráče.
 | **PTS** | Points — body |
 | **2P / 3P / FT** | 2-body / 3-body / Free Throw (trestný hod) — formát `daný/pokus` |
 | **OFF / DEF** | Offensive rebound / Defensive rebound (doskok útočný/obranný) |
+| **REB** | Total Rebounds — celkem doskoků (OFF + DEF) |
 | **AST** | Assist — asistence (přihrávka na koš) |
 | **STL** | Steal — zisk (ukradl míč soupeři) |
 | **TO** | Turnover — ztráta (ztratil míč) |

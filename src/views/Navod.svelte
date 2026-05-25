@@ -27,14 +27,26 @@
         <h4>2. Začátek čtvrtiny</h4>
         <ol>
           <li>Klikni na 5 <strong>našich</strong> hráčů na hřišti (karty se podbarví modře).</li>
-          <li>Volitelně vyber 5 čísel <strong>soupeře</strong> v sekci pod sestavou (pokud má rozepsanou soupisku v Soupeři). Pokud ne, zápis se zapíše bez per-hráč evidence soupeře.</li>
+          <li>Volitelně vyber 5 čísel <strong>soupeře</strong> v sekci pod sestavou (pokud má rozepsanou soupisku v Soupeři). Pokud ne, zápis se zapíše bez per-hráč evidence soupeře. <em>Tahle pětice slouží jen pro úvodní orientaci — v live zápise uvidíš plnou soupisku soupeře.</em></li>
           <li>Klik <strong>Začít Q1</strong>.</li>
           <li>Volitelně klikni <strong>▶ Start</strong> stopek. Stopky odpočítávají od délky Q (např. 10:00 → 0:00). Pokud nestihneš pouštět, akce se zapíší stejně, jen minuty se nepočítají.</li>
         </ol>
       </section>
 
       <section class="step">
-        <h4>3. Během hry</h4>
+        <h4>3. Layout live obrazovky</h4>
+        <p>Obrazovka je rozdělená na 3 sloupce vedle sebe:</p>
+        <ul>
+          <li><strong>Vlevo — MY AKCE:</strong> akce sgrupované (ÚTOK ✓/✗ ve dvou řadách, DOSKOK, POZITIVNÍ, NEGATIVNÍ), dole <em>Rychlý zápis bez hráče</em> a <em>Tech. lavička</em>.</li>
+          <li><strong>Uprostřed — HRÁČI:</strong> 5 svislých karet našich hráčů na hřišti, dole modré tlačítko <strong>⇄ Střídání</strong>.</li>
+          <li><strong>Vpravo — SOUPEŘ:</strong> plná soupiska soupeře jako chips (#číslo + příjmení), dole opp akce v 2-col gridu.</li>
+        </ul>
+        <p>Pod hlavními sloupci: <strong>Live totals</strong> (MY/SOUPEŘ chipy), <strong>Timeouts</strong>, <strong>Šatna strip</strong> (kompaktní řádek bench hráčů), footer s Konec Q / Ukončit zápas.</p>
+        <p>Nahoře <strong>clock-bar</strong>: stopky, Start/Pauza, ✏️ Čas, ✏️ Q, ↺ Reset, a <strong>↶ Vrátit poslední</strong> (undo posledních akcí).</p>
+      </section>
+
+      <section class="step">
+        <h4>4. Během hry</h4>
         <table>
           <thead>
             <tr><th>Akce</th><th>Postup</th></tr>
@@ -42,23 +54,27 @@
           <tbody>
             <tr>
               <td>Náš hráč skóroval / fauloval / cokoli</td>
-              <td>Klik na hráče na hřišti → klik na tlačítko vpravo (akce v 2 sloupcích: 2 daný/nedaný, 3 daný/nedaný, FT, doskok off/def, Faul, AST, STL, TO, Blok)</td>
+              <td>Klik na <strong>hráče uprostřed</strong> (karta zmodrá) → klik na akci vlevo. ÚTOK: horní řada zelená "✓ dal", spodní červená "✗ nedal" (2P / 3P / Trestný). Ostatní skupiny: DOSKOK (off/def), POZITIVNÍ (AST/STL/BLK), NEGATIVNÍ (Faul/Ztráta).</td>
             </tr>
             <tr>
-              <td>Soupeř skóroval — víme kdo (jersey)</td>
-              <td>Klik na číslo soupeře (pětice nahoře v opp panelu) → klik na akci (+2 body / +3 body / +1 trestný / Faul / doskok). Po akci se výběr resetuje.</td>
+              <td>Náš tým skóroval, ale nevím kdo</td>
+              <td>Sekce <strong>RYCHLÝ ZÁPIS BEZ HRÁČE</strong> vlevo dole: <code>+2 tým</code> / <code>+3 tým</code> / <code>+1 tým</code>. Bez výběru hráče. Sedí semafor, ale nezapočítá se k žádnému hráči (v matchEnd jako řádek <em>Bez hráče</em>).</td>
+            </tr>
+            <tr>
+              <td>Soupeř skóroval — víme kdo</td>
+              <td>Klik na chip s číslem v opp panelu vpravo (zvýrazní se) → klik na akci (+2 / +3 / +1 / Faul / doskok). Po akci se výběr automaticky resetuje. Nebo klik <strong>✕ bez hráče</strong> pro zrušení výběru.</td>
             </tr>
             <tr>
               <td>Soupeř skóroval — nevíme kdo</td>
-              <td>Nechej jersey nevybranou → klik přímo na akci. Zaznamená se obecně do týmového totálu soupeře (v matchEnd uvidíš v řádku <em>Bez čísla hráče</em>).</td>
+              <td>Nechej chip nevybraný → klik přímo na akci. Zapíše obecně bez čísla (v matchEnd jako <em>Bez čísla hráče</em>).</td>
             </tr>
             <tr>
-              <td>Střídání</td>
-              <td>Klik na hráče na lavičce → modal výběr OUT/IN → <strong>Provést střídání</strong></td>
+              <td>Střídání (1 nebo víc hráčů)</td>
+              <td>Tlačítko <strong>⇄ Střídání</strong> pod hráčským sloupcem → modal: vlevo "Ven" (na hřišti), vpravo "Dovnitř" (lavička). Klikni libovolný počet hráčů na obou stranách (čísla pořadí se ukážou nad chipy). Počty se musí rovnat. <strong>Provést střídání</strong>.</td>
             </tr>
             <tr>
               <td>Omyl (jakákoli akce)</td>
-              <td>Klikni <strong>↶ Vrátit poslední akci</strong> dole — vrátí poslední akci, změnu Q čísla i ruční nastavení času.</td>
+              <td>Klikni <strong>↶ Vrátit poslední</strong> v clock-baru nahoře — vrátí poslední událost, změnu Q čísla i ruční nastavení času.</td>
             </tr>
             <tr>
               <td>Stopky čas</td>
@@ -77,12 +93,12 @@
       </section>
 
       <section class="step">
-        <h4>4. Konec čtvrtiny</h4>
+        <h4>5. Konec čtvrtiny</h4>
         <p>Klikni <strong>Konec Q1</strong> → stopky se automaticky zapauzují → vyber 5 hráčů pro Q2 → <strong>Začít Q2</strong>. Při přechodu se stopky resetují na 0:00.</p>
       </section>
 
       <section class="step">
-        <h4>5. Konec zápasu</h4>
+        <h4>6. Konec zápasu</h4>
         <p>Po Q4 (nebo OT) klikni <strong>Ukončit zápas</strong> → potvrď. Pokud Q4 končí remízou, můžeš jít do prodloužení. Po ukončení uvidíš kompletní boxscore.</p>
       </section>
 
@@ -131,7 +147,12 @@
       <section class="step">
         <h4>2.3 Soupeři</h4>
         <p><strong>Soupeři → + Nový soupeř</strong>: Název, Kategorie, soupiska (čísla + jména volitelně).</p>
-        <p>Rozepsaná soupiska se používá v live zápase pro per-hráč evidenci (klik na číslo soupeře před akcí). Rychlé doplnění: <strong>⎘ Hromadně vložit</strong> → textarea s formátem <code>číslo jméno [příjmení]</code> na řádek (samotná čísla bez jmen OK).</p>
+        <p>Rozepsaná soupiska se používá v live zápase pro per-hráč evidenci (klik na číslo soupeře před akcí). Rychlé doplnění:</p>
+        <ul>
+          <li><strong>⎘ Hromadně vložit</strong> → textarea s formátem <code>číslo jméno [příjmení]</code> na řádek (samotná čísla bez jmen OK). Přepíše stávající seznam.</li>
+          <li><strong>↻ Z posledního zápasu</strong> (jen při úpravě existujícího soupeře) — naskenuje události posledního zápasu s tímto týmem a doplní čísla, která jste atribuoval přes chip select. Užitečné když si nepamatujete přesně koho jste zapisoval.</li>
+        </ul>
+        <p><strong>Pozor:</strong> v přátelácích se mohou objevit dvě hráčské karty se stejným číslem (např. hráč z mladší kat. + hráč ze starší). U <em>soupeře</em> aplikace deduplikuje podle čísla a v stat zápise se vše agreguje pod jedno číslo. U <em>našich hráčů</em> deduplikace nehrozí, klíčujeme přes interní ID — můžete mít klidně 2× <code>#7</code>.</p>
       </section>
 
       <section class="step">
@@ -159,7 +180,7 @@
         <ul>
           <li><strong>Filtry</strong> (chipy v záhlaví): Sezona, Soutěž, Kategorie, Hráči (jen v tabu Hráči). Prázdný výběr = vše.</li>
           <li><strong>Per game toggle</strong> vpravo nahoře — přepne hodnoty mezi total a Ø na zápas.</li>
-          <li><strong>Tab Hráči</strong> — boxscore: GP, Min, PTS, 2P, 3P, FT, OFF, DEF, AST, STL, TO, BLK, PF, +/-, EFF.</li>
+          <li><strong>Tab Hráči</strong> — boxscore: GP, Min, PTS, 2P, 3P, FT, OFF, DEF, <strong>REB</strong>, AST, STL, TO, BLK, PF, +/-, EFF. REB = OFF + DEF.</li>
           <li><strong>Tab Tým</strong> — 3 KPI karty (bilance, Ø body dáno, Ø body dostáno) + týmová tabulka stejných sloupců jako Hráči (kromě +/- a EFF) + seznam zápasů s V/P/R.</li>
           <li><strong>Klik na řádek zápasu</strong> v Tým tabu otevře <em>matchEnd</em> view s plným per-Q boxscore a per-hráč staty soupeře. Zpět tlačítkem v levém horním rohu.</li>
         </ul>
@@ -229,8 +250,11 @@
           <li><strong>Foul-out:</strong> 5 osobních faulů → hráč musí být vystřídán, blokující modal.</li>
           <li><strong>Soupeř — per hráč:</strong> sledují se body, fauly a doskoky per jersey (pokud klikneš na číslo soupeře před akcí). AST/STL/TO/BLK pro soupeřovy hráče se nezapisují.</li>
           <li><strong>Soupeř — bez čísla:</strong> klik na opp akci bez vybrané jersey → zapíše obecně do týmového totálu (v matchEnd jako řádek <em>Bez čísla hráče</em>).</li>
+          <li><strong>Soupeř — full roster zobrazený</strong>: V live zápase vidíš všechny opp hráče jako chips (řazené dle čísla), ne jen 5 na hřišti. Soupeřovo střídání nesledujeme (přesah by byl příliš velký) — útoč po číslech které víš.</li>
+          <li><strong>Náš tým bez hráče (rychlý zápis):</strong> tlačítka <code>+2 tým</code> / <code>+3 tým</code> / <code>+1 tým</code> v sekci dole vlevo. Body jdou do skóre (sedí semafor), ale ne k žádnému hráči. V matchEnd zvláštní řádek <em>Bez hráče</em> nad TÝM totalem.</li>
           <li><strong>Tmavá sada dresů:</strong> automaticky u zápasů kde <em>Naše strana = H</em> (hosté).</li>
-          <li><strong>Undo:</strong> tlačítko <strong>↶ Vrátit poslední akci</strong> vrátí jak zaznamenanou událost (koš, faul, střídání, oddech), tak ruční změnu Q čísla nebo času. Stack se vyčistí na začátku nové Q.</li>
+          <li><strong>Undo:</strong> tlačítko <strong>↶ Vrátit poslední</strong> v clock-baru nahoře. Vrátí zaznamenanou událost (koš, faul, střídání, oddech), ruční změnu Q čísla nebo času. Stack se vyčistí na začátku nové Q.</li>
+          <li><strong>Bench strip dole:</strong> kompaktní jednořádkový seznam hráčů na lavičce (#5 Černý · #8 Dvořák · …). Bez interakce, jen informace. Pro střídání použijte ⇄ tlačítko.</li>
         </ul>
       </section>
 
@@ -242,6 +266,7 @@
             <tr><th>PTS</th><td>Points — body</td></tr>
             <tr><th>2P / 3P / FT</th><td>2-body / 3-body / Free Throw — formát <code>daný/pokus</code></td></tr>
             <tr><th>OFF / DEF</th><td>Offensive / Defensive rebound (doskok útočný / obranný)</td></tr>
+            <tr><th>REB</th><td>Total Rebounds — celkem doskoků (OFF + DEF)</td></tr>
             <tr><th>AST</th><td>Assist — asistence (přihrávka na koš)</td></tr>
             <tr><th>STL</th><td>Steal — zisk (ukradl míč soupeři)</td></tr>
             <tr><th>TO</th><td>Turnover — ztráta (ztratil míč)</td></tr>
