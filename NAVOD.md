@@ -70,7 +70,8 @@ Obrazovka je rozdělená na **3 sloupce vedle sebe**:
 
 - **Hráč má 5 faulů (vyloučen)** — appka automaticky vyvolá modal, který tě nutí ho vystřídat.
 - **Stopky se resetovaly nechtěně** — klikni ✏️ Čas, zadej zbývající čas MM:SS (např. `4:23`), Enter. Stopky budou pozastavené — pak ▶ Start.
-- **Prošvihl jsi konec/začátek Q** — klikni ✏️ Q a zadej správné číslo. Vrátit lze přes **↶ Vrátit poslední akci**.
+- **Špatné číslo Q (Q je ještě bez akcí)** — klikni ✏️ Q a zadej správné číslo. Pokud v aktuální Q nejsou žádné akce, jen se přejmenuje.
+- **Prošvihl jsi konec Q (akce už máš zapsané)** — klikni ✏️ Q a zadej číslo nové Q. Aktuální Q se uzavře s dosavadními akcemi, vznikne nová Q se stejnou pěticí a stopkami od 0:00 — od teď zapisuješ do ní. Vrátit přes **↶ Vrátit poslední akci** (jen pokud nová Q ještě nemá akce).
 - **Hostujeme (Naše strana = H)** — dresy hráčů se zobrazí v tmavé variantě (modré tělo, bílé číslo) automaticky podle nastavení zápasu.
 - **Pravidlo U14: hráč nemůže odehrát Q1+Q2+Q3 v řadě** — appka tě varuje při střídání, můžeš pokračovat (porušit) nebo zrušit.
 - **Limit čtvrtin pro U12/U13 (2Q), U14 (3Q)** — také varování při střídání.

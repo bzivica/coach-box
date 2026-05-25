@@ -107,7 +107,8 @@
         <ul>
           <li><strong>Hráč má 5 faulů (vyloučen):</strong> appka automaticky vyvolá modal pro vystřídání.</li>
           <li><strong>Stopky se resetovaly nechtěně:</strong> klikni ✏️ Čas, zadej zbývající čas MM:SS (např. <code>4:23</code>), Enter. Stopky budou pozastavené — pak ▶ Start.</li>
-          <li><strong>Prošvihl jsi konec/začátek Q:</strong> klikni ✏️ Q a zadej správné číslo čtvrtiny. Změna se vrátí přes <strong>↶ Vrátit poslední akci</strong>.</li>
+          <li><strong>Špatné číslo Q (zápas ještě bez akcí):</strong> klikni ✏️ Q a zadej správné číslo. Pokud v aktuální Q nejsou žádné akce, jen se přejmenuje.</li>
+          <li><strong>Prošvihl jsi konec Q (akce už máš zapsané):</strong> klikni ✏️ Q a zadej číslo nové Q. Aktuální Q se uzavře s dosavadními akcemi, vznikne nová Q se stejnou pěticí a stopkami od 0:00 — od teď zapisuješ do ní. Vrátit přes <strong>↶ Vrátit poslední akci</strong> (jen pokud nová Q ještě nemá akce).</li>
           <li><strong>U14 pravidlo (Q1+Q2+Q3 v řadě zakázáno):</strong> appka varuje při střídání, lze pokračovat (= vědomé porušení).</li>
           <li><strong>Limit čtvrtin (U12/U13: 2, U14: 3):</strong> varování při překročení.</li>
           <li><strong>Hostujeme (Naše strana = H):</strong> dresy hráčů se zobrazí v tmavé variantě (modré tělo, bílé číslo) automaticky podle nastavení zápasu.</li>

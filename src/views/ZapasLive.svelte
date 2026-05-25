@@ -149,7 +149,16 @@
 
   type UndoOp =
     | { kind: 'event'; eventId: string }
-    | { kind: 'q-change'; ctvrtinaId: string; fromCislo: number; toCislo: number }
+    | { kind: 'q-rename'; ctvrtinaId: string; fromCislo: number; toCislo: number }
+    | {
+        kind: 'q-split';
+        oldCtvrtinaId: string;
+        newCtvrtinaId: string;
+        fromCislo: number;
+        toCislo: number;
+        prevCasZakladnaMs: number;
+        prevCasStartedAt: number | null;
+      }
     | { kind: 'set-time'; prevCasZakladnaMs: number; prevCasStartedAt: number | null };
 
   let undoStack = $state<UndoOp[]>([]);
@@ -219,21 +228,52 @@
       return;
     }
     const oldCislo = cur.cislo;
+    const maEventy = udalosti.some((u) => u.ctvrtina_cislo === oldCislo);
     try {
-      await db.ctvrtiny.update(cur.id, { cislo: parsed });
-      const idsToMove = udalosti.filter((u) => u.ctvrtina_cislo === oldCislo).map((u) => u.id);
-      await Promise.all(idsToMove.map((id) => db.udalosti.update(id, { ctvrtina_cislo: parsed })));
-      ctvrtiny = ctvrtiny
-        .map((c) => (c.id === cur.id ? { ...c, cislo: parsed } : c))
-        .sort((a, b) => a.cislo - b.cislo);
-      udalosti = udalosti.map((u) =>
-        u.ctvrtina_cislo === oldCislo ? { ...u, ctvrtina_cislo: parsed } : u,
-      );
-      aktualniCtvrtinaCislo = parsed;
-      pushUndo({ kind: 'q-change', ctvrtinaId: cur.id, fromCislo: oldCislo, toCislo: parsed });
-      setQModal = false;
-      toast(`Čtvrtina ${oldCislo} → ${formatCtvrtina(parsed, pocetCtvrtin)}`);
-      await updateZapasCache();
+      if (!maEventy) {
+        await db.ctvrtiny.update(cur.id, { cislo: parsed });
+        ctvrtiny = ctvrtiny
+          .map((c) => (c.id === cur.id ? { ...c, cislo: parsed } : c))
+          .sort((a, b) => a.cislo - b.cislo);
+        aktualniCtvrtinaCislo = parsed;
+        pushUndo({ kind: 'q-rename', ctvrtinaId: cur.id, fromCislo: oldCislo, toCislo: parsed });
+        setQModal = false;
+        toast(`Čtvrtina ${oldCislo} → ${formatCtvrtina(parsed, pocetCtvrtin)}`);
+        await updateZapasCache();
+      } else {
+        const now = Date.now();
+        const prevCasZakladnaMs = casZakladnaMs;
+        const prevCasStartedAt = casStartedAt;
+        pauseKlok();
+        await db.ctvrtiny.update(cur.id, { konec_at: now });
+        const novaCtv: Ctvrtina = {
+          id: newId(),
+          zapas_id: zapas.id,
+          cislo: parsed,
+          petice_start: [...onCourt],
+          petice_soupere_start: oppOnCourt.length > 0 ? [...oppOnCourt] : undefined,
+          zacatek_at: now,
+        };
+        await db.ctvrtiny.add(novaCtv);
+        ctvrtiny = [
+          ...ctvrtiny.map((c) => (c.id === cur.id ? { ...c, konec_at: now } : c)),
+          novaCtv,
+        ].sort((a, b) => a.cislo - b.cislo);
+        aktualniCtvrtinaCislo = parsed;
+        resetKlok();
+        pushUndo({
+          kind: 'q-split',
+          oldCtvrtinaId: cur.id,
+          newCtvrtinaId: novaCtv.id,
+          fromCislo: oldCislo,
+          toCislo: parsed,
+          prevCasZakladnaMs,
+          prevCasStartedAt,
+        });
+        setQModal = false;
+        toast(`Q${oldCislo} uzavřena, otevřena ${formatCtvrtina(parsed, pocetCtvrtin)}`);
+        await updateZapasCache();
+      }
     } catch (e) {
       console.error('confirmSetQ failed:', e);
       toast(`Chyba při změně Q: ${(e as Error).message ?? e}`);
@@ -911,7 +951,7 @@
       return;
     }
 
-    if (op.kind === 'q-change') {
+    if (op.kind === 'q-rename') {
       const ctv = ctvrtiny.find((c) => c.id === op.ctvrtinaId);
       if (!ctv) {
         undoStack = undoStack.slice(0, -1);
@@ -922,17 +962,39 @@
         return;
       }
       await db.ctvrtiny.update(ctv.id, { cislo: op.fromCislo });
-      const idsBack = udalosti.filter((u) => u.ctvrtina_cislo === op.toCislo).map((u) => u.id);
-      await Promise.all(idsBack.map((id) => db.udalosti.update(id, { ctvrtina_cislo: op.fromCislo })));
       ctvrtiny = ctvrtiny
         .map((c) => (c.id === ctv.id ? { ...c, cislo: op.fromCislo } : c))
         .sort((a, b) => a.cislo - b.cislo);
-      udalosti = udalosti.map((u) =>
-        u.ctvrtina_cislo === op.toCislo ? { ...u, ctvrtina_cislo: op.fromCislo } : u,
-      );
       if (aktualniCtvrtinaCislo === op.toCislo) aktualniCtvrtinaCislo = op.fromCislo;
       undoStack = undoStack.slice(0, -1);
       toast(`Vrácena změna Q (${op.toCislo} → ${op.fromCislo})`);
+      await updateZapasCache();
+      return;
+    }
+
+    if (op.kind === 'q-split') {
+      const oldCtv = ctvrtiny.find((c) => c.id === op.oldCtvrtinaId);
+      const newCtv = ctvrtiny.find((c) => c.id === op.newCtvrtinaId);
+      if (!oldCtv || !newCtv) {
+        undoStack = undoStack.slice(0, -1);
+        return;
+      }
+      if (udalosti.some((u) => u.ctvrtina_cislo === op.toCislo)) {
+        toast(`V nové Q už jsou eventy — nejdřív je vrať`);
+        return;
+      }
+      await db.ctvrtiny.delete(newCtv.id);
+      await db.ctvrtiny.update(oldCtv.id, { konec_at: undefined });
+      ctvrtiny = ctvrtiny
+        .filter((c) => c.id !== newCtv.id)
+        .map((c) => (c.id === oldCtv.id ? { ...c, konec_at: undefined } : c))
+        .sort((a, b) => a.cislo - b.cislo);
+      aktualniCtvrtinaCislo = op.fromCislo;
+      casZakladnaMs = op.prevCasZakladnaMs;
+      casStartedAt = op.prevCasStartedAt;
+      ted = Date.now();
+      undoStack = undoStack.slice(0, -1);
+      toast(`Vrácen split Q${op.fromCislo}/${op.toCislo}`);
       await updateZapasCache();
       return;
     }
@@ -1094,7 +1156,7 @@
             <button class="clock-btn primary" onclick={startKlok} title="Start">▶ Start</button>
           {/if}
           <button class="clock-btn ghost" onclick={openSetTime} title="Ručně nastavit čas">✏️ Čas</button>
-          <button class="clock-btn ghost" onclick={openSetQ} title="Změnit číslo aktuální čtvrtiny">✏️ Q</button>
+          <button class="clock-btn ghost" onclick={openSetQ} title="Přejmenovat / split aktuální Q. Pokud v Q jsou akce, vytvoří se nová Q s vybraným číslem a stejnou pěticí; minulé akce zůstanou v původní Q.">✏️ Q</button>
           <button class="clock-btn ghost" onclick={resetKlok} title="Reset na 0:00">↺ Reset</button>
           <button class="clock-btn undo" onclick={undo} title="Smaže poslední zaznamenanou událost v této čtvrtině (faul, koš, doskok, střídání…)" disabled={undoStack.length === 0}>↶ Vrátit poslední</button>
         </div>
@@ -1649,7 +1711,13 @@
         <div class="modal" onclick={(e) => e.stopPropagation()} role="presentation">
           <h2>Nastavit číslo čtvrtiny</h2>
           <p class="warning-msg">
-            Aktuálně {fmtQ(aktualniCtvrtinaCislo)}. Zadej správné číslo čtvrtiny (např. <strong>2</strong> pro Q2, <strong>{pocetCtvrtin + 1}</strong> pro OT1). Změnu lze vrátit tlačítkem <em>Vrátit poslední akci</em>.
+            Aktuálně {fmtQ(aktualniCtvrtinaCislo)}. Zadej správné číslo čtvrtiny (např. <strong>2</strong> pro Q2, <strong>{pocetCtvrtin + 1}</strong> pro OT1).
+            {#if udalosti.some((u) => u.ctvrtina_cislo === aktualniCtvrtinaCislo)}
+              <br /><strong>Pozor:</strong> v této Q už jsou zaznamenané akce — místo přejmenování se aktuální Q uzavře a od teď začne nová Q se stejnou pěticí. Minulé akce zůstanou v {fmtQ(aktualniCtvrtinaCislo)}.
+            {:else}
+              <br />V této Q ještě nejsou žádné akce, takže se jen přejmenuje.
+            {/if}
+            <br />Změnu lze vrátit tlačítkem <em>Vrátit poslední akci</em>.
           </p>
           <!-- svelte-ignore a11y_autofocus -->
           <input
