@@ -54,11 +54,11 @@
     <div class="brand">
       <div class="brand-title">
         <div class="club-logo" title="Jižní Supi">
-          <img src="/logo-jizni-supi.png" alt="Jižní Supi" />
+          <img src="{import.meta.env.BASE_URL}logo-jizni-supi.png" alt="Jižní Supi" />
         </div>
         <div class="brand-text">
           <h1>Jižní Supi <span class="brand-sep">—</span> <span class="app-name">Coach Box</span></h1>
-          <span class="version">v0.0.5</span>
+          <span class="version">v0.0.6</span>
         </div>
       </div>
       <button class="theme-toggle" onclick={toggleTheme} title={theme === 'light' ? 'Přepnout na tmavé téma' : 'Přepnout na světlé téma'}>
