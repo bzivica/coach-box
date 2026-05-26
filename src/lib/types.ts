@@ -193,6 +193,7 @@ export interface Udalost {
   timestamp_at: number;
   cas_v_q_ms?: number;
   pozn?: string;
+  korekce?: boolean;
 }
 
 export interface Nastaveni {

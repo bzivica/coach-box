@@ -522,6 +522,87 @@
     await updateZapasCache();
   }
 
+  const KOREKCE_STRANY = ['my', 'opp'] as const;
+  const KOREKCE_BODY = [1, 2, 3] as const;
+  type KorekceStrana = (typeof KOREKCE_STRANY)[number];
+  type KorekceBody = (typeof KOREKCE_BODY)[number];
+
+  function korekceTyp(strana: KorekceStrana, body: KorekceBody): UdalostTyp {
+    if (strana === 'my') {
+      if (body === 1) return 'team_pts_1';
+      if (body === 2) return 'team_pts_2';
+      return 'team_pts_3';
+    }
+    if (body === 1) return 'opp_pts_1';
+    if (body === 2) return 'opp_pts_2';
+    return 'opp_pts_3';
+  }
+
+  function posledniCtvrtinaCislo(): number {
+    if (ctvrtiny.length === 0) return aktualniCtvrtinaCislo;
+    return ctvrtiny.reduce((m, c) => (c.cislo > m ? c.cislo : m), ctvrtiny[0].cislo);
+  }
+
+  function posledniKorekce(typ: UdalostTyp): Udalost | null {
+    let nejnovejsi: Udalost | null = null;
+    for (const u of udalosti) {
+      if (!u.korekce) continue;
+      if (u.typ !== typ) continue;
+      if (nejnovejsi === null || u.timestamp_at > nejnovejsi.timestamp_at) {
+        nejnovejsi = u;
+      }
+    }
+    return nejnovejsi;
+  }
+
+  function korekceLabelStrana(strana: KorekceStrana): string {
+    return strana === 'my' ? 'MY' : 'SOUPEŘ';
+  }
+
+  async function addKorekce(strana: KorekceStrana, body: KorekceBody) {
+    if (!zapas) return;
+    const typ = korekceTyp(strana, body);
+    const q = posledniCtvrtinaCislo();
+    const ev: Udalost = {
+      id: newId(),
+      zapas_id: zapas.id,
+      ctvrtina_cislo: q,
+      poradi: pristiPoradi(udalosti, q),
+      typ,
+      hrac_id: null,
+      timestamp_at: Date.now(),
+      korekce: true,
+    };
+    await db.udalosti.add(ev);
+    udalosti = [...udalosti, ev];
+    toast(`${korekceLabelStrana(strana)} +${body} (korekce)`);
+    await updateZapasCache();
+  }
+
+  async function removeKorekce(strana: KorekceStrana, body: KorekceBody) {
+    if (!zapas) return;
+    const typ = korekceTyp(strana, body);
+    const ev = posledniKorekce(typ);
+    if (!ev) return;
+    await db.udalosti.delete(ev.id);
+    udalosti = udalosti.filter((u) => u.id !== ev.id);
+    toast(`${korekceLabelStrana(strana)} −${body} (korekce zrušena)`);
+    await updateZapasCache();
+  }
+
+  const korekcePocet = $derived.by(() => {
+    const map = new Map<string, number>();
+    for (const u of udalosti) {
+      if (!u.korekce) continue;
+      map.set(u.typ, (map.get(u.typ) ?? 0) + 1);
+    }
+    return map;
+  });
+
+  function maKorekci(strana: KorekceStrana, body: KorekceBody): boolean {
+    return (korekcePocet.get(korekceTyp(strana, body)) ?? 0) > 0;
+  }
+
   function openFoulPicker() {
     if (!selectedPlayer) return;
     foulSubtypePicker = { playerId: selectedPlayer };
@@ -1425,6 +1506,39 @@
           </div>
         </div>
         <div class="me-score-big">{skore.nase} : {skore.souper}</div>
+      </section>
+
+      <section class="score-edit">
+        <header class="se-head">
+          <h3>Úprava skóre</h3>
+          <span class="se-hint">Pokud semafor nesouhlasí, doplň body jako korekci „Bez hráče" v poslední Q.</span>
+        </header>
+        <div class="se-grid">
+          {#each KOREKCE_STRANY as strana (strana)}
+            <div class="se-strana" class:opp={strana === 'opp'}>
+              <div class="se-label">{korekceLabelStrana(strana)}</div>
+              <div class="se-buttons">
+                {#each KOREKCE_BODY as body (body)}
+                  <button
+                    class="se-btn se-plus"
+                    type="button"
+                    onclick={() => addKorekce(strana, body)}
+                  >+{body}</button>
+                {/each}
+              </div>
+              <div class="se-buttons">
+                {#each KOREKCE_BODY as body (body)}
+                  <button
+                    class="se-btn se-minus"
+                    type="button"
+                    disabled={!maKorekci(strana, body)}
+                    onclick={() => removeKorekce(strana, body)}
+                  >−{body}</button>
+                {/each}
+              </div>
+            </div>
+          {/each}
+        </div>
       </section>
 
       <section class="boxscore">
@@ -2754,6 +2868,89 @@
     font-weight: 700;
     color: var(--accent);
     letter-spacing: 1px;
+  }
+
+  .score-edit {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 18px;
+    box-shadow: var(--shadow);
+  }
+  .se-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+  }
+  .se-head h3 {
+    font-size: 15px;
+    color: var(--accent);
+    margin: 0;
+  }
+  .se-hint {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .se-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  @media (max-width: 700px) {
+    .se-grid { grid-template-columns: 1fr; }
+  }
+  .se-strana {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface-2);
+  }
+  .se-strana.opp {
+    border-color: var(--warn-border, var(--border));
+  }
+  .se-label {
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+  }
+  .se-buttons {
+    display: flex;
+    gap: 6px;
+  }
+  .se-btn {
+    flex: 1;
+    padding: 8px 0;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-family: "Consolas", monospace;
+    font-weight: 700;
+    font-size: 15px;
+    cursor: pointer;
+  }
+  .se-btn:hover:not(:disabled) {
+    background: var(--surface-hover, var(--surface));
+    border-color: var(--accent);
+  }
+  .se-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .se-btn.se-plus {
+    color: var(--success-fg);
+    border-color: var(--success-bg);
+  }
+  .se-btn.se-minus {
+    color: var(--danger-fg);
+    border-color: var(--danger-bg);
   }
 
   .boxscore {

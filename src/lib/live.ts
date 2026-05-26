@@ -200,6 +200,50 @@ export function klokByPouzit(udalosti: Udalost[]): boolean {
   return false;
 }
 
+export type CasoveOkno = 'cela' | 'prvni_pol' | 'druha_pol';
+
+export function filtrEventyVOkne(
+  udalosti: Udalost[],
+  ctvrtiny: Ctvrtina[],
+  zapasy: Zapas[],
+  okno: CasoveOkno,
+): Udalost[] {
+  if (okno === 'cela') return udalosti;
+
+  const ctMap = new Map<string, Ctvrtina>();
+  for (const c of ctvrtiny) ctMap.set(`${c.zapas_id}#${c.cislo}`, c);
+
+  const zapasMap = new Map<string, Zapas>();
+  for (const z of zapasy) zapasMap.set(z.id, z);
+
+  return udalosti.filter((u) => {
+    if (u.typ === 'substitution') return true;
+    if (u.korekce) return false;
+
+    const c = ctMap.get(`${u.zapas_id}#${u.ctvrtina_cislo}`);
+    const z = zapasMap.get(u.zapas_id);
+    if (!c || !z) return false;
+
+    const delkaQMs = (z.delka_ctvrtiny_min ?? DEFAULT_DELKA_CTVRTINY_MIN) * 60 * 1000;
+
+    let elapsed: number;
+    let totalMs: number;
+
+    if ((u.cas_v_q_ms ?? 0) > 0) {
+      elapsed = u.cas_v_q_ms!;
+      totalMs = delkaQMs;
+    } else {
+      const konec = c.konec_at ?? c.zacatek_at + delkaQMs;
+      elapsed = u.timestamp_at - c.zacatek_at;
+      totalMs = Math.max(konec - c.zacatek_at, 1);
+    }
+
+    const mid = totalMs / 2;
+    if (okno === 'prvni_pol') return elapsed <= mid;
+    return elapsed > mid;
+  });
+}
+
 export function computeBoxscore(
   udalosti: Udalost[],
   ctvrtiny: Ctvrtina[] = [],

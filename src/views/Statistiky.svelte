@@ -17,6 +17,8 @@
     computeTeamRecord,
     formatMinSec,
     klokByPouzit,
+    filtrEventyVOkne,
+    type CasoveOkno,
   } from '../lib/live';
   import Avatar from '../components/Avatar.svelte';
   import ZapasLive from './ZapasLive.svelte';
@@ -51,6 +53,7 @@
 
   let tab = $state<Tab>('hraci');
   let perGame = $state(false);
+  let casoveOkno = $state<CasoveOkno>('cela');
   let liveZapasId = $state<string | null>(null);
 
   let presety = $state<FilterPreset[]>([]);
@@ -144,6 +147,7 @@
     selectedSouteze = [];
     selectedKategorie = [];
     selectedHraci = [];
+    casoveOkno = 'cela';
   }
 
   const allSezony = $derived([...new Set(zapasy.map((z) => z.sezona))].sort().reverse());
@@ -167,9 +171,15 @@
   const filteredUd = $derived(udalosti.filter((u) => zapasIds.has(u.zapas_id)));
   const filteredCt = $derived(ctvrtiny.filter((c) => zapasIds.has(c.zapas_id)));
 
-  const aggregates = $derived(aggregateAcrossMatches(filteredZapasy, filteredUd, filteredCt));
+  const windowFilteredUd = $derived(
+    filtrEventyVOkne(filteredUd, filteredCt, filteredZapasy, casoveOkno),
+  );
+  const aggregates = $derived(
+    aggregateAcrossMatches(filteredZapasy, windowFilteredUd, filteredCt),
+  );
   const teamRecord = $derived(computeTeamRecord(filteredZapasy));
   const klokPouzitFiltr = $derived(klokByPouzit(filteredUd));
+  const oknoAktivni = $derived(casoveOkno !== 'cela');
 
   const hracByID = $derived(new Map(hraci.map((h) => [h.id, h])));
   const souperByID = $derived(new Map(souperi.map((s) => [s.id, s])));
@@ -252,6 +262,7 @@
   }
 
   function fmtMinutes(total: number, gp: number): string {
+    if (oknoAktivni) return '—';
     if (!klokPouzitFiltr) return '—';
     if (!perGame) return formatMinSec(total);
     if (gp === 0) return '0:00';
@@ -264,6 +275,7 @@
   }
 
   function fmtPM(total: number, gp: number): string {
+    if (oknoAktivni) return '—';
     if (perGame && gp > 0) {
       const avg = total / gp;
       return (avg > 0 ? '+' : '') + avg.toFixed(1);
@@ -360,6 +372,22 @@
       </div>
     </div>
 
+    <div class="filter-group">
+      <span class="fg-label">Časové okno v Q</span>
+      <div class="chips">
+        <button class="chip" class:on={casoveOkno === 'cela'} onclick={() => casoveOkno = 'cela'}>Celá Q</button>
+        <button class="chip" class:on={casoveOkno === 'prvni_pol'} onclick={() => casoveOkno = 'prvni_pol'}>1. polovina Q</button>
+        <button class="chip" class:on={casoveOkno === 'druha_pol'} onclick={() => casoveOkno = 'druha_pol'}>2. polovina Q</button>
+      </div>
+      {#if oknoAktivni}
+        <p class="okno-hint">
+          Pro Q bez stopek se půlka odhaduje z reálného času (zahrnuje pauzy).
+          Min a +/- jsou v okenním režimu „—".
+          Korekce z matchEnd se do okna nezapočítávají.
+        </p>
+      {/if}
+    </div>
+
     {#if tab === 'hraci'}
       <div class="filter-group">
         <span class="fg-label">Hráči (porovnání)</span>
@@ -432,7 +460,7 @@
                 <td class="td-mono">{fmtNum(r.agg.ztraty, r.agg.gp)}</td>
                 <td class="td-mono">{fmtNum(r.agg.bloky, r.agg.gp)}</td>
                 <td class="td-mono">{fmtNum(r.agg.fauly, r.agg.gp)}</td>
-                <td class="td-mono td-pm" class:pm-plus={r.agg.plus_minus > 0} class:pm-minus={r.agg.plus_minus < 0}>{fmtPM(r.agg.plus_minus, r.agg.gp)}</td>
+                <td class="td-mono td-pm" class:pm-plus={!oknoAktivni && r.agg.plus_minus > 0} class:pm-minus={!oknoAktivni && r.agg.plus_minus < 0}>{fmtPM(r.agg.plus_minus, r.agg.gp)}</td>
                 <td class="td-mono td-eff">{fmtNum(r.agg.efficiency, r.agg.gp)}</td>
               </tr>
             {/each}
@@ -632,6 +660,16 @@
     letter-spacing: 1px;
     font-weight: 700;
     min-width: 130px;
+  }
+  .okno-hint {
+    flex-basis: 100%;
+    margin: 4px 0 0 130px;
+    font-size: 11px;
+    color: var(--text-muted);
+    line-height: 1.45;
+  }
+  @media (max-width: 700px) {
+    .okno-hint { margin-left: 0; }
   }
   .chips {
     display: flex;
