@@ -70,14 +70,17 @@
 
   function parsovatHromadne() {
     hromadnyChyba = null;
-    const radky = hromadnyText.split('\n').map((r) => r.trim()).filter((r) => r.length > 0);
+    const radky = hromadnyText
+      .split(/[\n,;]+/)
+      .map((r) => r.trim())
+      .filter((r) => r.length > 0);
     if (radky.length === 0) { hromadnyChyba = 'Prázdný text'; return; }
 
     const noviHraci: SouperHrac[] = [];
     for (let i = 0; i < radky.length; i++) {
       const tokeny = radky[i].split(/\s+/);
       const cislo = parseInt(tokeny[0], 10);
-      if (isNaN(cislo) || cislo < 0 || cislo > 99) { hromadnyChyba = `Řádek ${i + 1}: neplatné číslo "${tokeny[0]}"`; return; }
+      if (isNaN(cislo) || cislo < 0 || cislo > 99) { hromadnyChyba = `Položka ${i + 1}: neplatné číslo "${tokeny[0]}"`; return; }
       const zbytek = tokeny.slice(1);
       let jmeno: string | undefined;
       let prijmeni: string | undefined;
@@ -188,8 +191,8 @@
 
         {#if hromadnyVklad}
           <div class="bulk-paste">
-            <div class="bulk-hint">Jeden hráč na řádek: <code>číslo jméno [příjmení]</code>. Přepíše stávající seznam.</div>
-            <textarea bind:value={hromadnyText} rows="8" placeholder="1 Omer Gušmirovič&#10;2 Matěj Sova&#10;..."></textarea>
+            <div class="bulk-hint">Jeden hráč na řádek nebo čárkou oddělené: <code>číslo [jméno] [příjmení]</code>. Stačí jen čísla (např. <code>5, 8, 12</code>). Přepíše stávající seznam.</div>
+            <textarea bind:value={hromadnyText} rows="8" placeholder="5, 8, 12, 14&#10;nebo&#10;1 Omer Gušmirovič&#10;2 Matěj Sova"></textarea>
             {#if hromadnyChyba}
               <div class="chyba">{hromadnyChyba}</div>
             {/if}

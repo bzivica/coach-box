@@ -295,7 +295,7 @@
                 class:selected={nasazeni.includes(h.id)}
                 onclick={() => toggleHrac(h.id)}
               >
-                <Avatar foto={h.foto} cislo={h.cislo_dresu} size={CARD_AVATAR_SIZE} alt={`${h.jmeno} ${h.prijmeni}`} />
+                <Avatar foto={h.foto} cislo={h.cislo_dresu} size={CARD_AVATAR_SIZE} alt={`${h.jmeno} ${h.prijmeni}`} tmavy={nase_strana === 'away'} />
                 <span class="name">{h.prijmeni}</span>
                 <span class="meta">{kategorieLabel(h.domaci_kategorie)}{h.pozice ? ` · ${h.pozice}` : ''}</span>
               </button>

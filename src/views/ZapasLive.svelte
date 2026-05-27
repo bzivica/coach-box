@@ -16,6 +16,7 @@
     type FoulSubtyp,
     type Hrac,
     type Souper,
+    type SouperHrac,
     type Soutez,
   } from '../lib/types';
   import {
@@ -95,6 +96,12 @@
 
   let foulSubtypePicker = $state<{ playerId: string } | null>(null);
   let oppFoulPicker = $state(false);
+
+  let oppRosterEditOpen = $state(false);
+  let oppRosterDraft = $state<SouperHrac[]>([]);
+  let oppRosterChyba = $state<string | null>(null);
+  let oppRosterBulkOpen = $state(false);
+  let oppRosterBulkText = $state('');
 
   let casZakladnaMs = $state(0);
   let casStartedAt = $state<number | null>(null);
@@ -745,6 +752,93 @@
     await updateZapasCache();
   }
 
+  function openOppRosterEdit() {
+    if (!souper) return;
+    oppRosterDraft = (souper.hraci_soupere ?? []).map((h) => ({ ...h }));
+    oppRosterChyba = null;
+    oppRosterBulkOpen = false;
+    oppRosterBulkText = '';
+    oppRosterEditOpen = true;
+  }
+
+  function addOppRosterRow() {
+    oppRosterDraft = [...oppRosterDraft, { cislo: 0, jmeno: '', prijmeni: '' }];
+  }
+
+  function removeOppRosterRow(i: number) {
+    oppRosterDraft = oppRosterDraft.filter((_, idx) => idx !== i);
+  }
+
+  function parseOppRosterBulk() {
+    oppRosterChyba = null;
+    const radky = oppRosterBulkText
+      .split(/[\n,;]+/)
+      .map((r) => r.trim())
+      .filter((r) => r.length > 0);
+    if (radky.length === 0) { oppRosterChyba = 'Prázdný text'; return; }
+    const noviHraci: SouperHrac[] = [];
+    for (let i = 0; i < radky.length; i++) {
+      const tokeny = radky[i].split(/\s+/);
+      const cislo = parseInt(tokeny[0], 10);
+      if (isNaN(cislo) || cislo < 0 || cislo > 99) { oppRosterChyba = `Položka ${i + 1}: neplatné číslo "${tokeny[0]}"`; return; }
+      const zbytek = tokeny.slice(1);
+      let jmeno: string | undefined;
+      let prijmeni: string | undefined;
+      if (zbytek.length === 1) jmeno = zbytek[0];
+      else if (zbytek.length >= 2) {
+        prijmeni = zbytek[zbytek.length - 1];
+        jmeno = zbytek.slice(0, -1).join(' ');
+      }
+      noviHraci.push({ cislo, jmeno, prijmeni });
+    }
+    const existujiciCisla = new Set(oppRosterDraft.map((h) => h.cislo));
+    const pridana = noviHraci.filter((h) => !existujiciCisla.has(h.cislo));
+    oppRosterDraft = [...oppRosterDraft, ...pridana];
+    oppRosterBulkOpen = false;
+    oppRosterBulkText = '';
+  }
+
+  async function saveOppRoster() {
+    if (!souper) return;
+    oppRosterChyba = null;
+    const cisteni: SouperHrac[] = [];
+    const videnaCisla = new Set<number>();
+    for (let i = 0; i < oppRosterDraft.length; i++) {
+      const h = oppRosterDraft[i];
+      const c = typeof h.cislo === 'string' ? parseInt(h.cislo, 10) : h.cislo;
+      if (!c && !h.jmeno?.trim() && !h.prijmeni?.trim()) continue;
+      if (c === undefined || c === null || isNaN(c as number)) {
+        oppRosterChyba = `Řádek ${i + 1}: číslo musí být vyplněné`;
+        return;
+      }
+      if (c < 0 || c > 99) {
+        oppRosterChyba = `Řádek ${i + 1}: číslo musí být 0–99`;
+        return;
+      }
+      if (videnaCisla.has(c)) {
+        oppRosterChyba = `Číslo #${c} je v soupisce dvakrát`;
+        return;
+      }
+      videnaCisla.add(c);
+      cisteni.push({
+        cislo: c,
+        jmeno: h.jmeno?.trim() || undefined,
+        prijmeni: h.prijmeni?.trim() || undefined,
+      });
+    }
+    const now = Date.now();
+    await db.souperi.update(souper.id, {
+      hraci_soupere: cisteni.length > 0 ? cisteni : undefined,
+      updated_at: now,
+    });
+    souper = { ...souper, hraci_soupere: cisteni.length > 0 ? cisteni : undefined, updated_at: now };
+    if (selectedOppCislo !== null && !cisteni.some((h) => h.cislo === selectedOppCislo)) {
+      selectedOppCislo = null;
+    }
+    oppRosterEditOpen = false;
+    toast('Soupiska soupeře aktualizována');
+  }
+
   async function updateZapasCache() {
     if (!zapas) return;
     const s = computeSkore(udalosti);
@@ -1327,12 +1421,15 @@
 
         <section class="opponent">
           <div class="opp-label">
-            SOUPEŘ ({souper.nazev})
-            {#if selectedOppCislo !== null}
-              — zapíše na #{selectedOppCislo}
-            {:else if (souper.hraci_soupere?.length ?? 0) > 0}
-              — bez čísla (volitelně vyber)
-            {/if}
+            <span>
+              SOUPEŘ ({souper.nazev})
+              {#if selectedOppCislo !== null}
+                — zapíše na #{selectedOppCislo}
+              {:else if (souper.hraci_soupere?.length ?? 0) > 0}
+                — bez čísla (volitelně vyber)
+              {/if}
+            </span>
+            <button class="opp-roster-edit" onclick={openOppRosterEdit} title="Upravit soupisku soupeře (přidat / opravit číslo)">✎ Soupiska</button>
           </div>
           {#if opponentRoster.length > 0}
             <div class="opp-roster-row">
@@ -1888,7 +1985,7 @@
                     checked={editRosterSelected.includes(h.id)}
                     onchange={() => toggleEditRoster(h.id)}
                   />
-                  <Avatar foto={h.foto} cislo={h.cislo_dresu} size={SUB_AVATAR_SIZE} alt={`${h.jmeno} ${h.prijmeni}`} />
+                  <Avatar foto={h.foto} cislo={h.cislo_dresu} size={SUB_AVATAR_SIZE} alt={`${h.jmeno} ${h.prijmeni}`} tmavy={zapas?.nase_strana === 'away'} />
                   <div class="roster-info">
                     <div class="roster-name">#{h.cislo_dresu ?? '?'} {h.jmeno} {h.prijmeni}</div>
                     <div class="roster-meta">{kategorieLabel(h.domaci_kategorie)}{h.pozice ? ` · ${h.pozice}` : ''}</div>
@@ -1951,6 +2048,49 @@
           <div class="modal-buttons">
             <button onclick={() => recordOppFoul(undefined)}>Bez určení čísla</button>
             <button onclick={() => (oppFoulPicker = false)}>Zrušit</button>
+          </div>
+        </div>
+      </div>
+    {/if}
+
+    {#if oppRosterEditOpen && souper}
+      <div class="modal-bg" onclick={() => (oppRosterEditOpen = false)} role="presentation">
+        <div class="modal" onclick={(e) => e.stopPropagation()} role="presentation">
+          <h2>Soupiska soupeře — {souper.nazev}</h2>
+          <p class="roster-hint">Přidat / upravit / smazat čísla a jména. Změny se uloží k soupeři a propíšou se i do budoucích zápasů.</p>
+          <div class="opp-edit-actions">
+            <button type="button" class="small" onclick={() => (oppRosterBulkOpen = !oppRosterBulkOpen)}>
+              {oppRosterBulkOpen ? '× Zrušit hromadné' : '⎘ Hromadně přidat'}
+            </button>
+            <button type="button" class="small" onclick={addOppRosterRow}>+ Přidat hráče</button>
+          </div>
+          {#if oppRosterBulkOpen}
+            <div class="opp-bulk">
+              <div class="bulk-hint">Čárkou, středníkem nebo enterem oddělená čísla (např. <code>5, 8, 12</code>) nebo <code>číslo jméno [příjmení]</code> per řádek. Přidá k stávajícím (duplicitní čísla přeskočí).</div>
+              <textarea bind:value={oppRosterBulkText} rows="5" placeholder="5, 8, 12, 14"></textarea>
+              <button type="button" class="primary small" onclick={parseOppRosterBulk}>Přidat</button>
+            </div>
+          {/if}
+          {#if oppRosterDraft.length === 0}
+            <div class="roster-empty">Soupiska je prázdná. Klikni "+ Přidat hráče" nebo "⎘ Hromadně přidat".</div>
+          {:else}
+            <div class="opp-edit-list">
+              {#each oppRosterDraft as h, i (i)}
+                <div class="opp-edit-row">
+                  <input bind:value={h.cislo} type="number" min="0" max="99" placeholder="#" class="opp-edit-num" />
+                  <input bind:value={h.jmeno} type="text" placeholder="Jméno (volitelné)" />
+                  <input bind:value={h.prijmeni} type="text" placeholder="Příjmení (volitelné)" />
+                  <button type="button" class="danger small" onclick={() => removeOppRosterRow(i)}>×</button>
+                </div>
+              {/each}
+            </div>
+          {/if}
+          {#if oppRosterChyba}
+            <div class="roster-chyba">{oppRosterChyba}</div>
+          {/if}
+          <div class="modal-buttons">
+            <button onclick={() => (oppRosterEditOpen = false)}>Zrušit</button>
+            <button class="primary" onclick={saveOppRoster}>Uložit</button>
           </div>
         </div>
       </div>
@@ -2335,7 +2475,120 @@
     letter-spacing: 1px;
     font-weight: 700;
     margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
   }
+  .opp-roster-edit {
+    background: transparent;
+    border: 1px solid var(--opp-border);
+    color: var(--opp-fg);
+    border-radius: 6px;
+    padding: 3px 9px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: none;
+  }
+  .opp-roster-edit:hover { background: var(--opp-btn-hover); }
+  .opp-edit-actions {
+    display: flex;
+    gap: 8px;
+    margin: 8px 0;
+  }
+  .opp-edit-actions .small {
+    padding: 6px 12px;
+    font-size: 13px;
+    background: var(--surface-hover);
+    border: none;
+    color: var(--text);
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 600;
+  }
+  .opp-edit-actions .small:hover { background: var(--border-strong); color: var(--accent-fg); }
+  .opp-bulk {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
+    background: var(--bg);
+    border: 1px dashed var(--border);
+    border-radius: 6px;
+    margin-bottom: 10px;
+  }
+  .opp-bulk .bulk-hint {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .opp-bulk .bulk-hint code {
+    background: var(--surface-2);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-family: ui-monospace, monospace;
+    font-size: 12px;
+  }
+  .opp-bulk textarea {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: ui-monospace, monospace;
+    resize: vertical;
+    min-height: 80px;
+  }
+  .opp-bulk .primary {
+    background: var(--accent);
+    color: var(--accent-fg);
+    border: none;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: inherit;
+    align-self: flex-start;
+  }
+  .opp-edit-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 45vh;
+    overflow-y: auto;
+  }
+  .opp-edit-row {
+    display: grid;
+    grid-template-columns: 70px 1fr 1fr auto;
+    gap: 8px;
+    align-items: center;
+  }
+  .opp-edit-row input {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: inherit;
+  }
+  .opp-edit-num { text-align: center; }
+  .opp-edit-row .danger {
+    background: var(--danger);
+    color: var(--accent-fg);
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 600;
+  }
+  .opp-edit-row .danger:hover { background: var(--danger-hover); }
   .opp-actions {
     display: grid;
     grid-template-columns: 1fr 1fr;
