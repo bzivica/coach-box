@@ -79,7 +79,7 @@
     letter-spacing: -1px;
   }
   .jersey.dark .jersey-body {
-    fill: var(--accent);
+    fill: #1d4ed8;
     stroke: #ffffff;
   }
   .jersey.dark .jersey-stripe {
