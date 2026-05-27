@@ -58,7 +58,7 @@
         </div>
         <div class="brand-text">
           <h1>Jižní Supi <span class="brand-sep">—</span> <span class="app-name">Coach Box</span></h1>
-          <span class="version">v0.0.8</span>
+          <span class="version">v0.0.9</span>
         </div>
       </div>
       <button class="theme-toggle" onclick={toggleTheme} title={theme === 'light' ? 'Přepnout na tmavé téma' : 'Přepnout na světlé téma'}>

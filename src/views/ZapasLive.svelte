@@ -2865,22 +2865,31 @@
   .modal-buttons button.danger:hover { background: var(--danger-hover); color: var(--accent-fg); }
   .modal-buttons button:disabled { opacity: 0.4; cursor: not-allowed; }
 
-  .sub-modal { width: 720px; max-width: 92vw; }
-  .sub-hint { font-size: 13px; color: var(--text-muted); margin-bottom: 10px; }
+  .sub-modal {
+    width: 860px;
+    max-width: 95vw;
+    max-height: 92vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 16px 20px;
+  }
+  .sub-modal h2 { margin-bottom: 6px; font-size: 18px; }
+  .sub-hint { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
   .sub-counters {
     display: flex;
-    gap: 12px;
+    gap: 10px;
     align-items: center;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
     flex-wrap: wrap;
   }
   .sub-counter {
     background: var(--surface-2);
     border: 1px solid var(--border);
     color: var(--text);
-    padding: 6px 12px;
+    padding: 4px 10px;
     border-radius: 999px;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 600;
   }
   .sub-counter.ok {
@@ -2888,7 +2897,7 @@
     color: var(--success-fg, var(--accent-fg));
     border-color: var(--success, var(--accent));
   }
-  .sub-counter strong { font-family: "Consolas", monospace; font-size: 16px; }
+  .sub-counter strong { font-family: "Consolas", monospace; font-size: 14px; }
   .sub-warn { font-size: 12px; color: var(--danger); font-weight: 600; }
   .sub-order {
     position: absolute;
@@ -2903,39 +2912,56 @@
     border-radius: 999px;
     line-height: 1.3;
   }
-  .sub-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0; }
+  .sub-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin: 6px 0;
+    flex: 1 1 auto;
+    overflow-y: auto;
+    min-height: 0;
+  }
+  .sub-grid > div { display: flex; flex-direction: column; min-height: 0; }
   .sub-grid h3 {
-    font-size: 13px;
+    font-size: 12px;
     color: var(--text-muted);
-    margin-bottom: 10px;
+    margin-bottom: 6px;
     text-transform: uppercase;
     letter-spacing: 1px;
+    position: sticky;
+    top: 0;
+    background: var(--surface);
+    padding-bottom: 4px;
+    z-index: 1;
   }
   .sub-list {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: 8px;
+    grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+    gap: 6px;
+    align-content: start;
   }
   .sub-card {
     background: var(--surface);
     border: 2px solid var(--border);
     color: var(--text);
-    border-radius: 8px;
-    padding: 12px 8px;
+    border-radius: 6px;
+    padding: 6px 4px;
     cursor: pointer;
     text-align: center;
     font-family: inherit;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 6px;
+    gap: 3px;
     position: relative;
   }
+  .sub-card :global(.avatar) { width: 44px !important; height: 44px !important; }
   .sub-card .name {
-    font-size: 16px;
+    font-size: 12px;
     font-weight: 700;
     font-family: "Consolas", monospace;
-    letter-spacing: 0.3px;
+    letter-spacing: 0.2px;
+    line-height: 1.2;
   }
   .sub-card.selected {
     background: var(--selected-bg);
@@ -2949,6 +2975,12 @@
     font-weight: 700;
   }
   .sub-card:hover:not(:disabled) { background: var(--surface-hover); }
+  .sub-modal .modal-buttons {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+  }
 
   button.primary {
     background: var(--accent);
