@@ -1212,8 +1212,10 @@
     return count;
   }
 
+  const SWIPE_ENABLED = false;
   const SWIPE_DETECT_THRESHOLD_PX = 12;
   const SWIPE_FIRE_THRESHOLD_PX = 40;
+  const GESTURE_CANCEL_DRIFT_PX = 12;
   const LONG_PRESS_MS = 250;
   const RADIAL_INNER_RADIUS_PX = 80;
   const RADIAL_OUTER_RADIUS_PX = 145;
@@ -1334,9 +1336,16 @@
     const dy = e.clientY - activeGesture.startY;
     const dist = Math.hypot(dx, dy);
     if (activeGesture.mode === 'idle' && dist >= SWIPE_DETECT_THRESHOLD_PX) {
+      if (SWIPE_ENABLED) {
+        if (activeGesture.longPressTimer !== null) window.clearTimeout(activeGesture.longPressTimer);
+        activeGesture = { ...activeGesture, mode: 'swipe', longPressTimer: null, curX: e.clientX, curY: e.clientY };
+        e.preventDefault();
+        return;
+      }
       if (activeGesture.longPressTimer !== null) window.clearTimeout(activeGesture.longPressTimer);
-      activeGesture = { ...activeGesture, mode: 'swipe', longPressTimer: null, curX: e.clientX, curY: e.clientY };
-      e.preventDefault();
+      const el = e.currentTarget as HTMLElement;
+      try { el.releasePointerCapture(e.pointerId); } catch { /* ignore */ }
+      activeGesture = null;
       return;
     }
     activeGesture = { ...activeGesture, curX: e.clientX, curY: e.clientY };
@@ -1505,6 +1514,16 @@
 
   function actionGesturePointerMove(e: PointerEvent) {
     if (!actionGesture || e.pointerId !== actionGesture.pointerId) return;
+    if (actionGesture.mode === 'idle') {
+      const drift = Math.hypot(e.clientX - actionGesture.startX, e.clientY - actionGesture.startY);
+      if (drift >= GESTURE_CANCEL_DRIFT_PX) {
+        if (actionGesture.longPressTimer !== null) window.clearTimeout(actionGesture.longPressTimer);
+        const el = e.currentTarget as HTMLElement;
+        try { el.releasePointerCapture(e.pointerId); } catch { /* ignore */ }
+        actionGesture = null;
+        return;
+      }
+    }
     actionGesture = { ...actionGesture, curX: e.clientX, curY: e.clientY };
     if (actionGesture.mode === 'radial') e.preventDefault();
   }
@@ -2659,7 +2678,7 @@
     align-items: center;
     gap: 10px;
     text-align: left;
-    touch-action: none;
+    touch-action: pan-y;
     user-select: none;
     -webkit-user-select: none;
     -webkit-tap-highlight-color: transparent;
@@ -2828,7 +2847,7 @@
     font-weight: 600;
     text-align: left;
     transition: all 0.1s ease;
-    touch-action: none;
+    touch-action: pan-y;
     user-select: none;
     -webkit-user-select: none;
     -webkit-tap-highlight-color: transparent;

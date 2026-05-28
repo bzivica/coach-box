@@ -97,7 +97,8 @@
         <p>Aplikace nabízí <strong>dva směry gesta</strong>, vyber si který ti sedí (oba fungují souběžně):</p>
 
         <h5>A) Hráč → akce (gesto na kartě hráče)</h5>
-        <p>Na kartě hráče v prostředním sloupci fungují kromě klasického <strong>tapu</strong> (= vybrat hráče) ještě dvě gesta, která zapíšou akci jedním tahem:</p>
+        <p class="warn-inline">⚠ <strong>Swipe je momentálně vypnutý</strong> (kolidoval se scrollem na mobilu). Funguje jen <strong>tap</strong> (= vybrat hráče) a <strong>podržení prstu</strong> (= radial 13 akcí). Tabulka swipe níže je jen pro referenci.</p>
+        <p>Na kartě hráče v prostředním sloupci fungují kromě klasického <strong>tapu</strong> (= vybrat hráče) ještě tato gesta:</p>
         <table>
           <thead>
             <tr><th>Gesto</th><th>Akce</th><th>Použití</th></tr>
