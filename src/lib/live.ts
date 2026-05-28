@@ -541,8 +541,13 @@ export function oppFaulyPerCislo(udalosti: Udalost[]): Map<number, number> {
 
 export interface OppHracStat {
   body: number;
+  body_2: number;
+  body_3: number;
+  body_th: number;
   fauly: number;
   doskoky: number;
+  doskoky_off: number;
+  doskoky_def: number;
 }
 
 export function oppStatsPerCislo(udalosti: Udalost[]): Map<number, OppHracStat> {
@@ -550,7 +555,7 @@ export function oppStatsPerCislo(udalosti: Udalost[]): Map<number, OppHracStat> 
   const get = (cislo: number): OppHracStat => {
     let s = m.get(cislo);
     if (!s) {
-      s = { body: 0, fauly: 0, doskoky: 0 };
+      s = { body: 0, body_2: 0, body_3: 0, body_th: 0, fauly: 0, doskoky: 0, doskoky_off: 0, doskoky_def: 0 };
       m.set(cislo, s);
     }
     return s;
@@ -558,11 +563,13 @@ export function oppStatsPerCislo(udalosti: Udalost[]): Map<number, OppHracStat> 
   for (const u of udalosti) {
     if (typeof u.opp_hrac_cislo !== 'number') continue;
     const s = get(u.opp_hrac_cislo);
-    if (u.typ === 'opp_pts_2') s.body += 2;
-    else if (u.typ === 'opp_pts_3') s.body += 3;
-    else if (u.typ === 'opp_pts_1') s.body += 1;
+    if (u.typ === 'opp_pts_2') { s.body += 2; s.body_2 += 2; }
+    else if (u.typ === 'opp_pts_3') { s.body += 3; s.body_3 += 3; }
+    else if (u.typ === 'opp_pts_1') { s.body += 1; s.body_th += 1; }
     else if (u.typ === 'opp_foul') s.fauly++;
-    else if (u.typ === 'opp_reb_off' || u.typ === 'opp_reb_def' || u.typ === 'opp_reb') s.doskoky++;
+    else if (u.typ === 'opp_reb_off') { s.doskoky++; s.doskoky_off++; }
+    else if (u.typ === 'opp_reb_def') { s.doskoky++; s.doskoky_def++; }
+    else if (u.typ === 'opp_reb') s.doskoky++;
   }
   return m;
 }

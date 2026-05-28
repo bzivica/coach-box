@@ -12,7 +12,7 @@ export default defineConfig({
   plugins: [
     svelte(),
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: 'prompt',
       manifest: {
         name: 'Coach Box (Jižní Supi)',
         short_name: 'Coach Box',

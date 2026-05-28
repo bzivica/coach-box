@@ -39,6 +39,7 @@
   const HRAC_AVATAR_SIZE = 32;
   const DECIMALS_PER_GAME = 1;
   const PRESETY_KLIC = 'statistiky_presety';
+  const AKTIVNI_SEZONA_KLIC = 'aktivni_sezona';
 
   let zapasy = $state<Zapas[]>([]);
   let udalosti = $state<Udalost[]>([]);
@@ -69,7 +70,17 @@
     souteze = await db.souteze.toArray();
     souperi = await db.souperi.toArray();
     await nactiPresety();
+    await aplikovatAktivniSezonu();
   });
+
+  async function aplikovatAktivniSezonu() {
+    const row = await db.nastaveni.get(AKTIVNI_SEZONA_KLIC);
+    const aktivni = typeof row?.hodnota === 'string' ? row.hodnota.trim() : '';
+    if (!aktivni) return;
+    if (selectedSezony.length > 0) return;
+    if (!zapasy.some((z) => z.sezona === aktivni)) return;
+    selectedSezony = [aktivni];
+  }
 
   async function nactiPresety() {
     const row = await db.nastaveni.get(PRESETY_KLIC);

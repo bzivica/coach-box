@@ -398,17 +398,27 @@
   const periodOppFaulyPerCisloMap = $derived(oppFaulyPerCislo(periodUdalosti));
   const periodOppStatsPerCisloMap = $derived(oppStatsPerCislo(periodUdalosti));
   const periodOppBezCisla = $derived.by(() => {
-    let body = 0, fauly = 0, doskoky = 0;
+    let body = 0, body_2 = 0, body_3 = 0, body_th = 0, fauly = 0, doskoky = 0, doskoky_off = 0, doskoky_def = 0;
     for (const s of periodOppStatsPerCisloMap.values()) {
       body += s.body;
+      body_2 += s.body_2;
+      body_3 += s.body_3;
+      body_th += s.body_th;
       fauly += s.fauly;
       doskoky += s.doskoky;
+      doskoky_off += s.doskoky_off;
+      doskoky_def += s.doskoky_def;
     }
     const dosTot = periodOppTotals.doskoky_off + periodOppTotals.doskoky_def + periodOppTotals.doskoky_neznamy;
     return {
       body: Math.max(0, periodOppTotals.body - body),
+      body_2: Math.max(0, periodOppTotals.body_2 - body_2),
+      body_3: Math.max(0, periodOppTotals.body_3 - body_3),
+      body_th: Math.max(0, periodOppTotals.body_th - body_th),
       fauly: Math.max(0, periodOppTotals.fauly - fauly),
       doskoky: Math.max(0, dosTot - doskoky),
+      doskoky_off: Math.max(0, periodOppTotals.doskoky_off - doskoky_off),
+      doskoky_def: Math.max(0, periodOppTotals.doskoky_def - doskoky_def),
     };
   });
   const periodBenchTechCount = $derived(pocetBenchTech(periodUdalosti));
@@ -2145,29 +2155,44 @@
                 <tr>
                   <th>#</th>
                   <th>Jméno</th>
-                  <th class="th-mono">PTS</th>
-                  <th class="th-mono">PF</th>
-                  <th class="th-mono">REB</th>
+                  <th class="th-mono" title="Body celkem">PTS</th>
+                  <th class="th-mono" title="Body z 2P košů">2P</th>
+                  <th class="th-mono" title="Body z 3P košů">3P</th>
+                  <th class="th-mono" title="Body z trestných">FT</th>
+                  <th class="th-mono" title="Útočný doskok">OFF</th>
+                  <th class="th-mono" title="Obranný doskok">DEF</th>
+                  <th class="th-mono" title="Doskoky celkem">REB</th>
+                  <th class="th-mono" title="Osobní fauly">PF</th>
                 </tr>
               </thead>
               <tbody>
-                {#each [...periodOppStatsPerCisloMap.entries()].sort((a, b) => a[0] - b[0]) as [cislo, st] (cislo)}
+                {#each [...periodOppStatsPerCisloMap.entries()].sort((a, b) => b[1].body - a[1].body || a[0] - b[0]) as [cislo, st] (cislo)}
                   {@const oh = souper.hraci_soupere?.find((h) => h.cislo === cislo)}
                   <tr>
                     <td class="td-mono">#{cislo}</td>
                     <td>{oh?.prijmeni ?? ''}</td>
-                    <td class="td-mono">{st.body}</td>
-                    <td class="td-mono">{st.fauly}</td>
+                    <td class="td-mono"><strong>{st.body}</strong></td>
+                    <td class="td-mono">{st.body_2}</td>
+                    <td class="td-mono">{st.body_3}</td>
+                    <td class="td-mono">{st.body_th}</td>
+                    <td class="td-mono">{st.doskoky_off}</td>
+                    <td class="td-mono">{st.doskoky_def}</td>
                     <td class="td-mono">{st.doskoky}</td>
+                    <td class="td-mono">{st.fauly}</td>
                   </tr>
                 {/each}
                 {#if periodOppBezCisla.body + periodOppBezCisla.fauly + periodOppBezCisla.doskoky > 0}
                   <tr class="opp-bez-cisla">
                     <td class="td-mono">—</td>
                     <td><em>Bez čísla hráče</em></td>
-                    <td class="td-mono">{periodOppBezCisla.body}</td>
-                    <td class="td-mono">{periodOppBezCisla.fauly}</td>
+                    <td class="td-mono"><strong>{periodOppBezCisla.body}</strong></td>
+                    <td class="td-mono">{periodOppBezCisla.body_2}</td>
+                    <td class="td-mono">{periodOppBezCisla.body_3}</td>
+                    <td class="td-mono">{periodOppBezCisla.body_th}</td>
+                    <td class="td-mono">{periodOppBezCisla.doskoky_off}</td>
+                    <td class="td-mono">{periodOppBezCisla.doskoky_def}</td>
                     <td class="td-mono">{periodOppBezCisla.doskoky}</td>
+                    <td class="td-mono">{periodOppBezCisla.fauly}</td>
                   </tr>
                 {/if}
               </tbody>

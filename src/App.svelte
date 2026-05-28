@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { registerSW } from 'virtual:pwa-register';
   import { seedAll } from './lib/db';
   import Home from './views/Home.svelte';
   import Hraci from './views/Hraci.svelte';
@@ -16,6 +17,8 @@
 
   let view = $state<View>('home');
   let theme = $state<Theme>('light');
+  let updateReady = $state(false);
+  let updateSW: ((reloadPage?: boolean) => Promise<void>) | null = null;
 
   onMount(() => {
     const saved = localStorage.getItem(THEME_KEY);
@@ -27,7 +30,34 @@
       theme = 'light';
     }
     seedAll();
+    void requestPersistentStorage();
+
+    updateSW = registerSW({
+      onNeedRefresh() { updateReady = true; },
+      onOfflineReady() { console.log('[pwa] ready to work offline'); },
+    });
   });
+
+  async function requestPersistentStorage() {
+    if (!navigator.storage?.persist) return;
+    try {
+      const already = await navigator.storage.persisted();
+      if (already) return;
+      const granted = await navigator.storage.persist();
+      console.log(granted ? '[storage] persistent granted' : '[storage] persistent denied');
+    } catch (e) {
+      console.warn('[storage] persist request failed:', e);
+    }
+  }
+
+  function applyUpdate() {
+    updateReady = false;
+    void updateSW?.(true);
+  }
+
+  function dismissUpdate() {
+    updateReady = false;
+  }
 
   $effect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -50,6 +80,13 @@
 </script>
 
 <main>
+  {#if updateReady}
+    <div class="update-toast" role="status">
+      <span class="update-text">🔄 Nová verze Coach Box je dostupná</span>
+      <button class="update-btn" onclick={applyUpdate}>Aktualizovat</button>
+      <button class="update-dismiss" onclick={dismissUpdate} title="Zavřít — verze se nainstaluje při dalším spuštění">✕</button>
+    </div>
+  {/if}
   <header>
     <div class="brand">
       <div class="brand-title">
@@ -58,7 +95,7 @@
         </div>
         <div class="brand-text">
           <h1>Jižní Supi <span class="brand-sep">—</span> <span class="app-name">Coach Box</span></h1>
-          <span class="version">v0.0.15</span>
+          <span class="version">v0.0.16</span>
         </div>
       </div>
       <button class="theme-toggle" onclick={toggleTheme} title={theme === 'light' ? 'Přepnout na tmavé téma' : 'Přepnout na světlé téma'}>
@@ -188,6 +225,51 @@
     margin: 0 auto;
     padding: 24px;
   }
+
+  .update-toast {
+    position: sticky;
+    top: 8px;
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--accent);
+    color: var(--accent-fg);
+    padding: 10px 14px;
+    border-radius: 8px;
+    box-shadow: var(--shadow-strong);
+    margin-bottom: 12px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .update-text { flex: 1; }
+  .update-btn {
+    background: #ffffff;
+    color: var(--accent);
+    border: none;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .update-btn:hover { filter: brightness(0.95); }
+  .update-dismiss {
+    background: transparent;
+    color: var(--accent-fg);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 6px;
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .update-dismiss:hover { background: rgba(255, 255, 255, 0.12); }
 
   header {
     margin-bottom: 28px;

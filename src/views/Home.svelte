@@ -2,10 +2,15 @@
   import { onMount } from 'svelte';
   import { db, exportAll, importReplace, importMerge, type ExportData, type MergeResult } from '../lib/db';
 
+  const AKTIVNI_SEZONA_KLIC = 'aktivni_sezona';
+
   let pocetHracu = $state(0);
   let pocetSoutezi = $state(0);
   let pocetZapasu = $state(0);
   let pocetSouperu = $state(0);
+
+  let aktivniSezony = $state<string[]>([]);
+  let aktivniSezona = $state('');
 
   let zprava = $state<string | null>(null);
   let zpravaTyp = $state<'ok' | 'err'>('ok');
@@ -19,6 +24,20 @@
     pocetSoutezi = await db.souteze.count();
     pocetZapasu = await db.zapasy.count();
     pocetSouperu = await db.souperi.count();
+    const zapasy = await db.zapasy.toArray();
+    aktivniSezony = [...new Set(zapasy.map((z) => z.sezona))].sort().reverse();
+    const row = await db.nastaveni.get(AKTIVNI_SEZONA_KLIC);
+    aktivniSezona = typeof row?.hodnota === 'string' ? row.hodnota : '';
+  }
+
+  async function ulozAktivniSezonu(s: string) {
+    aktivniSezona = s;
+    await db.nastaveni.put({ klic: AKTIVNI_SEZONA_KLIC, hodnota: s });
+    if (s) {
+      showMsg(`Aktivní sezona nastavena na ${s}. Statistiky se nyní defaultně filtrují na tuto sezonu.`);
+    } else {
+      showMsg('Aktivní sezona zrušena. Statistiky zobrazí vše.');
+    }
   }
 
   function showMsg(text: string, typ: 'ok' | 'err' = 'ok') {
@@ -126,6 +145,22 @@
   </div>
 </section>
 
+<section class="aktivni-sezona">
+  <h2>Aktivní sezona</h2>
+  <p class="muted">Pokud nastavíš aktivní sezonu, <strong>Statistiky</strong> se na ni defaultně předfiltrují. Můžeš ji v Statistikách kdykoli ručně přepnout — toto je jen výchozí stav po otevření aplikace.</p>
+  <div class="sezona-row">
+    <select bind:value={aktivniSezona} onchange={(e) => ulozAktivniSezonu((e.currentTarget as HTMLSelectElement).value)}>
+      <option value="">— bez výchozí sezony —</option>
+      {#each aktivniSezony as s}
+        <option value={s}>{s}</option>
+      {/each}
+    </select>
+    {#if aktivniSezona}
+      <span class="sezona-cur">Současná: <strong>{aktivniSezona}</strong></span>
+    {/if}
+  </div>
+</section>
+
 <section class="export-import">
   <h2>Záloha / přenos dat</h2>
   <p class="muted">Data jsou uložená v prohlížeči (IndexedDB). Pro přenos mezi zařízeními nebo zálohu použij Export. Sloučit = doplnit nové z jiného zařízení, ponechat stávající.</p>
@@ -172,6 +207,42 @@
     text-transform: uppercase;
     letter-spacing: 1px;
   }
+
+  .aktivni-sezona {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 24px;
+    box-shadow: var(--shadow);
+    margin-bottom: 16px;
+  }
+  .aktivni-sezona h2 {
+    font-size: 16px;
+    margin-bottom: 8px;
+    color: var(--text);
+  }
+  .sezona-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .sezona-row select {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-family: inherit;
+    font-size: 14px;
+    min-width: 220px;
+  }
+  .sezona-row select:focus { outline: none; border-color: var(--accent); }
+  .sezona-cur {
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+  .sezona-cur strong { color: var(--accent); }
 
   .export-import {
     background: var(--surface);
