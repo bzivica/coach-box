@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { db, exportAll, importReplace, type ExportData } from '../lib/db';
+  import { db, exportAll, importReplace, importMerge, type ExportData, type MergeResult } from '../lib/db';
 
   let pocetHracu = $state(0);
   let pocetSoutezi = $state(0);
@@ -64,6 +64,47 @@
       showMsg(`Import selhal: ${(err as Error).message}`, 'err');
     }
   }
+
+  function formatMergeStats(r: MergeResult): string {
+    const lines: string[] = [];
+    const pridej = (label: string, s: { added: number; updated: number; skipped: number }) => {
+      if (s.added || s.updated) {
+        const parts = [];
+        if (s.added) parts.push(`+${s.added} nových`);
+        if (s.updated) parts.push(`${s.updated} aktualizováno`);
+        lines.push(`${label}: ${parts.join(', ')}`);
+      }
+    };
+    pridej('Hráči', r.hraci);
+    pridej('Soutěže', r.souteze);
+    pridej('Soupeři', r.souperi);
+    pridej('Zápasy', r.zapasy);
+    if (r.ctvrtiny.added) lines.push(`Čtvrtiny: +${r.ctvrtiny.added} nových`);
+    if (r.udalosti.added) lines.push(`Události: +${r.udalosti.added} nových`);
+    if (r.zapasy_with_changes) lines.push(`Přepočítáno skóre ${r.zapasy_with_changes} zápasů`);
+    return lines.length ? lines.join('; ') : 'Žádné nové změny — všechno už máš.';
+  }
+
+  async function importDataMerge(e: Event) {
+    const input = e.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    input.value = '';
+
+    if (!confirm('Sloučí data ze souboru s tvými stávajícími:\n\n• Nové entity přidá\n• Stejné hráče/soupeře/zápasy ponechá, případně doplní novější údaje\n• Statistiky přepočítá z událostí (nezdvojí)\n• Tvoje data nepřepíše\n\nPokračovat?')) {
+      return;
+    }
+
+    try {
+      const text = await file.text();
+      const payload = JSON.parse(text) as ExportData;
+      const result = await importMerge(payload);
+      await reload();
+      showMsg(`Sloučení OK. ${formatMergeStats(result)}`);
+    } catch (err) {
+      showMsg(`Sloučení selhalo: ${(err as Error).message}`, 'err');
+    }
+  }
 </script>
 
 <section class="cards">
@@ -87,11 +128,15 @@
 
 <section class="export-import">
   <h2>Záloha / přenos dat</h2>
-  <p class="muted">Data jsou uložená v prohlížeči (IndexedDB). Pro přenos mezi zařízeními nebo zálohu použij Export.</p>
+  <p class="muted">Data jsou uložená v prohlížeči (IndexedDB). Pro přenos mezi zařízeními nebo zálohu použij Export. Sloučit = doplnit nové z jiného zařízení, ponechat stávající.</p>
   <div class="ei-buttons">
     <button class="primary" onclick={exportData}>📥 Export všech dat (JSON)</button>
+    <label class="import-btn merge">
+      🔀 Sloučit z JSON
+      <input type="file" accept="application/json" onchange={importDataMerge} hidden />
+    </label>
     <label class="import-btn">
-      📤 Import z JSON
+      📤 Import (přepsat) z JSON
       <input type="file" accept="application/json" onchange={importData} hidden />
     </label>
   </div>
@@ -169,6 +214,16 @@
   .ei-buttons .import-btn:hover { background: var(--border-strong); color: var(--accent-fg); }
   .ei-buttons button.primary { background: var(--accent); color: var(--accent-fg); }
   .ei-buttons button.primary:hover { background: var(--accent-hover); color: var(--accent-fg); }
+  .ei-buttons .import-btn.merge {
+    background: var(--success-bg, var(--surface-hover));
+    color: var(--success-fg, var(--text));
+    border: 1px solid var(--success, var(--border));
+  }
+  .ei-buttons .import-btn.merge:hover {
+    background: var(--success);
+    color: #ffffff;
+    border-color: var(--success);
+  }
   .msg {
     margin-top: 14px;
     padding: 10px 14px;

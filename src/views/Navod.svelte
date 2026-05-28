@@ -54,7 +54,7 @@
           <tbody>
             <tr>
               <td>Náš hráč skóroval / fauloval / cokoli</td>
-              <td>Klik na <strong>hráče uprostřed</strong> (karta zmodrá) → klik na akci vlevo. ÚTOK: horní řada zelená "✓ dal", spodní červená "✗ nedal" (2P / 3P / Trestný). Ostatní skupiny: DOSKOK (off/def), POZITIVNÍ (AST/STL/BLK), NEGATIVNÍ (Faul/Ztráta).</td>
+              <td>Klik na <strong>hráče uprostřed</strong> (karta zmodrá) → klik na akci vlevo. ÚTOK: horní řada zelená "✓ dal", spodní červená "✗ nedal" (2P / 3P / Trestný). Ostatní skupiny: DOSKOK (off/def), POZITIVNÍ (AST/STL/BLK), NEGATIVNÍ (Faul/Ztráta). <strong>Tip:</strong> 8 nejčastějších akcí jde zapsat jediným gestem přímo na kartě — viz krok <em>4b. Rychlé zapisování gesty</em>.</td>
             </tr>
             <tr>
               <td>Náš tým skóroval, ale nevím kdo</td>
@@ -90,6 +90,35 @@
             </tr>
           </tbody>
         </table>
+      </section>
+
+      <section class="step">
+        <h4>4b. Rychlé zapisování gesty (volitelné, zrychlí 80 % akcí)</h4>
+        <p>Na kartě hráče v prostředním sloupci fungují kromě klasického <strong>tapu</strong> (= vybrat hráče) ještě dvě gesta, která zapíšou akci jedním tahem bez nutnosti nejdřív vybírat hráče:</p>
+        <table>
+          <thead>
+            <tr><th>Gesto</th><th>Akce</th><th>Použití</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Krátké švihnutí ↑</strong></td>
+              <td>+2 body daný</td>
+              <td rowspan="4">Při tažení se kolem karty objeví 4 popisky (↑✓2, ↓✗2, →FAUL, ←REB-D) — aktivní směr se modře zvýrazní. Pust až za hranicí karty, jinak se akce nezapíše. Nejrychlejší cesta pro 4 nejčastější situace.</td>
+            </tr>
+            <tr><td><strong>Krátké švihnutí ↓</strong></td><td>2 body NEdaný</td></tr>
+            <tr><td><strong>Krátké švihnutí →</strong></td><td>Faul (otevře výběr osobní/nesp./tech.)</td></tr>
+            <tr><td><strong>Krátké švihnutí ←</strong></td><td>Doskok obranný (REB-D)</td></tr>
+            <tr>
+              <td><strong>Podržení prstu (~¼ s) + tažení</strong></td>
+              <td>Radial menu s 8 akcemi</td>
+              <td>Kolem prstu se rozevře kruh s 8 segmenty: ↑✓2, ↗✓3, →FAUL, ↘REB-O, ↓✗2, ↙✗3, ←REB-D, ↖✓FT. Slidneš prstem na požadovaný segment a pustíš = zápis. Když prst pustíš ve středu (×) nebo daleko mimo, akce se neprovede.</td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="muted-note">
+          <strong>Kardinální směry jsou v obou gestech stejné</strong> (↑+2, ↓✗2, →faul, ←REB-D), takže nemusíš přepínat myšlení mezi swipe a radial — jen volíš jestli chceš rychlost (swipe) nebo přehled všech 8 možností (radial).<br/>
+          Akce, které gesty <em>nejsou</em> dostupné (asistence, zisk, blok, ztráta, ✗ trestný), zapisuješ klasicky: tap na hráče → tlačítko vlevo. Funguje to dál úplně stejně jako bez gest.
+        </p>
       </section>
 
       <section class="step">

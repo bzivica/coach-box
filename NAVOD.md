@@ -45,7 +45,7 @@ Obrazovka je rozdělená na **3 sloupce vedle sebe**:
 
 | Akce | Postup |
 |---|---|
-| **Náš hráč skóroval / fauloval / cokoli** | Klik na **hráče uprostřed** (karta zmodrá) → klik na akci vlevo. |
+| **Náš hráč skóroval / fauloval / cokoli** | Klik na **hráče uprostřed** (karta zmodrá) → klik na akci vlevo. _Tip:_ 8 nejčastějších akcí jde zapsat jediným gestem přímo na kartě hráče — viz [Rychlé zapisování gesty](#rychle-zapisovani-gesty-volitelne). |
 | **Náš tým skóroval, ale nevím kdo** | Sekce **RYCHLÝ ZÁPIS BODŮ — BEZ HRÁČE** vlevo dole: `+2 tým` / `+3 tým` / `+1 tým`. Bez výběru hráče. Sedí semafor, ale nezapočítá se k žádnému hráči (v matchEnd jako řádek _Bez hráče_). |
 | **Soupeř — víme kdo** | Klik na chip s číslem v opp panelu vpravo (zvýrazní se) → klik na akci. Výběr se po akci resetuje. Nebo klik **✕ bez hráče** pro zrušení. |
 | **Soupeř — nevíme kdo** | Nechej chip nevybraný → klik přímo na akci. V matchEnd jako _Bez čísla hráče_. |
@@ -54,6 +54,24 @@ Obrazovka je rozdělená na **3 sloupce vedle sebe**:
 | **Stopky čas** | ▶ Start / ⏸ Pauza / ✏️ Čas (zbývající MM:SS) / ↺ Reset |
 | **Špatné číslo Q** | Klik ✏️ **Q** → zadej správné (např. `2` pro Q2, `5` pro OT1). Změna se promítne i do událostí této Q. |
 | **Oddech (TO)** | Tlačítka ⏱ TO MY / SOUPEŘ dole. Klok se po kliku automaticky pauzne. FIBA: 2 v 1H, 3 v 2H, 1 v OT. |
+
+### Rychlé zapisování gesty (volitelné)
+
+Na kartě hráče v prostředním sloupci fungují kromě klasického **tapu** (= vybrat hráče) ještě dvě gesta, která zapíšou akci jedním tahem — bez nutnosti nejdřív vybírat hráče a pak akci.
+
+**Funguje stejně na dotyku (tablet/telefon) i s myší/touchpadem na notebooku.**
+
+| Gesto | Akce | Detail |
+|---|---|---|
+| Krátké švihnutí **↑** | **+2 body daný** | Tažení nad horní okraj karty — při tažení se kolem karty objeví popisky a aktivní směr se modře zvýrazní. Pust mimo střed karty (>40 px), jinak se akce nezapíše. |
+| Krátké švihnutí **↓** | **2 body NEdaný** | Stejně jako výše, směrem dolů. |
+| Krátké švihnutí **→** | **Faul** (otevře výběr osobní/nesp./tech.) | Stejně jako výše, doprava. |
+| Krátké švihnutí **←** | **Doskok obranný (REB-D)** | Stejně jako výše, doleva. |
+| **Podržení (~¼ s) + tažení** | **Radial menu** s 8 akcemi | Kolem prstu / kurzoru se rozevře kruh s 8 segmenty: **↑✓2, ↗✓3, →FAUL, ↘REB-O, ↓✗2, ↙✗3, ←REB-D, ↖✓FT**. Slidneš na požadovaný segment a pustíš = zápis. Pust ve středu kruhu (×) nebo daleko mimo = zrušení. |
+
+**Kardinální směry jsou v obou gestech stejné** (↑+2, ↓✗2, →faul, ←REB-D), takže nemusíš přepínat myšlení mezi swipe a radial — jen volíš jestli chceš rychlost (swipe) nebo přehled všech 8 možností (radial).
+
+Akce, které gesty **nejsou** dostupné (asistence, zisk, blok, ztráta, ✗ trestný), zapisuješ klasicky: tap na hráče → tlačítko vlevo. Funguje to úplně stejně jako bez gest.
 
 ### Konec čtvrtiny
 

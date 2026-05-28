@@ -58,7 +58,7 @@
         </div>
         <div class="brand-text">
           <h1>Jižní Supi <span class="brand-sep">—</span> <span class="app-name">Coach Box</span></h1>
-          <span class="version">v0.0.10</span>
+          <span class="version">v0.0.13</span>
         </div>
       </div>
       <button class="theme-toggle" onclick={toggleTheme} title={theme === 'light' ? 'Přepnout na tmavé téma' : 'Přepnout na světlé téma'}>
@@ -291,5 +291,25 @@
   nav button.active {
     background: #ffffff;
     color: var(--accent);
+  }
+
+  @media (max-width: 900px) {
+    main { padding: 8px; }
+    header { margin-bottom: 12px; }
+    .brand { margin-bottom: 10px; gap: 8px; }
+    .brand-title { gap: 8px; }
+    .club-logo { width: 36px; height: 36px; }
+    .brand h1 { font-size: 17px; }
+    .brand-sep { display: none; }
+    .app-name { font-size: 14px; font-weight: 600; }
+    .version { font-size: 10px; }
+    .theme-toggle { width: 34px; height: 34px; font-size: 15px; border-radius: 6px; }
+    nav { gap: 2px; padding: 2px; border-radius: 6px; overflow-x: auto; }
+    nav button { padding: 8px 10px; font-size: 12px; white-space: nowrap; flex: 0 0 auto; }
+  }
+  @media (max-width: 600px) {
+    main { padding: 6px; }
+    .brand h1 { font-size: 15px; }
+    .app-name { font-size: 13px; }
   }
 </style>

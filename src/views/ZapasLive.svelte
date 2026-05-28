@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, tick } from 'svelte';
   import { db, newId } from '../lib/db';
   import {
     formatCtvrtina,
@@ -1211,6 +1211,172 @@
     }
     return count;
   }
+
+  const SWIPE_DETECT_THRESHOLD_PX = 12;
+  const SWIPE_FIRE_THRESHOLD_PX = 40;
+  const LONG_PRESS_MS = 250;
+  const RADIAL_RADIUS_PX = 90;
+  const RADIAL_DEADZONE_PX = 22;
+
+  type GestureMode = 'idle' | 'swipe' | 'radial';
+  interface ActiveGesture {
+    pointerId: number;
+    playerId: string;
+    startX: number;
+    startY: number;
+    curX: number;
+    curY: number;
+    cardCx: number;
+    cardCy: number;
+    mode: GestureMode;
+    longPressTimer: number | null;
+  }
+
+  let activeGesture = $state<ActiveGesture | null>(null);
+
+  type GesturActionTyp =
+    | 'shot_2_made'
+    | 'shot_2_miss'
+    | 'shot_3_made'
+    | 'shot_3_miss'
+    | 'ft_made'
+    | 'reb_off'
+    | 'reb_def'
+    | 'foul';
+
+  function swipeDirectionToTyp(dx: number, dy: number): GesturActionTyp | null {
+    const deg = (Math.atan2(dy, dx) * 180) / Math.PI;
+    if (deg >= -45 && deg < 45) return 'foul';
+    if (deg >= 45 && deg < 135) return 'shot_2_miss';
+    if (deg >= -135 && deg < -45) return 'shot_2_made';
+    return 'reb_def';
+  }
+
+  function radialSegmentIndex(dx: number, dy: number): number | null {
+    const dist = Math.hypot(dx, dy);
+    if (dist < RADIAL_DEADZONE_PX) return null;
+    const deg = (Math.atan2(dy, dx) * 180) / Math.PI;
+    const normalized = (deg + 90 + 360) % 360;
+    return Math.floor((normalized + 22.5) / 45) % 8;
+  }
+
+  const RADIAL_SEGMENTS: { typ: GesturActionTyp; label: string; tone: 'made' | 'miss' | 'foul' | 'reb' }[] = [
+    { typ: 'shot_2_made', label: '✓2', tone: 'made' },
+    { typ: 'shot_3_made', label: '✓3', tone: 'made' },
+    { typ: 'foul', label: 'FAUL', tone: 'foul' },
+    { typ: 'reb_off', label: 'REB-O', tone: 'reb' },
+    { typ: 'shot_2_miss', label: '✗2', tone: 'miss' },
+    { typ: 'shot_3_miss', label: '✗3', tone: 'miss' },
+    { typ: 'reb_def', label: 'REB-D', tone: 'reb' },
+    { typ: 'ft_made', label: '✓FT', tone: 'made' },
+  ];
+
+  async function dispatchGesturAction(playerId: string, typ: GesturActionTyp) {
+    selectedPlayer = playerId;
+    await tick();
+    if (typ === 'foul') {
+      foulSubtypePicker = { playerId };
+      return;
+    }
+    await recordAction(typ);
+  }
+
+  function gesturePointerDown(e: PointerEvent, playerId: string) {
+    if (activeGesture) return;
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    const el = e.currentTarget as HTMLElement;
+    const rect = el.getBoundingClientRect();
+    const timer = window.setTimeout(() => {
+      if (activeGesture && activeGesture.mode === 'idle' && activeGesture.pointerId === e.pointerId) {
+        activeGesture = { ...activeGesture, mode: 'radial', longPressTimer: null };
+      }
+    }, LONG_PRESS_MS);
+    activeGesture = {
+      pointerId: e.pointerId,
+      playerId,
+      startX: e.clientX,
+      startY: e.clientY,
+      curX: e.clientX,
+      curY: e.clientY,
+      cardCx: rect.left + rect.width / 2,
+      cardCy: rect.top + rect.height / 2,
+      mode: 'idle',
+      longPressTimer: timer,
+    };
+    try { el.setPointerCapture(e.pointerId); } catch { /* ignore */ }
+  }
+
+  function gesturePointerMove(e: PointerEvent) {
+    if (!activeGesture || e.pointerId !== activeGesture.pointerId) return;
+    const dx = e.clientX - activeGesture.startX;
+    const dy = e.clientY - activeGesture.startY;
+    const dist = Math.hypot(dx, dy);
+    if (activeGesture.mode === 'idle' && dist >= SWIPE_DETECT_THRESHOLD_PX) {
+      if (activeGesture.longPressTimer !== null) window.clearTimeout(activeGesture.longPressTimer);
+      activeGesture = { ...activeGesture, mode: 'swipe', longPressTimer: null, curX: e.clientX, curY: e.clientY };
+      e.preventDefault();
+      return;
+    }
+    activeGesture = { ...activeGesture, curX: e.clientX, curY: e.clientY };
+    if (activeGesture.mode !== 'idle') e.preventDefault();
+  }
+
+  function gesturePointerUp(e: PointerEvent) {
+    if (!activeGesture || e.pointerId !== activeGesture.pointerId) return;
+    const g = activeGesture;
+    if (g.longPressTimer !== null) window.clearTimeout(g.longPressTimer);
+    const el = e.currentTarget as HTMLElement;
+    try { el.releasePointerCapture(e.pointerId); } catch { /* ignore */ }
+    activeGesture = null;
+
+    const dx = g.curX - g.startX;
+    const dy = g.curY - g.startY;
+    const dist = Math.hypot(dx, dy);
+
+    if (g.mode === 'idle') {
+      selectPlayer(g.playerId);
+      return;
+    }
+    if (g.mode === 'swipe') {
+      if (dist < SWIPE_FIRE_THRESHOLD_PX) return;
+      const typ = swipeDirectionToTyp(dx, dy);
+      if (typ) void dispatchGesturAction(g.playerId, typ);
+      return;
+    }
+    const radialDx = g.curX - g.cardCx;
+    const radialDy = g.curY - g.cardCy;
+    const idx = radialSegmentIndex(radialDx, radialDy);
+    if (idx === null) return;
+    const seg = RADIAL_SEGMENTS[idx];
+    if (seg) void dispatchGesturAction(g.playerId, seg.typ);
+  }
+
+  function gesturePointerCancel(e: PointerEvent) {
+    if (!activeGesture || e.pointerId !== activeGesture.pointerId) return;
+    if (activeGesture.longPressTimer !== null) window.clearTimeout(activeGesture.longPressTimer);
+    activeGesture = null;
+  }
+
+  const swipeActiveDir = $derived.by<GesturActionTyp | null>(() => {
+    if (!activeGesture || activeGesture.mode !== 'swipe') return null;
+    const dx = activeGesture.curX - activeGesture.startX;
+    const dy = activeGesture.curY - activeGesture.startY;
+    if (Math.hypot(dx, dy) < SWIPE_FIRE_THRESHOLD_PX / 2) return null;
+    return swipeDirectionToTyp(dx, dy);
+  });
+
+  const radialActiveIdx = $derived.by<number | null>(() => {
+    if (!activeGesture || activeGesture.mode !== 'radial') return null;
+    const dx = activeGesture.curX - activeGesture.cardCx;
+    const dy = activeGesture.curY - activeGesture.cardCy;
+    return radialSegmentIndex(dx, dy);
+  });
+
+  function radialSegmentXY(i: number, r: number): { x: number; y: number } {
+    const deg = -90 + i * 45;
+    const rad = (deg * Math.PI) / 180;
+    return { x: Math.cos(rad) * r, y: Math.sin(rad) * r };
+  }
 </script>
 
 {#if mode === 'loading' || !zapas || !souper}
@@ -1402,10 +1568,17 @@
           <div class="pc-list">
             {#each naHristi as h (h.id)}
               {@const fauly = pocetFauluZobr(h.id)}
-              <button
+              <div
                 class="pc-card"
                 class:selected={selectedPlayer === h.id}
-                onclick={() => selectPlayer(h.id)}
+                class:gesturing={activeGesture?.playerId === h.id}
+                role="button"
+                tabindex="0"
+                onpointerdown={(e) => gesturePointerDown(e, h.id)}
+                onpointermove={gesturePointerMove}
+                onpointerup={gesturePointerUp}
+                onpointercancel={gesturePointerCancel}
+                onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectPlayer(h.id); } }}
               >
                 <Avatar foto={h.foto} cislo={h.cislo_dresu} size={PC_AVATAR_SIZE} alt={`${h.jmeno} ${h.prijmeni}`} tmavy={zapas?.nase_strana === 'away'} />
                 <div class="pc-info">
@@ -1413,7 +1586,15 @@
                   <div class="pc-name">{h.prijmeni}</div>
                 </div>
                 {#if fauly > 0}<div class="pc-fauly">F{fauly}</div>{/if}
-              </button>
+                {#if activeGesture?.playerId === h.id && activeGesture.mode === 'swipe'}
+                  <div class="swipe-hud" aria-hidden="true">
+                    <span class="swipe-dir swipe-up" class:active={swipeActiveDir === 'shot_2_made'}>✓2</span>
+                    <span class="swipe-dir swipe-down" class:active={swipeActiveDir === 'shot_2_miss'}>✗2</span>
+                    <span class="swipe-dir swipe-right" class:active={swipeActiveDir === 'foul'}>FAUL</span>
+                    <span class="swipe-dir swipe-left" class:active={swipeActiveDir === 'reb_def'}>REB-D</span>
+                  </div>
+                {/if}
+              </div>
             {/each}
           </div>
           <button class="pc-sub-btn" onclick={openSub} title="Otevři střídání (multi-výběr)">⇄ Střídání</button>
@@ -2095,6 +2276,21 @@
         </div>
       </div>
     {/if}
+
+    {#if activeGesture && activeGesture.mode === 'radial'}
+      <div class="radial-overlay" style="left: {activeGesture.cardCx}px; top: {activeGesture.cardCy}px;" aria-hidden="true">
+        <div class="radial-hint">táhni na akci · pusť pro zápis</div>
+        {#each RADIAL_SEGMENTS as seg, i (seg.typ)}
+          {@const pos = radialSegmentXY(i, RADIAL_RADIUS_PX)}
+          <div
+            class="radial-seg radial-tone-{seg.tone}"
+            class:active={radialActiveIdx === i}
+            style="transform: translate({pos.x}px, {pos.y}px);"
+          >{seg.label}</div>
+        {/each}
+        <div class="radial-center" class:cancel={radialActiveIdx === null}>{radialActiveIdx === null ? '×' : '·'}</div>
+      </div>
+    {/if}
   </div>
 {/if}
 
@@ -2260,8 +2456,13 @@
     align-items: center;
     gap: 10px;
     text-align: left;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
   }
   .pc-card:hover { background: var(--surface-hover); border-color: var(--border-strong); }
+  .pc-card.gesturing { background: var(--surface-hover); border-color: var(--accent); }
   .pc-card.selected {
     background: var(--selected-bg);
     border-color: var(--selected-border);
@@ -3711,4 +3912,227 @@
   .to-btn .to-zbyva { font-size: 15px; font-weight: 600; }
   .to-btn .to-zbyva strong { font-size: 22px; font-family: ui-monospace, monospace; }
   .to-btn .to-celkem { font-size: 11px; font-weight: 500; opacity: 0.8; }
+
+  .swipe-hud {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 5;
+  }
+  .swipe-dir {
+    position: absolute;
+    background: rgba(15, 23, 42, 0.92);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 6px;
+    padding: 3px 7px;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+    line-height: 1;
+    font-family: inherit;
+    text-transform: uppercase;
+    transition: transform 0.08s ease, background 0.08s ease;
+  }
+  .swipe-dir.swipe-up { top: -10px; left: 50%; transform: translate(-50%, -100%); }
+  .swipe-dir.swipe-down { bottom: -10px; left: 50%; transform: translate(-50%, 100%); }
+  .swipe-dir.swipe-left { left: -10px; top: 50%; transform: translate(-100%, -50%); }
+  .swipe-dir.swipe-right { right: -10px; top: 50%; transform: translate(100%, -50%); }
+  .swipe-dir.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--accent-fg);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.35);
+  }
+  .swipe-dir.swipe-up.active { transform: translate(-50%, -100%) scale(1.15); }
+  .swipe-dir.swipe-down.active { transform: translate(-50%, 100%) scale(1.15); }
+  .swipe-dir.swipe-left.active { transform: translate(-100%, -50%) scale(1.15); }
+  .swipe-dir.swipe-right.active { transform: translate(100%, -50%) scale(1.15); }
+
+  .radial-overlay {
+    position: fixed;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+    z-index: 1500;
+  }
+  .radial-overlay::before {
+    content: '';
+    position: absolute;
+    left: -140px;
+    top: -140px;
+    width: 280px;
+    height: 280px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(15, 23, 42, 0.55) 0%, rgba(15, 23, 42, 0.0) 70%);
+  }
+  .radial-hint {
+    position: absolute;
+    left: 50%;
+    bottom: -140px;
+    transform: translateX(-50%);
+    background: rgba(15, 23, 42, 0.9);
+    color: #ffffff;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .radial-seg {
+    position: absolute;
+    left: 0;
+    top: 0;
+    margin-left: -30px;
+    margin-top: -22px;
+    width: 60px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(30, 41, 59, 0.96);
+    color: #ffffff;
+    border: 2px solid rgba(255, 255, 255, 0.18);
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+    transition: transform 0.08s ease, background 0.08s ease, box-shadow 0.08s ease;
+  }
+  .radial-seg.radial-tone-made { border-left: 4px solid var(--success); }
+  .radial-seg.radial-tone-miss { border-left: 4px solid var(--danger); }
+  .radial-seg.radial-tone-foul { border-left: 4px solid var(--warn); }
+  .radial-seg.radial-tone-reb { border-left: 4px solid var(--accent); }
+  .radial-seg.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.45);
+  }
+  .radial-center {
+    position: absolute;
+    left: 0;
+    top: 0;
+    margin-left: -16px;
+    margin-top: -16px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(15, 23, 42, 0.85);
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 800;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+  }
+  .radial-center.cancel {
+    background: var(--danger);
+    border-color: var(--danger);
+    color: #ffffff;
+  }
+
+  @media (max-width: 900px) {
+    .live-app { gap: 8px; min-height: calc(100vh - 60px); }
+
+    .head {
+      grid-template-columns: auto 1fr auto;
+      grid-template-areas:
+        "back teams quarter"
+        "score score score";
+      gap: 6px 8px;
+      padding: 6px 10px;
+      border-radius: 6px;
+    }
+    .back { grid-area: back; padding: 5px 9px; font-size: 12px; }
+    .teams {
+      grid-area: teams;
+      font-size: 14px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      min-width: 0;
+    }
+    .teams .vs { margin: 0 4px; }
+    .quarter { grid-area: quarter; font-size: 13px; padding: 5px 10px; }
+    .score { grid-area: score; font-size: 26px; text-align: center; }
+    .score .sep { margin: 0 6px; }
+
+    .quarter-scores { gap: 4px; padding: 0 2px; }
+    .qs { padding: 3px 7px; font-size: 11px; gap: 4px; }
+
+    .clock-bar { padding: 6px 10px; gap: 10px; border-radius: 6px; }
+    .clock-cislo { gap: 6px; }
+    .clock-q { padding: 3px 7px; font-size: 12px; }
+    .clock-display { font-size: 26px; min-width: 70px; }
+    .clock-total-label { display: none; }
+    .clock-total-meta { display: none; }
+    .clock-total-val { font-size: 15px; }
+    .clock-buttons { gap: 4px; }
+    .clock-btn { padding: 6px 8px; font-size: 11px; border-radius: 5px; }
+
+    .live { grid-template-columns: minmax(0, 1fr) 180px; gap: 8px; }
+
+    .actions { padding: 8px; gap: 4px; border-radius: 6px; }
+    .group-label { font-size: 9px; letter-spacing: 0.8px; padding: 1px 1px 0; }
+    .group-grid { gap: 4px; }
+    .action { padding: 9px 8px; font-size: 12px; border-radius: 5px; text-align: center; }
+    .action.bench-tech { padding: 8px; font-size: 12px; }
+    .actions-label { font-size: 11px; padding: 4px 0; }
+
+    .players-col { padding: 6px; gap: 5px; border-radius: 6px; }
+    .pc-label { font-size: 9px; padding: 2px 0 0; }
+    .pc-list { gap: 4px; }
+    .pc-card { padding: 5px 7px; gap: 6px; border-radius: 6px; border-width: 1px; }
+    .pc-num { font-size: 17px; }
+    .pc-name { font-size: 12px; }
+    .pc-fauly { top: 2px; right: 4px; font-size: 10px; }
+    :global(.pc-card .avatar) { width: 32px !important; height: 32px !important; }
+    .pc-sub-btn { padding: 7px 8px; font-size: 12px; }
+
+    .opponent { padding: 8px 10px; border-radius: 6px; }
+    .opp-label { font-size: 10px; margin-bottom: 6px; }
+    .opp-roster-edit { padding: 2px 7px; font-size: 11px; }
+    .opp-roster-row { gap: 4px; margin-bottom: 6px; }
+    .opp-roster-chip { padding: 3px 8px; font-size: 12px; border-width: 1px; gap: 4px; }
+    .orc-name { font-size: 11px; }
+    .opp-roster-clear { padding: 3px 8px; font-size: 11px; }
+    .opp-actions { gap: 4px; }
+    .opp { padding: 9px 8px; font-size: 12px; }
+
+    .bench-strip { padding: 5px 8px; font-size: 11px; gap: 6px; border-radius: 6px; }
+    .bs-label { font-size: 10px; }
+    .bs-item { font-size: 11px; }
+
+    .timeouts { padding: 7px 10px; border-radius: 6px; }
+    .to-info { font-size: 11px; margin-bottom: 5px; }
+    .to-buttons { gap: 6px; }
+    .to-btn { padding: 7px 10px; gap: 2px; }
+    .to-btn .to-team { font-size: 12px; }
+    .to-btn .to-zbyva { font-size: 12px; }
+    .to-btn .to-zbyva strong { font-size: 17px; }
+    .to-btn .to-celkem { font-size: 10px; }
+
+    .pick-lineup { padding: 12px; border-radius: 6px; }
+    .pick-lineup h2 { font-size: 16px; margin-bottom: 10px; }
+    .players-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 6px; margin-bottom: 12px; }
+    .opp-pick-grid { grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 6px; }
+    .big { padding: 10px 18px !important; font-size: 14px !important; }
+  }
+
+  @media (max-width: 700px) {
+    .live { grid-template-columns: 1fr; }
+    .live > .opponent { grid-column: auto; }
+    .head {
+      grid-template-columns: auto 1fr auto;
+      grid-template-areas:
+        "back teams quarter"
+        "score score score";
+    }
+    .teams { font-size: 13px; }
+    .score { font-size: 22px; }
+    .clock-bar { gap: 8px; }
+    .clock-display { font-size: 22px; min-width: 60px; }
+    .clock-btn { padding: 5px 7px; font-size: 10px; }
+  }
 </style>
