@@ -1215,8 +1215,10 @@
   const SWIPE_DETECT_THRESHOLD_PX = 12;
   const SWIPE_FIRE_THRESHOLD_PX = 40;
   const LONG_PRESS_MS = 250;
-  const RADIAL_RADIUS_PX = 90;
+  const RADIAL_INNER_RADIUS_PX = 80;
+  const RADIAL_OUTER_RADIUS_PX = 145;
   const RADIAL_DEADZONE_PX = 22;
+  const RADIAL_RING_BOUNDARY_PX = 110;
 
   type GestureMode = 'idle' | 'swipe' | 'radial';
   interface ActiveGesture {
@@ -1240,9 +1242,16 @@
     | 'shot_3_made'
     | 'shot_3_miss'
     | 'ft_made'
+    | 'ft_miss'
     | 'reb_off'
     | 'reb_def'
-    | 'foul';
+    | 'foul'
+    | 'assist'
+    | 'steal'
+    | 'block'
+    | 'turnover';
+
+  type SegTone = 'made' | 'miss' | 'foul' | 'reb' | 'pozit' | 'negat';
 
   function swipeDirectionToTyp(dx: number, dy: number): GesturActionTyp | null {
     const deg = (Math.atan2(dy, dx) * 180) / Math.PI;
@@ -1252,15 +1261,20 @@
     return 'reb_def';
   }
 
-  function radialSegmentIndex(dx: number, dy: number): number | null {
+  type RadialHit = { ring: 'inner' | 'outer'; idx: number };
+
+  function radialSegmentIndex(dx: number, dy: number): RadialHit | null {
     const dist = Math.hypot(dx, dy);
     if (dist < RADIAL_DEADZONE_PX) return null;
     const deg = (Math.atan2(dy, dx) * 180) / Math.PI;
     const normalized = (deg + 90 + 360) % 360;
-    return Math.floor((normalized + 22.5) / 45) % 8;
+    if (dist < RADIAL_RING_BOUNDARY_PX) {
+      return { ring: 'inner', idx: Math.floor((normalized + 22.5) / 45) % 8 };
+    }
+    return { ring: 'outer', idx: Math.floor((normalized + 36) / 72) % 5 };
   }
 
-  const RADIAL_SEGMENTS: { typ: GesturActionTyp; label: string; tone: 'made' | 'miss' | 'foul' | 'reb' }[] = [
+  const RADIAL_INNER_SEGMENTS: { typ: GesturActionTyp; label: string; tone: SegTone }[] = [
     { typ: 'shot_2_made', label: '✓2', tone: 'made' },
     { typ: 'shot_3_made', label: '✓3', tone: 'made' },
     { typ: 'foul', label: 'FAUL', tone: 'foul' },
@@ -1269,6 +1283,14 @@
     { typ: 'shot_3_miss', label: '✗3', tone: 'miss' },
     { typ: 'reb_def', label: 'REB-D', tone: 'reb' },
     { typ: 'ft_made', label: '✓FT', tone: 'made' },
+  ];
+
+  const RADIAL_OUTER_SEGMENTS: { typ: GesturActionTyp; label: string; tone: SegTone }[] = [
+    { typ: 'assist', label: 'AST', tone: 'pozit' },
+    { typ: 'steal', label: 'STL', tone: 'pozit' },
+    { typ: 'block', label: 'BLK', tone: 'pozit' },
+    { typ: 'turnover', label: 'TO', tone: 'negat' },
+    { typ: 'ft_miss', label: '✗FT', tone: 'miss' },
   ];
 
   async function dispatchGesturAction(playerId: string, typ: GesturActionTyp) {
@@ -1345,9 +1367,9 @@
     }
     const radialDx = g.curX - g.cardCx;
     const radialDy = g.curY - g.cardCy;
-    const idx = radialSegmentIndex(radialDx, radialDy);
-    if (idx === null) return;
-    const seg = RADIAL_SEGMENTS[idx];
+    const hit = radialSegmentIndex(radialDx, radialDy);
+    if (hit === null) return;
+    const seg = hit.ring === 'inner' ? RADIAL_INNER_SEGMENTS[hit.idx] : RADIAL_OUTER_SEGMENTS[hit.idx];
     if (seg) void dispatchGesturAction(g.playerId, seg.typ);
   }
 
@@ -1365,17 +1387,155 @@
     return swipeDirectionToTyp(dx, dy);
   });
 
-  const radialActiveIdx = $derived.by<number | null>(() => {
+  const radialActive = $derived.by<RadialHit | null>(() => {
     if (!activeGesture || activeGesture.mode !== 'radial') return null;
     const dx = activeGesture.curX - activeGesture.cardCx;
     const dy = activeGesture.curY - activeGesture.cardCy;
     return radialSegmentIndex(dx, dy);
   });
 
-  function radialSegmentXY(i: number, r: number): { x: number; y: number } {
+  function radialInnerSegmentXY(i: number, r: number): { x: number; y: number } {
     const deg = -90 + i * 45;
     const rad = (deg * Math.PI) / 180;
     return { x: Math.cos(rad) * r, y: Math.sin(rad) * r };
+  }
+
+  function radialOuterSegmentXY(i: number, r: number): { x: number; y: number } {
+    const deg = -90 + i * 72;
+    const rad = (deg * Math.PI) / 180;
+    return { x: Math.cos(rad) * r, y: Math.sin(rad) * r };
+  }
+
+  const ACTION_RADIAL_RADIUS_PX = 110;
+  const ACTION_RADIAL_DEADZONE_PX = 28;
+  const ACTION_TAP_MAX_DRIFT_PX = 12;
+
+  type ActionGestureTyp =
+    | 'shot_2_made' | 'shot_2_miss'
+    | 'shot_3_made' | 'shot_3_miss'
+    | 'ft_made' | 'ft_miss'
+    | 'reb_off' | 'reb_def'
+    | 'assist' | 'steal' | 'block'
+    | 'turnover' | 'foul';
+
+  interface ActionGesture {
+    pointerId: number;
+    typ: ActionGestureTyp;
+    startX: number;
+    startY: number;
+    curX: number;
+    curY: number;
+    btnCx: number;
+    btnCy: number;
+    mode: 'idle' | 'radial';
+    longPressTimer: number | null;
+  }
+
+  let actionGesture = $state<ActionGesture | null>(null);
+
+  const radialPlayers = $derived(naHristi.slice(0, 5));
+
+  function actionRadialSegmentXY(i: number, n: number, r: number): { x: number; y: number } {
+    const deg = -90 + (i * 360) / n;
+    const rad = (deg * Math.PI) / 180;
+    return { x: Math.cos(rad) * r, y: Math.sin(rad) * r };
+  }
+
+  function actionRadialSegmentIndex(dx: number, dy: number, n: number): number | null {
+    const dist = Math.hypot(dx, dy);
+    if (dist < ACTION_RADIAL_DEADZONE_PX) return null;
+    if (n <= 0) return null;
+    const deg = (Math.atan2(dy, dx) * 180) / Math.PI;
+    const normalized = (deg + 90 + 360) % 360;
+    const segWidth = 360 / n;
+    return Math.floor((normalized + segWidth / 2) / segWidth) % n;
+  }
+
+  const actionRadialActiveIdx = $derived.by<number | null>(() => {
+    if (!actionGesture || actionGesture.mode !== 'radial') return null;
+    const dx = actionGesture.curX - actionGesture.btnCx;
+    const dy = actionGesture.curY - actionGesture.btnCy;
+    return actionRadialSegmentIndex(dx, dy, radialPlayers.length);
+  });
+
+  async function dispatchActionWithPlayer(typ: ActionGestureTyp, playerId: string) {
+    selectedPlayer = playerId;
+    await tick();
+    if (typ === 'foul') {
+      foulSubtypePicker = { playerId };
+      return;
+    }
+    await recordAction(typ);
+  }
+
+  function handleActionTap(typ: ActionGestureTyp) {
+    if (!selectedPlayer) return;
+    if (typ === 'foul') {
+      foulSubtypePicker = { playerId: selectedPlayer };
+      return;
+    }
+    void recordAction(typ);
+  }
+
+  function actionGesturePointerDown(e: PointerEvent, typ: ActionGestureTyp) {
+    if (actionGesture) return;
+    if (activeGesture) return;
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    const el = e.currentTarget as HTMLElement;
+    const rect = el.getBoundingClientRect();
+    const timer = window.setTimeout(() => {
+      if (actionGesture && actionGesture.mode === 'idle' && actionGesture.pointerId === e.pointerId) {
+        actionGesture = { ...actionGesture, mode: 'radial', longPressTimer: null };
+      }
+    }, LONG_PRESS_MS);
+    actionGesture = {
+      pointerId: e.pointerId,
+      typ,
+      startX: e.clientX,
+      startY: e.clientY,
+      curX: e.clientX,
+      curY: e.clientY,
+      btnCx: rect.left + rect.width / 2,
+      btnCy: rect.top + rect.height / 2,
+      mode: 'idle',
+      longPressTimer: timer,
+    };
+    try { el.setPointerCapture(e.pointerId); } catch { /* ignore */ }
+  }
+
+  function actionGesturePointerMove(e: PointerEvent) {
+    if (!actionGesture || e.pointerId !== actionGesture.pointerId) return;
+    actionGesture = { ...actionGesture, curX: e.clientX, curY: e.clientY };
+    if (actionGesture.mode === 'radial') e.preventDefault();
+  }
+
+  function actionGesturePointerUp(e: PointerEvent) {
+    if (!actionGesture || e.pointerId !== actionGesture.pointerId) return;
+    const g = actionGesture;
+    if (g.longPressTimer !== null) window.clearTimeout(g.longPressTimer);
+    const el = e.currentTarget as HTMLElement;
+    try { el.releasePointerCapture(e.pointerId); } catch { /* ignore */ }
+    actionGesture = null;
+
+    if (g.mode === 'idle') {
+      const drift = Math.hypot(g.curX - g.startX, g.curY - g.startY);
+      if (drift > ACTION_TAP_MAX_DRIFT_PX) return;
+      handleActionTap(g.typ);
+      return;
+    }
+    const dx = g.curX - g.btnCx;
+    const dy = g.curY - g.btnCy;
+    const idx = actionRadialSegmentIndex(dx, dy, radialPlayers.length);
+    if (idx === null) return;
+    const player = radialPlayers[idx];
+    if (!player) return;
+    void dispatchActionWithPlayer(g.typ, player.id);
+  }
+
+  function actionGesturePointerCancel(e: PointerEvent) {
+    if (!actionGesture || e.pointerId !== actionGesture.pointerId) return;
+    if (actionGesture.longPressTimer !== null) window.clearTimeout(actionGesture.longPressTimer);
+    actionGesture = null;
   }
 </script>
 
@@ -1514,40 +1674,53 @@
             {/if}
           </div>
 
+          {#snippet aBtn(typ: ActionGestureTyp, label: string, extra: string)}
+            <button
+              class="action {extra}"
+              class:disabled-look={!selectedPlayer}
+              class:gesturing={actionGesture?.typ === typ}
+              onpointerdown={(e) => actionGesturePointerDown(e, typ)}
+              onpointermove={actionGesturePointerMove}
+              onpointerup={actionGesturePointerUp}
+              onpointercancel={actionGesturePointerCancel}
+              onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleActionTap(typ); } }}
+            >{label}</button>
+          {/snippet}
+
           <div class="action-group">
             <div class="group-label">ÚTOK</div>
             <div class="group-grid utok">
-              <button class="action made" disabled={!selectedPlayer} onclick={() => recordAction('shot_2_made')}>✓ 2 body</button>
-              <button class="action made" disabled={!selectedPlayer} onclick={() => recordAction('shot_3_made')}>✓ 3 body</button>
-              <button class="action made" disabled={!selectedPlayer} onclick={() => recordAction('ft_made')}>✓ Trestný</button>
-              <button class="action missed" disabled={!selectedPlayer} onclick={() => recordAction('shot_2_miss')}>✗ 2 body</button>
-              <button class="action missed" disabled={!selectedPlayer} onclick={() => recordAction('shot_3_miss')}>✗ 3 body</button>
-              <button class="action missed" disabled={!selectedPlayer} onclick={() => recordAction('ft_miss')}>✗ Trestný</button>
+              {@render aBtn('shot_2_made', '✓ 2 body', 'made')}
+              {@render aBtn('shot_3_made', '✓ 3 body', 'made')}
+              {@render aBtn('ft_made', '✓ Trestný', 'made')}
+              {@render aBtn('shot_2_miss', '✗ 2 body', 'missed')}
+              {@render aBtn('shot_3_miss', '✗ 3 body', 'missed')}
+              {@render aBtn('ft_miss', '✗ Trestný', 'missed')}
             </div>
           </div>
 
           <div class="action-group">
             <div class="group-label">DOSKOK</div>
             <div class="group-grid doskok">
-              <button class="action reb-off" disabled={!selectedPlayer} onclick={() => recordAction('reb_off')}>Útočný</button>
-              <button class="action reb-def" disabled={!selectedPlayer} onclick={() => recordAction('reb_def')}>Obranný</button>
+              {@render aBtn('reb_off', 'Útočný', 'reb-off')}
+              {@render aBtn('reb_def', 'Obranný', 'reb-def')}
             </div>
           </div>
 
           <div class="action-group">
             <div class="group-label">POZITIVNÍ</div>
             <div class="group-grid pozit">
-              <button class="action assist" disabled={!selectedPlayer} onclick={() => recordAction('assist')}>Asistence</button>
-              <button class="action steal" disabled={!selectedPlayer} onclick={() => recordAction('steal')}>Zisk</button>
-              <button class="action block" disabled={!selectedPlayer} onclick={() => recordAction('block')}>Blok</button>
+              {@render aBtn('assist', 'Asistence', 'assist')}
+              {@render aBtn('steal', 'Zisk', 'steal')}
+              {@render aBtn('block', 'Blok', 'block')}
             </div>
           </div>
 
           <div class="action-group">
             <div class="group-label">NEGATIVNÍ</div>
             <div class="group-grid negat">
-              <button class="action foul" disabled={!selectedPlayer} onclick={openFoulPicker}>Faul…</button>
-              <button class="action turnover" disabled={!selectedPlayer} onclick={() => recordAction('turnover')}>Ztráta</button>
+              {@render aBtn('foul', 'Faul…', 'foul')}
+              {@render aBtn('turnover', 'Ztráta', 'turnover')}
             </div>
           </div>
 
@@ -2278,17 +2451,47 @@
     {/if}
 
     {#if activeGesture && activeGesture.mode === 'radial'}
-      <div class="radial-overlay" style="left: {activeGesture.cardCx}px; top: {activeGesture.cardCy}px;" aria-hidden="true">
+      <div class="radial-overlay two-ring" style="left: {activeGesture.cardCx}px; top: {activeGesture.cardCy}px;" aria-hidden="true">
         <div class="radial-hint">táhni na akci · pusť pro zápis</div>
-        {#each RADIAL_SEGMENTS as seg, i (seg.typ)}
-          {@const pos = radialSegmentXY(i, RADIAL_RADIUS_PX)}
+        {#each RADIAL_INNER_SEGMENTS as seg, i (seg.typ)}
+          {@const pos = radialInnerSegmentXY(i, RADIAL_INNER_RADIUS_PX)}
           <div
             class="radial-seg radial-tone-{seg.tone}"
-            class:active={radialActiveIdx === i}
+            class:active={radialActive?.ring === 'inner' && radialActive.idx === i}
             style="transform: translate({pos.x}px, {pos.y}px);"
           >{seg.label}</div>
         {/each}
-        <div class="radial-center" class:cancel={radialActiveIdx === null}>{radialActiveIdx === null ? '×' : '·'}</div>
+        {#each RADIAL_OUTER_SEGMENTS as seg, i (seg.typ)}
+          {@const pos = radialOuterSegmentXY(i, RADIAL_OUTER_RADIUS_PX)}
+          <div
+            class="radial-seg radial-seg-outer radial-tone-{seg.tone}"
+            class:active={radialActive?.ring === 'outer' && radialActive.idx === i}
+            style="transform: translate({pos.x}px, {pos.y}px);"
+          >{seg.label}</div>
+        {/each}
+        <div class="radial-center" class:cancel={radialActive === null}>{radialActive === null ? '×' : '·'}</div>
+      </div>
+    {/if}
+
+    {#if actionGesture && actionGesture.mode === 'radial'}
+      <div class="radial-overlay action-radial" style="left: {actionGesture.btnCx}px; top: {actionGesture.btnCy}px;" aria-hidden="true">
+        <div class="radial-hint">táhni na hráče · pusť pro zápis</div>
+        {#if radialPlayers.length === 0}
+          <div class="radial-empty">žádní hráči na hřišti</div>
+        {:else}
+          {#each radialPlayers as h, i (h.id)}
+            {@const pos = actionRadialSegmentXY(i, radialPlayers.length, ACTION_RADIAL_RADIUS_PX)}
+            <div
+              class="player-seg"
+              class:active={actionRadialActiveIdx === i}
+              style="transform: translate({pos.x}px, {pos.y}px);"
+            >
+              <div class="player-seg-num">#{h.cislo_dresu ?? '?'}</div>
+              <div class="player-seg-name">{h.prijmeni}</div>
+            </div>
+          {/each}
+        {/if}
+        <div class="radial-center" class:cancel={actionRadialActiveIdx === null}>{actionRadialActiveIdx === null ? '×' : '·'}</div>
       </div>
     {/if}
   </div>
@@ -2625,11 +2828,23 @@
     font-weight: 600;
     text-align: left;
     transition: all 0.1s ease;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    position: relative;
   }
-  .action:disabled { opacity: 0.35; cursor: not-allowed; }
-  .action:not(:disabled):hover {
+  .action:disabled,
+  .action.disabled-look { opacity: 0.45; cursor: not-allowed; }
+  .action:not(:disabled):not(.disabled-look):hover {
     background: var(--surface-hover);
     border-color: var(--border-strong);
+  }
+  .action.gesturing {
+    box-shadow: 0 0 0 3px var(--accent);
+    opacity: 1 !important;
+    cursor: grabbing;
+    touch-action: none;
   }
   .action.made {
     background: var(--success);
@@ -2638,7 +2853,7 @@
     text-align: center;
     font-weight: 700;
   }
-  .action.made:not(:disabled):hover { background: var(--success); filter: brightness(1.1); border-color: var(--success); }
+  .action.made:not(:disabled):not(.disabled-look):hover { background: var(--success); filter: brightness(1.1); border-color: var(--success); }
   .action.missed {
     background: var(--danger);
     border-color: var(--danger);
@@ -2646,7 +2861,7 @@
     text-align: center;
     font-weight: 700;
   }
-  .action.missed:not(:disabled):hover { background: var(--danger); filter: brightness(1.1); border-color: var(--danger); }
+  .action.missed:not(:disabled):not(.disabled-look):hover { background: var(--danger); filter: brightness(1.1); border-color: var(--danger); }
   .action.foul { border-left: 4px solid var(--warn); }
   .action.reb-def { border-left: 4px solid var(--accent-soft); }
   .action.reb-off { border-left: 4px solid #a78bfa; }
@@ -3966,6 +4181,13 @@
     border-radius: 50%;
     background: radial-gradient(circle, rgba(15, 23, 42, 0.55) 0%, rgba(15, 23, 42, 0.0) 70%);
   }
+  .radial-overlay.two-ring::before {
+    left: -200px;
+    top: -200px;
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(15, 23, 42, 0.6) 0%, rgba(15, 23, 42, 0.3) 45%, rgba(15, 23, 42, 0.0) 75%);
+  }
   .radial-hint {
     position: absolute;
     left: 50%;
@@ -4003,6 +4225,18 @@
   .radial-seg.radial-tone-miss { border-left: 4px solid var(--danger); }
   .radial-seg.radial-tone-foul { border-left: 4px solid var(--warn); }
   .radial-seg.radial-tone-reb { border-left: 4px solid var(--accent); }
+  .radial-seg.radial-tone-pozit { border-left: 4px solid #a78bfa; }
+  .radial-seg.radial-tone-negat { border-left: 4px solid var(--danger); }
+  .radial-seg-outer {
+    width: 54px;
+    height: 38px;
+    margin-left: -27px;
+    margin-top: -19px;
+    font-size: 12px;
+    background: rgba(51, 65, 85, 0.96);
+    border-color: rgba(255, 255, 255, 0.14);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  }
   .radial-seg.active {
     background: var(--accent);
     border-color: var(--accent);
@@ -4030,6 +4264,70 @@
     background: var(--danger);
     border-color: var(--danger);
     color: #ffffff;
+  }
+
+  .action-radial::before {
+    left: -160px;
+    top: -160px;
+    width: 320px;
+    height: 320px;
+  }
+  .player-seg {
+    position: absolute;
+    left: 0;
+    top: 0;
+    margin-left: -38px;
+    margin-top: -28px;
+    width: 76px;
+    height: 56px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    background: rgba(30, 41, 59, 0.98);
+    color: #ffffff;
+    border: 2px solid rgba(255, 255, 255, 0.22);
+    border-left: 4px solid var(--accent);
+    border-radius: 10px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+    transition: transform 0.08s ease, background 0.08s ease, box-shadow 0.08s ease;
+    padding: 4px 6px;
+  }
+  .player-seg-num {
+    font-size: 16px;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--accent);
+  }
+  .player-seg-name {
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.1;
+    text-align: center;
+    max-width: 70px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .player-seg.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.5);
+  }
+  .player-seg.active .player-seg-num { color: var(--accent-fg); }
+  .radial-empty {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    transform: translate(-50%, -50%);
+    background: rgba(15, 23, 42, 0.9);
+    color: #ffffff;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
   }
 
   @media (max-width: 900px) {

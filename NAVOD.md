@@ -45,7 +45,7 @@ Obrazovka je rozdělená na **3 sloupce vedle sebe**:
 
 | Akce | Postup |
 |---|---|
-| **Náš hráč skóroval / fauloval / cokoli** | Klik na **hráče uprostřed** (karta zmodrá) → klik na akci vlevo. _Tip:_ 8 nejčastějších akcí jde zapsat jediným gestem přímo na kartě hráče — viz [Rychlé zapisování gesty](#rychle-zapisovani-gesty-volitelne). |
+| **Náš hráč skóroval / fauloval / cokoli** | Klik na **hráče uprostřed** (karta zmodrá) → klik na akci vlevo. _Tip:_ všech 13 akcí jde zapsat jediným gestem (na hráči i na akčním tlačítku) — viz [Rychlé zapisování gesty](#rychle-zapisovani-gesty-volitelne). |
 | **Náš tým skóroval, ale nevím kdo** | Sekce **RYCHLÝ ZÁPIS BODŮ — BEZ HRÁČE** vlevo dole: `+2 tým` / `+3 tým` / `+1 tým`. Bez výběru hráče. Sedí semafor, ale nezapočítá se k žádnému hráči (v matchEnd jako řádek _Bez hráče_). |
 | **Soupeř — víme kdo** | Klik na chip s číslem v opp panelu vpravo (zvýrazní se) → klik na akci. Výběr se po akci resetuje. Nebo klik **✕ bez hráče** pro zrušení. |
 | **Soupeř — nevíme kdo** | Nechej chip nevybraný → klik přímo na akci. V matchEnd jako _Bez čísla hráče_. |
@@ -57,9 +57,13 @@ Obrazovka je rozdělená na **3 sloupce vedle sebe**:
 
 ### Rychlé zapisování gesty (volitelné)
 
-Na kartě hráče v prostředním sloupci fungují kromě klasického **tapu** (= vybrat hráče) ještě dvě gesta, která zapíšou akci jedním tahem — bez nutnosti nejdřív vybírat hráče a pak akci.
+Aplikace nabízí **dva směry gesta** — vyber si který ti sedí, oba fungují souběžně:
 
 **Funguje stejně na dotyku (tablet/telefon) i s myší/touchpadem na notebooku.**
+
+#### A) Hráč → akce (gesto na kartě hráče)
+
+Na kartě hráče v prostředním sloupci fungují kromě klasického **tapu** (= vybrat hráče) ještě dvě gesta:
 
 | Gesto | Akce | Detail |
 |---|---|---|
@@ -67,11 +71,20 @@ Na kartě hráče v prostředním sloupci fungují kromě klasického **tapu** (
 | Krátké švihnutí **↓** | **2 body NEdaný** | Stejně jako výše, směrem dolů. |
 | Krátké švihnutí **→** | **Faul** (otevře výběr osobní/nesp./tech.) | Stejně jako výše, doprava. |
 | Krátké švihnutí **←** | **Doskok obranný (REB-D)** | Stejně jako výše, doleva. |
-| **Podržení (~¼ s) + tažení** | **Radial menu** s 8 akcemi | Kolem prstu / kurzoru se rozevře kruh s 8 segmenty: **↑✓2, ↗✓3, →FAUL, ↘REB-O, ↓✗2, ↙✗3, ←REB-D, ↖✓FT**. Slidneš na požadovaný segment a pustíš = zápis. Pust ve středu kruhu (×) nebo daleko mimo = zrušení. |
+| **Podržení (~¼ s) + tažení** | **Radial menu** — 2 soustředné vrstvy s 13 akcemi | **Vnitřní kruh (8):** ↑✓2, ↗✓3, →FAUL, ↘REB-O, ↓✗2, ↙✗3, ←REB-D, ↖✓FT. **Vnější kruh (5):** AST, STL, BLK, TO, ✗FT (menší tmavší segmenty dál od středu, ≥110 px). Slidneš na požadovaný segment a pustíš = zápis. Pust ve středu (×) nebo daleko mimo = zrušení. |
 
-**Kardinální směry jsou v obou gestech stejné** (↑+2, ↓✗2, →faul, ←REB-D), takže nemusíš přepínat myšlení mezi swipe a radial — jen volíš jestli chceš rychlost (swipe) nebo přehled všech 8 možností (radial).
+#### B) Akce → hráč (gesto na akčním tlačítku vlevo)
 
-Akce, které gesty **nejsou** dostupné (asistence, zisk, blok, ztráta, ✗ trestný), zapisuješ klasicky: tap na hráče → tlačítko vlevo. Funguje to úplně stejně jako bez gest.
+Pokud máš jasné *co se stalo*, ale očima ještě hledáš *kdo to provedl*, jdi opačně:
+
+| Gesto | Akce | Detail |
+|---|---|---|
+| **Krátký tap na tlačítko** | Zapíše akci na *vybraného* hráče (klasický flow) | Funguje jen pokud máš hráče vybraného vpravo. Tlačítka jsou jinak vizuálně ztlumená. |
+| **Podržení (~¼ s) + tažení** | Radial menu s **5 hráči na hřišti** (číslo + příjmení) | Funguje na **všech 13 akcí** (✓2, ✓3, ✓FT, ✗2, ✗3, ✗FT, REB-O, REB-D, AST, STL, BLK, FAUL, TO). Faul navíc otevře subtype picker. Tažením přes segment hráče a puštěním = zápis bez nutnosti tappnout hráče dopředu. |
+
+**Kardinální směry jsou v swipe i v radialu stejné** (↑+2, ↓✗2, →faul, ←REB-D), takže nemusíš přepínat myšlení mezi swipe a radial.
+
+Tap na hráče (= výběr) + tap na tlačítko (= zápis) funguje pořád úplně stejně jako bez gest — gesta jsou jen rychlejší alternativa pro toho kdo si zvykne.
 
 ### Konec čtvrtiny
 
