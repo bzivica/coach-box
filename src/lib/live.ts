@@ -1,5 +1,5 @@
 import type { Udalost, UdalostTyp, Ctvrtina, Kategorie, Zapas } from './types';
-import { DEFAULT_DELKA_CTVRTINY_MIN } from './types';
+import { DEFAULT_DELKA_CTVRTINY_MIN, DEFAULT_POCET_CTVRTIN, formatCtvrtina } from './types';
 
 export interface BoxStat {
   body: number;
@@ -681,5 +681,51 @@ export function computeTeamRecord(zapasy: Zapas[]): TeamRecord {
     prumer_body_dany: prumerDany,
     prumer_body_dostane: prumerDostane,
     marze: prumerDany - prumerDostane,
+  };
+}
+
+export type ZapasStavKind =
+  | 'ukonceny'
+  | 'preruseny'
+  | 'pred_zapasem'
+  | 'bezi'
+  | 'polocas'
+  | 'mezi_q';
+
+export interface ZapasStavInfo {
+  kind: ZapasStavKind;
+  label: string;
+  aktualniQ?: number;
+  predchoziQ?: number;
+}
+
+export function computeZapasStav(zapas: Zapas, ctvrtinyProZapas: Ctvrtina[]): ZapasStavInfo {
+  if (zapas.status === 'ukonceny') return { kind: 'ukonceny', label: 'Ukončeno' };
+  if (zapas.status === 'preruseny') return { kind: 'preruseny', label: 'Přerušeno' };
+
+  const ct = ctvrtinyProZapas
+    .filter((c) => c.zapas_id === zapas.id)
+    .sort((a, b) => a.cislo - b.cislo);
+
+  if (ct.length === 0) return { kind: 'pred_zapasem', label: 'Před zápasem' };
+
+  const pocet = zapas.pocet_ctvrtin ?? DEFAULT_POCET_CTVRTIN;
+  const last = ct[ct.length - 1];
+
+  if (last.konec_at === undefined) {
+    return { kind: 'bezi', label: `BĚŽÍ ${formatCtvrtina(last.cislo, pocet)}`, aktualniQ: last.cislo };
+  }
+
+  const predchozi = last.cislo;
+  const dalsi = predchozi + 1;
+  const polocasPredchozi = Math.floor(pocet / 2);
+  if (predchozi === polocasPredchozi && predchozi < pocet) {
+    return { kind: 'polocas', label: 'POLOČAS', predchoziQ: predchozi };
+  }
+
+  return {
+    kind: 'mezi_q',
+    label: `MEZI ${formatCtvrtina(predchozi, pocet)}–${formatCtvrtina(dalsi, pocet)}`,
+    predchoziQ: predchozi,
   };
 }

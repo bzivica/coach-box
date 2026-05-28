@@ -15,6 +15,7 @@
   import {
     aggregateAcrossMatches,
     computeTeamRecord,
+    computeZapasStav,
     formatMinSec,
     klokByPouzit,
     filtrEventyVOkne,
@@ -61,7 +62,7 @@
   let saveName = $state('');
 
   onMount(async () => {
-    zapasy = (await db.zapasy.toArray()).filter((z) => z.status === 'ukonceny');
+    zapasy = await db.zapasy.toArray();
     udalosti = await db.udalosti.toArray();
     ctvrtiny = await db.ctvrtiny.toArray();
     hraci = await db.hraci.toArray();
@@ -177,9 +178,16 @@
   const aggregates = $derived(
     aggregateAcrossMatches(filteredZapasy, windowFilteredUd, filteredCt),
   );
-  const teamRecord = $derived(computeTeamRecord(filteredZapasy));
+  const finishedZapasy = $derived(filteredZapasy.filter((z) => z.status === 'ukonceny'));
+  const teamRecord = $derived(computeTeamRecord(finishedZapasy));
   const klokPouzitFiltr = $derived(klokByPouzit(filteredUd));
   const oknoAktivni = $derived(casoveOkno !== 'cela');
+  const stavByZapasId = $derived(
+    new Map(filteredZapasy.map((z) => [z.id, computeZapasStav(z, ctvrtiny)])),
+  );
+  const liveCount = $derived(
+    filteredZapasy.filter((z) => z.status === 'rozehrany').length,
+  );
 
   const hracByID = $derived(new Map(hraci.map((h) => [h.id, h])));
   const souperByID = $derived(new Map(souperi.map((s) => [s.id, s])));
@@ -237,7 +245,7 @@
 
   async function liveBack() {
     liveZapasId = null;
-    zapasy = (await db.zapasy.toArray()).filter((z) => z.status === 'ukonceny');
+    zapasy = await db.zapasy.toArray();
     udalosti = await db.udalosti.toArray();
     ctvrtiny = await db.ctvrtiny.toArray();
   }
@@ -297,7 +305,9 @@
   <ZapasLive zapasId={liveZapasId} onBack={liveBack} />
 {:else}
 <div class="toolbar">
-  <h2>Statistiky ({filteredZapasy.length}{filteredZapasy.length !== zapasy.length ? ` z ${zapasy.length}` : ''} {filteredZapasy.length === 1 ? 'zápas' : 'zápasy'})</h2>
+  <h2>
+    Statistiky ({filteredZapasy.length}{filteredZapasy.length !== zapasy.length ? ` z ${zapasy.length}` : ''} {filteredZapasy.length === 1 ? 'zápas' : 'zápasy'}{#if liveCount > 0}, <span class="live-hint">{liveCount} právě běží</span>{/if})
+  </h2>
   <label class="pergame-toggle">
     <input type="checkbox" bind:checked={perGame} />
     <span>Per game (průměr na zápas)</span>
@@ -553,7 +563,9 @@
             {#each sortedZapasy as z (z.id)}
               {@const vyhra = z.skore_nase > z.skore_souper}
               {@const prohra = z.skore_nase < z.skore_souper}
-              <tr class="zapas-row" onclick={() => otevriZapas(z)} title="Otevřít detail zápasu">
+              {@const stav = stavByZapasId.get(z.id)}
+              {@const live = stav && stav.kind !== 'ukonceny' && stav.kind !== 'preruseny'}
+              <tr class="zapas-row" class:row-live={live} class:row-preruseny={stav?.kind === 'preruseny'} onclick={() => otevriZapas(z)} title="Otevřít detail zápasu">
                 <td>{fmtDatum(z.datum)}</td>
                 <td class="td-mono">{kategorieLabel(z.nase_kategorie)}</td>
                 <td class="td-name">{souperByID.get(z.souper_id)?.nazev ?? '— ?'} <span class="strana">({z.nase_strana === 'home' ? 'D' : 'H'})</span></td>
@@ -561,12 +573,19 @@
                 <td class="td-mono">{z.sezona}</td>
                 <td class="td-mono td-pts">{z.skore_nase}:{z.skore_souper}</td>
                 <td>
-                  {#if vyhra}
-                    <span class="result-pill v">V</span>
-                  {:else if prohra}
-                    <span class="result-pill p">P</span>
-                  {:else}
-                    <span class="result-pill r">R</span>
+                  {#if stav && stav.kind === 'ukonceny'}
+                    {#if vyhra}
+                      <span class="result-pill v">V</span>
+                    {:else if prohra}
+                      <span class="result-pill p">P</span>
+                    {:else}
+                      <span class="result-pill r">R</span>
+                    {/if}
+                  {:else if stav}
+                    <span class="stav-badge stav-{stav.kind}">
+                      {#if stav.kind === 'bezi'}<span class="dot"></span>{/if}
+                      {stav.label}
+                    </span>
                   {/if}
                 </td>
               </tr>
@@ -884,6 +903,66 @@
   .result-pill.v { background: var(--success-bg); color: var(--success-fg); }
   .result-pill.p { background: var(--danger-bg); color: var(--danger-fg); }
   .result-pill.r { background: var(--surface-2); color: var(--text-muted); }
+
+  .live-hint {
+    color: #ea580c;
+    font-weight: 700;
+    font-size: 0.85em;
+  }
+  .zapas-row.row-live td:first-child {
+    border-left: 3px solid #ea580c;
+  }
+  .zapas-row.row-preruseny td:first-child {
+    border-left: 3px solid var(--text-muted);
+  }
+  .stav-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .stav-badge.stav-bezi {
+    background: #fff7ed;
+    color: #c2410c;
+    border: 1px solid #fdba74;
+  }
+  .stav-badge.stav-polocas {
+    background: #fef9c3;
+    color: #854d0e;
+    border: 1px solid #fde047;
+  }
+  .stav-badge.stav-mezi_q {
+    background: #fef9c3;
+    color: #854d0e;
+    border: 1px solid #fde047;
+  }
+  .stav-badge.stav-pred_zapasem {
+    background: var(--surface-2);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+  }
+  .stav-badge.stav-preruseny {
+    background: var(--surface-2);
+    color: var(--text-muted);
+    border: 1px dashed var(--border-strong);
+  }
+  .stav-badge .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #ea580c;
+    animation: pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.15); }
+  }
 
   .presets {
     background: var(--surface);
