@@ -67,7 +67,7 @@
             </tr>
             <tr>
               <td>Náš tým skóroval, ale nevím kdo</td>
-              <td>Sekce <strong>RYCHLÝ ZÁPIS BEZ HRÁČE</strong> vlevo dole: <code>+2 tým</code> / <code>+3 tým</code> / <code>+1 tým</code>. Bez výběru hráče. Sedí semafor, ale nezapočítá se k žádnému hráči (v matchEnd jako řádek <em>Bez hráče</em>).</td>
+              <td>Sekce <strong>RYCHLÝ ZÁPIS BEZ HRÁČE</strong> vlevo dole: <code>+2 tým</code> / <code>+3 tým</code> / <code>+1 tým</code> a <code>Ztráta tým</code> (týmová ztráta bez hráče — shot-clock, aut, nejasné). Bez výběru hráče, sedí semafor, ale nezapočítá se k žádnému hráči (v matchEnd řádek <em>Bez hráče</em>). <strong>Po zápase to jde doklikat ke správnému hráči</strong> — viz krok 6.</td>
             </tr>
             <tr>
               <td>Soupeř skóroval — víme kdo</td>
@@ -167,6 +167,13 @@
       <section class="step">
         <h4>6. Konec zápasu</h4>
         <p>Po Q4 (nebo OT) klikni <strong>Ukončit zápas</strong> → potvrď. Pokud Q4 končí remízou, můžeš jít do prodloužení. Po ukončení uvidíš kompletní boxscore.</p>
+        <p><strong>Oprava / přiřazení akcí po zápase:</strong> v boxscore je rozbalovací sekce <strong>„✏️ Opravit / přiřadit akce"</strong>. U každého koše / trestného / ztráty je rozbalovátko hráče — můžeš:</p>
+        <ul>
+          <li>přiřadit <em>„bez hráče"</em> koš/ztrátu konkrétnímu hráči (když po zápase zjistíš od koho to bylo),</li>
+          <li>opravit <strong>špatně přiřazenou</strong> akci (přehodit z hráče A na hráče B),</li>
+          <li>nebo naopak dát akci zpět na <em>„— bez hráče —"</em> (týmová).</li>
+        </ul>
+        <p>Body se nemění (skóre zůstává), jen se přesunou ke správnému hráči. Funguje i u dávno ukončených zápasů (Statistiky → klik na zápas).</p>
       </section>
 
       <section class="step warn">

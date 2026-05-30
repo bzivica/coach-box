@@ -481,6 +481,56 @@
     return String(n);
   }
 
+  let prirazovaniOpen = $state(false);
+
+  const REASSIGN_TYPY: readonly UdalostTyp[] = [
+    'shot_2_made', 'shot_3_made', 'ft_made',
+    'team_pts_2', 'team_pts_3', 'team_pts_1',
+    'turnover', 'team_turnover',
+  ];
+
+  const prirazovatelne = $derived(
+    periodUdalosti
+      .filter((u) => !u.korekce && REASSIGN_TYPY.includes(u.typ))
+      .sort((a, b) => a.ctvrtina_cislo - b.ctvrtina_cislo || a.poradi - b.poradi),
+  );
+
+  function reassignKategorie(typ: UdalostTyp): '2' | '3' | '1' | 'to' | null {
+    if (typ === 'shot_2_made' || typ === 'team_pts_2') return '2';
+    if (typ === 'shot_3_made' || typ === 'team_pts_3') return '3';
+    if (typ === 'ft_made' || typ === 'team_pts_1') return '1';
+    if (typ === 'turnover' || typ === 'team_turnover') return 'to';
+    return null;
+  }
+
+  function reassignPopis(typ: UdalostTyp): string {
+    switch (reassignKategorie(typ)) {
+      case '2': return '2 body';
+      case '3': return '3 body';
+      case '1': return 'trestný (+1)';
+      case 'to': return 'ztráta';
+      default: return popisAkce(typ);
+    }
+  }
+
+  async function reassignEvent(ev: Udalost, newPlayerId: string | null) {
+    const kat = reassignKategorie(ev.typ);
+    if (kat === null) return;
+    let novyTyp: UdalostTyp;
+    if (kat === 'to') novyTyp = newPlayerId ? 'turnover' : 'team_turnover';
+    else if (kat === '2') novyTyp = newPlayerId ? 'shot_2_made' : 'team_pts_2';
+    else if (kat === '3') novyTyp = newPlayerId ? 'shot_3_made' : 'team_pts_3';
+    else novyTyp = newPlayerId ? 'ft_made' : 'team_pts_1';
+
+    await db.udalosti.update(ev.id, { typ: novyTyp, hrac_id: newPlayerId });
+    udalosti = udalosti.map((u) => (u.id === ev.id ? { ...u, typ: novyTyp, hrac_id: newPlayerId } : u));
+    await updateZapasCache();
+    const kdo = newPlayerId
+      ? (() => { const h = hraci.find((x) => x.id === newPlayerId); return h ? `#${h.cislo_dresu ?? '?'} ${h.prijmeni}` : 'hráč'; })()
+      : 'bez hráče';
+    toast(`${reassignPopis(novyTyp)} → ${kdo}`);
+  }
+
   function statHrace(id: string): BoxStat {
     return periodBoxscore.get(id) ?? {
       body: 0, pokusy_2: 0, dany_2: 0, pokusy_3: 0, dany_3: 0,
@@ -757,6 +807,25 @@
     await updateZapasCache();
   }
 
+  async function recordTeamTurnover() {
+    if (!zapas) return;
+    const ev: Udalost = {
+      id: newId(),
+      zapas_id: zapas.id,
+      ctvrtina_cislo: aktualniCtvrtinaCislo,
+      poradi: pristiPoradi(udalosti, aktualniCtvrtinaCislo),
+      typ: 'team_turnover',
+      hrac_id: null,
+      timestamp_at: Date.now(),
+      cas_v_q_ms: aktualniCasVQMs(),
+    };
+    await db.udalosti.add(ev);
+    udalosti = [...udalosti, ev];
+    pushUndo({ kind: 'event', eventId: ev.id });
+    toast('MY — ztráta (bez hráče)');
+    await updateZapasCache();
+  }
+
   function openOppFoul(subtyp: FoulSubtyp) {
     if (subtyp === 'technical') {
       void recordOppFoul(undefined, 'technical');
@@ -934,6 +1003,7 @@
       case 'team_pts_2': return '+2 body (bez hráče)';
       case 'team_pts_3': return '+3 body (bez hráče)';
       case 'team_pts_1': return '+1 trestný (bez hráče)';
+      case 'team_turnover': return 'ztráta (bez hráče)';
     }
   }
 
@@ -949,7 +1019,7 @@
       const num = typeof ev.opp_hrac_cislo === 'number' ? ` #${ev.opp_hrac_cislo}` : '';
       return `Soupeř${num} — ${akce}`;
     }
-    if (ev.typ.startsWith('team_pts')) return `Tým (bez hráče) — ${akce}`;
+    if (ev.typ.startsWith('team_')) return `Tým (bez hráče) — ${akce}`;
     return akce;
   }
 
@@ -1875,11 +1945,12 @@
           </div>
 
           <div class="action-group">
-            <div class="group-label">RYCHLÝ ZÁPIS BODŮ — BEZ HRÁČE (sedí semafor)</div>
+            <div class="group-label">RYCHLÝ ZÁPIS BEZ HRÁČE (tým, sedí semafor)</div>
             <div class="group-grid utok">
               <button class="action team-pts" onclick={() => recordTeamPoints('team_pts_2')}>+2 tým</button>
               <button class="action team-pts" onclick={() => recordTeamPoints('team_pts_3')}>+3 tým</button>
               <button class="action team-pts" onclick={() => recordTeamPoints('team_pts_1')}>+1 tým</button>
+              <button class="action team-pts" onclick={recordTeamTurnover} title="Týmová ztráta bez konkrétního hráče (shot-clock, aut, nejasné). Po zápase lze přiřadit hráči v boxscore.">Ztráta tým</button>
             </div>
           </div>
 
@@ -1987,7 +2058,7 @@
           <div class="lt-chip"><span class="lt-l">REB</span><span class="lt-v">{teamTotals.doskoky_off + teamTotals.doskoky_def}</span></div>
           <div class="lt-chip"><span class="lt-l">AST</span><span class="lt-v">{teamTotals.asistence}</span></div>
           <div class="lt-chip"><span class="lt-l">STL</span><span class="lt-v">{teamTotals.zisky}</span></div>
-          <div class="lt-chip"><span class="lt-l">TO</span><span class="lt-v">{teamTotals.ztraty}</span></div>
+          <div class="lt-chip"><span class="lt-l">TO</span><span class="lt-v">{teamTotals.ztraty + teamUnattributed.ztraty}</span></div>
           <div class="lt-chip"><span class="lt-l">BLK</span><span class="lt-v">{teamTotals.bloky}</span></div>
           <div class="lt-chip"><span class="lt-l">PF</span><span class="lt-v">{teamTotals.fauly}</span></div>
           {#if benchTechCount > 0}
@@ -2214,7 +2285,7 @@
                   <td class="td-mono td-eff">{s.efficiency}</td>
                 </tr>
               {/each}
-              {#if periodTeamUnattributed.body > 0}
+              {#if periodTeamUnattributed.body > 0 || periodTeamUnattributed.ztraty > 0}
                 <tr class="row-bez-hrace">
                   <td colspan="2" class="td-name td-bezhrace">Bez hráče</td>
                   <td class="td-mono">—</td>
@@ -2227,7 +2298,7 @@
                   <td class="td-mono">—</td>
                   <td class="td-mono">—</td>
                   <td class="td-mono">—</td>
-                  <td class="td-mono">—</td>
+                  <td class="td-mono" title="Týmové ztráty bez hráče">{periodTeamUnattributed.ztraty || '—'}</td>
                   <td class="td-mono">—</td>
                   <td class="td-mono">—</td>
                   <td class="td-mono">—</td>
@@ -2246,7 +2317,7 @@
                 <td class="td-mono">{periodTeamTotals.doskoky_off + periodTeamTotals.doskoky_def}</td>
                 <td class="td-mono">{periodTeamTotals.asistence}</td>
                 <td class="td-mono">{periodTeamTotals.zisky}</td>
-                <td class="td-mono">{periodTeamTotals.ztraty}</td>
+                <td class="td-mono">{periodTeamTotals.ztraty + periodTeamUnattributed.ztraty}</td>
                 <td class="td-mono">{periodTeamTotals.bloky}</td>
                 <td class="td-mono">{periodTeamTotals.fauly}</td>
                 <td class="td-mono">—</td>
@@ -2255,6 +2326,41 @@
             </tbody>
           </table>
         </div>
+      </section>
+
+      <section class="prirazeni">
+        <button class="prirazeni-toggle" onclick={() => (prirazovaniOpen = !prirazovaniOpen)}>
+          ✏️ Opravit / přiřadit akce (kdo dal koš, čí ztráta) <span class="pt-arrow">{prirazovaniOpen ? '▲' : '▼'}</span>
+        </button>
+        {#if prirazovaniOpen}
+          <div class="prirazeni-body">
+            <p class="prirazeni-hint">
+              Uprav hráče u koše / trestného / ztráty. <strong>„— bez hráče —"</strong> = týmová (nepřičte se nikomu). Body se nemění, jen se přesunou ke správnému hráči.{selectedPeriod === 'total' ? '' : ' (Filtrováno na vybranou čtvrtinu.)'}
+            </p>
+            {#if prirazovatelne.length === 0}
+              <p class="prirazeni-empty">Žádné koše ani ztráty k přiřazení.</p>
+            {:else}
+              <div class="prirazeni-list">
+                {#each prirazovatelne as ev (ev.id)}
+                  <div class="prirazeni-row" class:bezhrace={ev.hrac_id === null}>
+                    <span class="pr-q">{fmtQ(ev.ctvrtina_cislo)}</span>
+                    <span class="pr-akce">{reassignPopis(ev.typ)}</span>
+                    <select
+                      class="pr-select"
+                      value={ev.hrac_id ?? ''}
+                      onchange={(e) => reassignEvent(ev, e.currentTarget.value || null)}
+                    >
+                      <option value="">— bez hráče —</option>
+                      {#each hraciSerazeni as h (h.id)}
+                        <option value={h.id}>#{h.cislo_dresu ?? '?'} {h.prijmeni}</option>
+                      {/each}
+                    </select>
+                  </div>
+                {/each}
+              </div>
+            {/if}
+          </div>
+        {/if}
       </section>
 
       <section class="opp-summary">
@@ -4000,6 +4106,59 @@
     font-size: 12px;
   }
   .foulout .td-name { opacity: 0.7; }
+
+  .prirazeni {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .prirazeni-toggle {
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: none;
+    color: var(--accent);
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 700;
+    padding: 14px 18px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .prirazeni-toggle:hover { background: var(--surface-hover); }
+  .prirazeni-toggle .pt-arrow { color: var(--text-muted); font-size: 12px; }
+  .prirazeni-body { padding: 0 18px 16px; }
+  .prirazeni-hint { font-size: 13px; color: var(--text-muted); line-height: 1.5; margin-bottom: 12px; }
+  .prirazeni-hint strong { color: var(--text); }
+  .prirazeni-empty { font-size: 13px; color: var(--text-muted); font-style: italic; }
+  .prirazeni-list { display: flex; flex-direction: column; gap: 6px; max-height: 360px; overflow-y: auto; }
+  .prirazeni-row {
+    display: grid;
+    grid-template-columns: 44px 1fr minmax(150px, 200px);
+    align-items: center;
+    gap: 10px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    background: var(--surface-2);
+  }
+  .prirazeni-row.bezhrace { border-left: 3px solid var(--warn); }
+  .pr-q { font-size: 12px; font-weight: 700; color: var(--text-muted); }
+  .pr-akce { font-size: 13px; font-weight: 600; color: var(--text); }
+  .pr-select {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 8px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .pr-select:focus { outline: none; border-color: var(--accent); }
 
   .opp-summary {
     background: var(--opp-bg);

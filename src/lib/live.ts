@@ -336,14 +336,16 @@ export interface TeamUnattributed {
   body_2: number;
   body_3: number;
   body_th: number;
+  ztraty: number;
 }
 
 export function computeTeamUnattributed(udalosti: Udalost[]): TeamUnattributed {
-  const t: TeamUnattributed = { body: 0, body_2: 0, body_3: 0, body_th: 0 };
+  const t: TeamUnattributed = { body: 0, body_2: 0, body_3: 0, body_th: 0, ztraty: 0 };
   for (const u of udalosti) {
     if (u.typ === 'team_pts_2') { t.body_2++; t.body += 2; }
     else if (u.typ === 'team_pts_3') { t.body_3++; t.body += 3; }
     else if (u.typ === 'team_pts_1') { t.body_th++; t.body += 1; }
+    else if (u.typ === 'team_turnover') { t.ztraty++; }
   }
   return t;
 }

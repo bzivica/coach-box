@@ -90,7 +90,8 @@ export type UdalostTyp =
   | 'opp_turnover'
   | 'team_pts_2'
   | 'team_pts_3'
-  | 'team_pts_1';
+  | 'team_pts_1'
+  | 'team_turnover';
 
 export type FoulSubtyp = 'personal' | 'unsportsmanlike' | 'technical';
 
