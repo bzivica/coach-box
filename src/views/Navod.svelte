@@ -174,6 +174,7 @@
           <li>nebo naopak dát akci zpět na <em>„— bez hráče —"</em> (týmová).</li>
         </ul>
         <p>Body se nemění (skóre zůstává), jen se přesunou ke správnému hráči. Funguje i u dávno ukončených zápasů (Statistiky → klik na zápas).</p>
+        <p><strong>Vývoj skóre (graf):</strong> pod boxscorem je graf průběhu skóre. Přepínač <strong>Čáry</strong> ukazuje dvě křivky (MY a soupeř), <strong>Náskok</strong> ukazuje rozdíl (nad nulou vedeme my, pod nulou soupeř). Šňůry (6+ bodů v řadě bez odpovědi) jsou zvýrazněné pruhem a popiskem (např. 11-0). Graf respektuje přepínač Celkem / Q1..Q4 nahoře, takže ho vidíš pro celý zápas i pro jednotlivou čtvrtinu. Stejný graf je i v rozehraném zápase ve sbalovacím panelu „📈 Vývoj skóre".</p>
       </section>
 
       <section class="step warn">

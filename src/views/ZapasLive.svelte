@@ -44,6 +44,7 @@
   } from '../lib/live';
   import Avatar from '../components/Avatar.svelte';
   import HracForm from '../components/HracForm.svelte';
+  import SkoreVyvojGraf from '../components/SkoreVyvojGraf.svelte';
 
   const COURT_AVATAR_SIZE = 76;
   const BENCH_AVATAR_SIZE = 48;
@@ -482,6 +483,7 @@
   }
 
   let prirazovaniOpen = $state(false);
+  let vyvojGrafLiveOpen = $state(false);
 
   const REASSIGN_TYPY: readonly UdalostTyp[] = [
     'shot_2_made', 'shot_3_made', 'ft_made',
@@ -2098,6 +2100,17 @@
         {/if}
       </section>
 
+      <section class="vyvoj-skore-live">
+        <button class="vsl-toggle" onclick={() => (vyvojGrafLiveOpen = !vyvojGrafLiveOpen)}>
+          📈 Vývoj skóre <span class="vsl-arrow">{vyvojGrafLiveOpen ? '▲' : '▼'}</span>
+        </button>
+        {#if vyvojGrafLiveOpen}
+          <div class="vsl-body">
+            <SkoreVyvojGraf {udalosti} {pocetCtvrtin} />
+          </div>
+        {/if}
+      </section>
+
       <section class="timeouts">
         <div class="to-info">Oddechy — aktuální období: <strong>{toObdobi}</strong> (max {toPovoleno})</div>
         <div class="to-buttons">
@@ -2326,6 +2339,13 @@
             </tbody>
           </table>
         </div>
+      </section>
+
+      <section class="vyvoj-skore">
+        <header class="vs-head">
+          <h3>Vývoj skóre {selectedPeriod === 'total' ? '— celý zápas' : `— ${fmtQ(selectedPeriod)}`}</h3>
+        </header>
+        <SkoreVyvojGraf udalosti={periodUdalosti} {pocetCtvrtin} />
       </section>
 
       <section class="prirazeni">
@@ -4132,6 +4152,48 @@
   .prirazeni-toggle:hover { background: var(--surface-hover); }
   .prirazeni-toggle .pt-arrow { color: var(--text-muted); font-size: 12px; }
   .prirazeni-body { padding: 0 18px 16px; }
+
+  .vyvoj-skore {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    box-shadow: var(--shadow);
+  }
+  .vs-head {
+    margin-bottom: 10px;
+  }
+  .vs-head h3 {
+    font-size: 16px;
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  .vyvoj-skore-live {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .vsl-toggle {
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: none;
+    color: var(--accent);
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 700;
+    padding: 12px 16px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .vsl-toggle:hover { background: var(--surface-hover); }
+  .vsl-arrow { color: var(--text-muted); font-size: 12px; }
+  .vsl-body { padding: 0 16px 14px; }
   .prirazeni-hint { font-size: 13px; color: var(--text-muted); line-height: 1.5; margin-bottom: 12px; }
   .prirazeni-hint strong { color: var(--text); }
   .prirazeni-empty { font-size: 13px; color: var(--text-muted); font-style: italic; }

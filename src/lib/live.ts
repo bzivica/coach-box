@@ -417,6 +417,68 @@ export function computeSkorePoCtvrtinach(
   return result;
 }
 
+export interface SkoreBod {
+  krok: number;
+  ctvrtina_cislo: number;
+  nase: number;
+  souper: number;
+}
+
+export function computeSkoreProgrese(udalosti: Udalost[]): SkoreBod[] {
+  const bodove = udalosti
+    .filter((u) => jeNasBod(u.typ) > 0 || jeSouperBod(u.typ) > 0)
+    .sort((a, b) => {
+      if (a.ctvrtina_cislo !== b.ctvrtina_cislo) return a.ctvrtina_cislo - b.ctvrtina_cislo;
+      if (a.poradi !== b.poradi) return a.poradi - b.poradi;
+      return a.timestamp_at - b.timestamp_at;
+    });
+
+  const ZACATEK_KROK = 0;
+  const prvniCtvrtina = bodove.length > 0 ? bodove[0].ctvrtina_cislo : 1;
+  const body: SkoreBod[] = [
+    { krok: ZACATEK_KROK, ctvrtina_cislo: prvniCtvrtina, nase: 0, souper: 0 },
+  ];
+
+  let nase = 0;
+  let souper = 0;
+  let krok = ZACATEK_KROK;
+  for (const u of bodove) {
+    nase += jeNasBod(u.typ);
+    souper += jeSouperBod(u.typ);
+    krok += 1;
+    body.push({ krok, ctvrtina_cislo: u.ctvrtina_cislo, nase, souper });
+  }
+  return body;
+}
+
+export interface Snura {
+  kdo: 'nase' | 'souper';
+  krokOd: number;
+  krokDo: number;
+  body: number;
+}
+
+export function detectSnury(progrese: SkoreBod[], minBody: number): Snura[] {
+  const out: Snura[] = [];
+  let aktualni: Snura | null = null;
+  for (let i = 1; i < progrese.length; i++) {
+    const prev = progrese[i - 1];
+    const p = progrese[i];
+    const dNase = p.nase - prev.nase;
+    const kdo: 'nase' | 'souper' = dNase > 0 ? 'nase' : 'souper';
+    const body = dNase > 0 ? dNase : p.souper - prev.souper;
+    if (aktualni && aktualni.kdo === kdo) {
+      aktualni.krokDo = p.krok;
+      aktualni.body += body;
+    } else {
+      if (aktualni && aktualni.body >= minBody) out.push(aktualni);
+      aktualni = { kdo, krokOd: prev.krok, krokDo: p.krok, body };
+    }
+  }
+  if (aktualni && aktualni.body >= minBody) out.push(aktualni);
+  return out;
+}
+
 const REGULAR_CTVRTINY_PRO_LIMIT = 4;
 
 export function ctvrtinyOdehrane(
