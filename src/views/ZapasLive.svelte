@@ -2570,20 +2570,33 @@
           height={RADIAL_VIEWBOX_PX * 2}
           viewBox="{-RADIAL_VIEWBOX_PX} {-RADIAL_VIEWBOX_PX} {RADIAL_VIEWBOX_PX * 2} {RADIAL_VIEWBOX_PX * 2}"
         >
-          {#each RADIAL_INNER_SEGMENTS as seg, i (seg.typ)}
-            <path
-              class="wedge tone-{seg.tone}"
-              class:active={radialActive?.ring === 'inner' && radialActive.idx === i}
-              d={radialWedgePath(-90 + i * 45, 45, RADIAL_INNER_BAND_RIN, RADIAL_INNER_BAND_ROUT)}
-            />
-          {/each}
-          {#each RADIAL_OUTER_SEGMENTS as seg, i (seg.typ)}
-            <path
-              class="wedge tone-{seg.tone}"
-              class:active={radialActive?.ring === 'outer' && radialActive.idx === i}
-              d={radialWedgePath(-90 + i * 72, 72, RADIAL_OUTER_BAND_RIN, RADIAL_OUTER_BAND_ROUT)}
-            />
-          {/each}
+          <defs>
+            <radialGradient id="radialGloss" cx="50%" cy="30%" r="68%">
+              <stop offset="0%" stop-color="rgba(255,255,255,0.5)" />
+              <stop offset="50%" stop-color="rgba(255,255,255,0.1)" />
+              <stop offset="100%" stop-color="rgba(255,255,255,0)" />
+            </radialGradient>
+            <filter id="wedgeShadow" x="-30%" y="-30%" width="160%" height="160%">
+              <feDropShadow dx="0" dy="3" stdDeviation="5" flood-color="rgba(0,0,0,0.5)" />
+            </filter>
+          </defs>
+          <g filter="url(#wedgeShadow)">
+            {#each RADIAL_INNER_SEGMENTS as seg, i (seg.typ)}
+              <path
+                class="wedge tone-{seg.tone}"
+                class:active={radialActive?.ring === 'inner' && radialActive.idx === i}
+                d={radialWedgePath(-90 + i * 45, 45, RADIAL_INNER_BAND_RIN, RADIAL_INNER_BAND_ROUT)}
+              />
+            {/each}
+            {#each RADIAL_OUTER_SEGMENTS as seg, i (seg.typ)}
+              <path
+                class="wedge tone-{seg.tone}"
+                class:active={radialActive?.ring === 'outer' && radialActive.idx === i}
+                d={radialWedgePath(-90 + i * 72, 72, RADIAL_OUTER_BAND_RIN, RADIAL_OUTER_BAND_ROUT)}
+              />
+            {/each}
+          </g>
+          <circle cx="0" cy="0" r={RADIAL_OUTER_BAND_ROUT} fill="url(#radialGloss)" pointer-events="none" />
         </svg>
         {#each RADIAL_INNER_SEGMENTS as seg, i (seg.typ)}
           {@const pos = radialInnerSegmentXY(i, RADIAL_INNER_RADIUS_PX)}
@@ -4383,7 +4396,9 @@
     top: -240px;
     width: 480px;
     height: 480px;
-    background: radial-gradient(circle, rgba(15, 23, 42, 0.62) 0%, rgba(15, 23, 42, 0.34) 46%, rgba(15, 23, 42, 0.0) 74%);
+    background: radial-gradient(circle, rgba(15, 23, 42, 0.42) 0%, rgba(15, 23, 42, 0.2) 46%, rgba(15, 23, 42, 0.0) 74%);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
   }
   .radial-hint {
     position: absolute;
@@ -4407,9 +4422,10 @@
     overflow: visible;
   }
   .wedge {
-    stroke: rgba(15, 23, 42, 0.55);
-    stroke-width: 2;
-    transition: filter 0.08s ease, opacity 0.08s ease;
+    stroke: rgba(255, 255, 255, 0.4);
+    stroke-width: 1.5;
+    fill-opacity: 1;
+    transition: filter 0.08s ease, opacity 0.08s ease, fill-opacity 0.08s ease;
   }
   .wedge.tone-made { fill: var(--success); }
   .wedge.tone-miss { fill: var(--danger); }
@@ -4420,7 +4436,8 @@
   .wedge.active {
     stroke: #ffffff;
     stroke-width: 3.5;
-    filter: brightness(1.18) saturate(1.2) drop-shadow(0 0 6px rgba(255, 255, 255, 0.55));
+    fill-opacity: 1;
+    filter: brightness(1.2) saturate(1.25) drop-shadow(0 0 9px rgba(255, 255, 255, 0.7));
   }
   .radial-lbl {
     position: absolute;
@@ -4434,15 +4451,15 @@
     align-items: center;
     justify-content: center;
     color: #ffffff;
-    font-size: 16px;
-    font-weight: 800;
-    letter-spacing: 0.3px;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+    font-size: 17px;
+    font-weight: 900;
+    letter-spacing: 0.4px;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.85), 0 0 2px rgba(0, 0, 0, 0.6);
     transition: scale 0.08s ease;
     pointer-events: none;
   }
-  .radial-lbl.outer { font-size: 13px; }
-  .radial-lbl.active { scale: 1.2; text-shadow: 0 2px 6px rgba(0, 0, 0, 0.85); }
+  .radial-lbl.outer { font-size: 14px; }
+  .radial-lbl.active { scale: 1.22; text-shadow: 0 2px 7px rgba(0, 0, 0, 0.95); }
   .radial-overlay.has-active .radial-lbl:not(.active) { opacity: 0.5; }
   .radial-overlay.has-active .player-seg:not(.active) {
     opacity: 0.42;

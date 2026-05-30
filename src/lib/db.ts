@@ -99,34 +99,42 @@ const SEED_HRACI: SeedHrac[] = [
   { cislo: 23, jmeno: 'Hráč', prijmeni: 'U15-23', kategorie: 'U15' },
 ];
 
+const SEED_PLACEHOLDER_PRIJMENI = /^U1[345]-\d{2}$/;
+
+function jeSeedPlaceholder(h: Hrac): boolean {
+  return h.jmeno === 'Hráč' && SEED_PLACEHOLDER_PRIJMENI.test(h.prijmeni);
+}
+
 export async function seedHraci(): Promise<void> {
-  const existing = await db.hraci.toArray();
-  const byKey = new Map(existing.map((h) => [`${h.jmeno}|${h.prijmeni}`, h]));
+  const count = await db.hraci.count();
+  if (count > 0) return;
+
   const now = Date.now();
-
   for (const s of SEED_HRACI) {
-    const key = `${s.jmeno}|${s.prijmeni}`;
-    const found = byKey.get(key);
-
-    if (!found) {
-      await db.hraci.add({
-        id: newId(),
-        jmeno: s.jmeno,
-        prijmeni: s.prijmeni,
-        cislo_dresu: s.cislo,
-        pozice: s.pozice,
-        domaci_kategorie: s.kategorie,
-        aktivni: true,
-        vytvoreno_at: now,
-        updated_at: now,
-      });
-    } else if (s.pozice && !found.pozice) {
-      await db.hraci.update(found.id, {
-        pozice: s.pozice,
-        updated_at: now,
-      });
-    }
+    await db.hraci.add({
+      id: newId(),
+      jmeno: s.jmeno,
+      prijmeni: s.prijmeni,
+      cislo_dresu: s.cislo,
+      pozice: s.pozice,
+      domaci_kategorie: s.kategorie,
+      aktivni: true,
+      vytvoreno_at: now,
+      updated_at: now,
+    });
   }
+}
+
+async function removeStaleSeedPlaceholders(): Promise<void> {
+  const all = await db.hraci.toArray();
+  const placeholders = all.filter(jeSeedPlaceholder);
+  const real = all.filter((h) => !jeSeedPlaceholder(h));
+  if (placeholders.length === 0 || real.length === 0) return;
+
+  const udalosti = await db.udalosti.toArray();
+  const usedHracIds = new Set(udalosti.map((u) => u.hrac_id).filter((id): id is string => !!id));
+  const toDelete = placeholders.filter((h) => !usedHracIds.has(h.id)).map((h) => h.id);
+  if (toDelete.length > 0) await db.hraci.bulkDelete(toDelete);
 }
 
 type LegacyKategorie = 'A' | 'B';
@@ -175,6 +183,7 @@ async function migrateLegacyKategorie(): Promise<void> {
 
 export async function seedAll(): Promise<void> {
   await migrateLegacyKategorie();
+  await removeStaleSeedPlaceholders();
   await seedSouteze();
   await seedHraci();
 }
