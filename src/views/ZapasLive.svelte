@@ -927,6 +927,7 @@
       case 'opp_reb': return '+ doskok';
       case 'opp_reb_off': return '+ doskok útoč.';
       case 'opp_reb_def': return '+ doskok obr.';
+      case 'opp_turnover': return '+1 ztráta';
       case 'foul_technical_bench': return 'technická chyba (lavička)';
       case 'oddech_my': return 'oddech';
       case 'oddech_opp': return 'oddech soupeře';
@@ -1961,6 +1962,7 @@
             <button class="opp" onclick={() => openOppFoul('technical')} title="Technická chyba (i trenér/lavička) — zapíše se bez čísla">Technická</button>
             <button class="opp" onclick={() => recordOpponent('opp_reb_off')}>+ dosk útoč.</button>
             <button class="opp" onclick={() => recordOpponent('opp_reb_def')}>+ dosk obr.</button>
+            <button class="opp" onclick={() => recordOpponent('opp_turnover')} title="Ztráta soupeře bez našeho zisku (kroky, aut, ofenzivní faul…)">Ztráta</button>
           </div>
         </section>
       </section>
@@ -2005,6 +2007,7 @@
           <div class="lt-chip"><span class="lt-l">OFF</span><span class="lt-v">{oppTotals.doskoky_off}</span></div>
           <div class="lt-chip"><span class="lt-l">DEF</span><span class="lt-v">{oppTotals.doskoky_def}</span></div>
           <div class="lt-chip"><span class="lt-l">REB</span><span class="lt-v">{oppTotals.doskoky_off + oppTotals.doskoky_def + oppTotals.doskoky_neznamy}</span></div>
+          <div class="lt-chip"><span class="lt-l">TO</span><span class="lt-v">{oppTotals.ztraty}</span></div>
           <div class="lt-chip"><span class="lt-l">PF</span><span class="lt-v">{oppTotals.fauly}</span></div>
           {#if oppTotals.doskoky_neznamy > 0}
             <div class="lt-chip" title="Doskoky bez určení směru (z dřívějších verzí)"><span class="lt-l">REB?</span><span class="lt-v">{oppTotals.doskoky_neznamy}</span></div>
@@ -2265,6 +2268,7 @@
           <div class="opp-item"><span class="opp-l">Doskok OFF</span><span class="opp-v">{periodOppTotals.doskoky_off}</span></div>
           <div class="opp-item"><span class="opp-l">Doskok DEF</span><span class="opp-v">{periodOppTotals.doskoky_def}</span></div>
           <div class="opp-item"><span class="opp-l">Doskoky celkem</span><span class="opp-v">{periodOppTotals.doskoky_off + periodOppTotals.doskoky_def + periodOppTotals.doskoky_neznamy}</span></div>
+          <div class="opp-item"><span class="opp-l">Ztráty</span><span class="opp-v">{periodOppTotals.ztraty}</span></div>
           {#if periodOppTotals.doskoky_neznamy > 0}
             <div class="opp-item"><span class="opp-l">Doskok ?</span><span class="opp-v">{periodOppTotals.doskoky_neznamy}</span></div>
           {/if}

@@ -357,12 +357,13 @@ export interface OppTotals {
   doskoky_off: number;
   doskoky_def: number;
   doskoky_neznamy: number;
+  ztraty: number;
 }
 
 export function computeOppTotals(udalosti: Udalost[]): OppTotals {
   const t: OppTotals = {
     body: 0, body_2: 0, body_3: 0, body_th: 0,
-    fauly: 0, doskoky_off: 0, doskoky_def: 0, doskoky_neznamy: 0,
+    fauly: 0, doskoky_off: 0, doskoky_def: 0, doskoky_neznamy: 0, ztraty: 0,
   };
   for (const u of udalosti) {
     if (u.typ === 'opp_pts_2') { t.body_2++; t.body += 2; }
@@ -372,6 +373,7 @@ export function computeOppTotals(udalosti: Udalost[]): OppTotals {
     else if (u.typ === 'opp_reb_off') t.doskoky_off++;
     else if (u.typ === 'opp_reb_def') t.doskoky_def++;
     else if (u.typ === 'opp_reb') t.doskoky_neznamy++;
+    else if (u.typ === 'opp_turnover') t.ztraty++;
   }
   return t;
 }
