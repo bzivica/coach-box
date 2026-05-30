@@ -245,6 +245,7 @@
           <li><strong>Soutěž, Sezona</strong> (např. <code>2025/26</code>)</li>
           <li><strong>Délka čtvrtiny</strong> — default 10 min, mladší kategorie 8 nebo 6 (rozsah 4–15)</li>
           <li><strong>Počet čtvrtin</strong> — viditelné jen u typu <em>Přátelák</em>, volitelně 3 nebo 4 (pro ligy/poháry/turnaje pevně 4)</li>
+          <li><strong>Soupeř = náš tým</strong> (jen u Přáteláku) — interní přátelák mezi našimi týmy. Zaškrtni „Soupeř je náš tým" a vyber kategorii. Nabízí se naše kategorie <strong>do +2 věkové skupiny výš</strong> (B i A se počítají jako jedna skupina): U12 → U12/U13/U14, U13 → U13/U14/U15B/U15, U14 → +U17B/U17 atd. Soupiska soupeře se naplní z našich hráčů té kategorie (čísla + jména) — sleduje se po číslech (body/fauly/doskoky/ztráty), upravitelná v zápase přes „✎ Soupiska".</li>
           <li><strong>Nasazení hráči</strong> — alespoň 5</li>
         </ul>
         <p>Pod sestavou je <strong>breakdown</strong> (chipy podle ročníku + kategorie). Modrý = hlavní skupina; červený + ⚠ = vedlejší skupina s <code>&gt; 4</code> hráči (varování federačního limitu, neblokuje uložení).</p>

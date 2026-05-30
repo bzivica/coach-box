@@ -5,6 +5,7 @@
     KATEGORIE_PORADI,
     kategorieLabel,
     muzeHratV,
+    souperiZNasichKategorie,
     DEFAULT_DELKA_CTVRTINY_MIN,
     DEFAULT_POCET_CTVRTIN,
     type Zapas,
@@ -41,6 +42,8 @@
   let soutez_id = $state('');
   let sezona = $state(currentSeason);
   let nase_strana = $state<NaseStrana>('home');
+  let souper_nas_tym = $state(false);
+  let souper_nas_kategorie = $state<Kategorie>('U14');
   let nasazeni = $state<string[]>([]);
   let delka_ctvrtiny = $state(String(DEFAULT_DELKA_CTVRTINY_MIN));
   let pocet_ctvrtin = $state(DEFAULT_POCET_CTVRTIN);
@@ -62,6 +65,13 @@
   const filtrovani_souperi = $derived(souperi.filter((s) => s.kategorie === nase_kategorie));
   const vybrana_soutez = $derived(souteze.find((s) => s.id === soutez_id));
   const je_pratelak = $derived(vybrana_soutez?.typ === 'pratelak');
+  const souper_nas_kategorie_moznosti = $derived(souperiZNasichKategorie(nase_kategorie));
+
+  $effect(() => {
+    if (!souper_nas_kategorie_moznosti.includes(souper_nas_kategorie)) {
+      souper_nas_kategorie = nase_kategorie;
+    }
+  });
   const eligible_hraci = $derived(
     hraci
       .filter((h) => muzeHratV(h.domaci_kategorie, nase_kategorie))
@@ -125,10 +135,28 @@
     nasazeni = [];
   }
 
+  async function vytvorNeboNajdiNasSouper(kat: Kategorie): Promise<string> {
+    const nazev = `Jižní Supi ${kategorieLabel(kat)}`;
+    const nasiHraci = (await db.hraci.toArray())
+      .filter((h) => h.aktivni && h.domaci_kategorie === kat)
+      .sort((a, b) => (a.cislo_dresu ?? 99) - (b.cislo_dresu ?? 99))
+      .map((h) => ({ cislo: h.cislo_dresu ?? 0, jmeno: h.jmeno, prijmeni: h.prijmeni }));
+    const now = Date.now();
+    const existing = (await db.souperi.toArray()).find((s) => s.nazev === nazev && s.kategorie === kat);
+    if (existing) {
+      await db.souperi.update(existing.id, { hraci_soupere: nasiHraci, updated_at: now });
+      return existing.id;
+    }
+    const id = newId();
+    await db.souperi.add({ id, nazev, kategorie: kat, hraci_soupere: nasiHraci, vytvoreno_at: now, updated_at: now });
+    return id;
+  }
+
   async function ulozit() {
     chyba = null;
+    const interni_pratelak = je_pratelak && souper_nas_tym;
     if (!datum) { chyba = 'Datum je povinný'; return; }
-    if (!souper_id) { chyba = 'Vyber soupeře (nebo přidej v sekci Soupeři)'; return; }
+    if (!interni_pratelak && !souper_id) { chyba = 'Vyber soupeře (nebo přidej v sekci Soupeři)'; return; }
     if (!soutez_id) { chyba = 'Vyber soutěž'; return; }
     if (!sezona.trim()) { chyba = 'Sezona je povinná'; return; }
     const delkaParsed = Number(delka_ctvrtiny);
@@ -141,11 +169,14 @@
     ukladani = true;
     try {
       const now = Date.now();
+      const finalSouperId = interni_pratelak
+        ? await vytvorNeboNajdiNasSouper(souper_nas_kategorie)
+        : souper_id;
       const zapas: Zapas = {
         id: newId(),
         datum,
         nase_kategorie,
-        souper_id,
+        souper_id: finalSouperId,
         soutez_id,
         sezona: sezona.trim(),
         nase_strana,
@@ -198,13 +229,15 @@
       <div class="row">
         <label>
           <span>Soupeř *</span>
-          <select bind:value={souper_id}>
+          <select bind:value={souper_id} disabled={je_pratelak && souper_nas_tym}>
             <option value="">— vyber —</option>
             {#each filtrovani_souperi as s}
               <option value={s.id}>{s.nazev}</option>
             {/each}
           </select>
-          {#if filtrovani_souperi.length === 0}
+          {#if je_pratelak && souper_nas_tym}
+            <small class="hint-info">Soupeř = náš tým (viz níže).</small>
+          {:else if filtrovani_souperi.length === 0}
             <small class="hint">Žádný soupeř v kategorii {kategorieLabel(nase_kategorie)}. Přidej v sekci Soupeři.</small>
           {/if}
         </label>
@@ -218,6 +251,26 @@
           </select>
         </label>
       </div>
+
+      {#if je_pratelak}
+        <div class="interni-pratelak">
+          <label class="checkbox-row">
+            <input type="checkbox" bind:checked={souper_nas_tym} />
+            <span>Soupeř je náš tým (interní přátelák)</span>
+          </label>
+          {#if souper_nas_tym}
+            <label>
+              <span>Náš tým jako soupeř *</span>
+              <select bind:value={souper_nas_kategorie}>
+                {#each souper_nas_kategorie_moznosti as k}
+                  <option value={k}>Jižní Supi {kategorieLabel(k)}</option>
+                {/each}
+              </select>
+              <small class="hint-info">Soupiska se naplní z našich hráčů kategorie {kategorieLabel(souper_nas_kategorie)} (čísla + jména); v zápase ji upravíš přes „✎ Soupiska". Nabízí se naše kategorie do +2 věkové skupiny výš.</small>
+            </label>
+          {/if}
+        </div>
+      {/if}
 
       <div class="row3">
         <label>
@@ -352,8 +405,18 @@
   }
   input:focus, select:focus { outline: none; border-color: var(--accent); }
   .hint { color: var(--warn); font-size: 12px; margin-top: 4px; }
-  .checkbox-row { flex-direction: row; align-items: center; gap: 8px; cursor: pointer; align-self: end; padding-bottom: 10px; }
+  .hint-info { color: var(--text-muted); font-size: 12px; margin-top: 4px; line-height: 1.4; }
+  .checkbox-row { flex-direction: row; align-items: center; gap: 8px; cursor: pointer; }
   .checkbox-row input { width: 18px; height: 18px; cursor: pointer; }
+  .interni-pratelak {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px;
+  }
 
   .roster-section {
     background: var(--surface-2);

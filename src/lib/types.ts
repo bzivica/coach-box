@@ -216,6 +216,36 @@ export function muzeHratV(domaci: Kategorie, zapasKategorie: Kategorie): boolean
   return eligibleKategorie(domaci).includes(zapasKategorie);
 }
 
+export const VEKOVA_SKUPINA: Record<Kategorie, number> = {
+  pripravka: 0,
+  U10MIX: 1,
+  U11: 2,
+  U12: 3,
+  U13: 4,
+  U14: 5,
+  U15B: 6,
+  U15: 6,
+  U17B: 7,
+  U17: 7,
+  U19B: 8,
+  U19: 8,
+  MuziB: 9,
+  MuziA: 9,
+};
+
+export const SOUPER_NAS_MAX_SKUPINY_NAHORU = 2;
+
+export function souperiZNasichKategorie(
+  naseKategorie: Kategorie,
+  maxSkupinyNahoru: number = SOUPER_NAS_MAX_SKUPINY_NAHORU,
+): Kategorie[] {
+  const my = VEKOVA_SKUPINA[naseKategorie];
+  return KATEGORIE_PORADI.filter((k) => {
+    const ag = VEKOVA_SKUPINA[k];
+    return ag >= my && ag <= my + maxSkupinyNahoru;
+  });
+}
+
 export const DEFAULT_POCET_CTVRTIN = 4;
 
 export function formatCtvrtina(cislo: number, pocetCtvrtin: number = DEFAULT_POCET_CTVRTIN): string {
