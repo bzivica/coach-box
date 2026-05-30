@@ -30,11 +30,6 @@ export default defineConfig({
             type: 'image/png',
             purpose: 'any',
           },
-          {
-            src: 'favicon.svg',
-            sizes: 'any',
-            type: 'image/svg+xml',
-          },
         ],
       },
     }),

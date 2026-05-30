@@ -43,6 +43,7 @@
         </ul>
         <p>Pod hlavními sloupci: <strong>Live totals</strong> (MY/SOUPEŘ chipy), <strong>Timeouts</strong>, <strong>Šatna strip</strong> (kompaktní řádek bench hráčů), footer s Konec Q / Ukončit zápas.</p>
         <p>Nahoře <strong>clock-bar</strong>: stopky, Start/Pauza, ✏️ Čas, ✏️ Q, ↺ Reset, a <strong>↶ Vrátit poslední</strong> (undo posledních akcí).</p>
+        <p><strong>Skóre</strong> je nad tím ve vlastním <strong>přilepeném (sticky) proužku uprostřed</strong> (<code>Qx · MY : SOUPEŘ</code>) — zůstane viditelné, i když odscrolluješ dolů za hráči (užitečné na fullscreenu).</p>
       </section>
 
       <section class="step">
@@ -55,6 +56,14 @@
             <tr>
               <td>Náš hráč skóroval / fauloval / cokoli</td>
               <td>Klik na <strong>hráče uprostřed</strong> (karta zmodrá) → klik na akci vlevo. ÚTOK: horní řada zelená "✓ dal", spodní červená "✗ nedal" (2P / 3P / Trestný). Ostatní skupiny: DOSKOK (off/def), POZITIVNÍ (AST/STL/BLK), NEGATIVNÍ (Faul/Ztráta). <strong>Tip:</strong> všech 13 akcí jde zapsat jediným gestem (na hráči i na akčním tlačítku) — viz krok <em>4b. Rychlé zapisování gesty</em>.</td>
+            </tr>
+            <tr>
+              <td>Faul našeho hráče</td>
+              <td>Tlačítko <strong>Faul</strong> (nebo gesto / radial) zapíše rovnou <strong>osobní</strong> faul — bez okna (99 % případů). Pro <strong>nesportovní / technickou</strong> klikni samostatné tlačítko <strong>Nesportovní / technická…</strong> a vyber subtyp. <strong>Tech. lavička</strong> (faul trenéra/lavičky bez hráče) je zvlášť dole.</td>
+            </tr>
+            <tr>
+              <td>Faul soupeře</td>
+              <td><strong>+1 faul…</strong> = osobní (vyber číslo, nebo „bez čísla"). <strong>Nesport.…</strong> = nesportovní (s číslem i bez). <strong>Technická</strong> = zapíše se <strong>hned bez čísla</strong> (může ji dostat i trenér/lavička).</td>
             </tr>
             <tr>
               <td>Náš tým skóroval, ale nevím kdo</td>
@@ -86,7 +95,7 @@
             </tr>
             <tr>
               <td>Oddech (TO)</td>
-              <td>Klik tlačítko ⏱ TO (MY / SOUPEŘ) dole. Klok se automaticky pauzne. Pamatuje FIBA pravidla 2/3/1 podle období.</td>
+              <td>Klik ⏱ TO (MY / SOUPEŘ) dole → stopky se pauznou a nahoře naskočí <strong>odpočet 60 s</strong>. Tlačítkem <strong>⏹ Konec oddechu</strong> ho ukončíš dřív (nebo když ho spustíš pozdě). FIBA limity 2/3/1 podle období.</td>
             </tr>
           </tbody>
         </table>
@@ -110,15 +119,15 @@
               <td rowspan="4">Při tažení se kolem karty objeví 4 popisky (↑✓2, ↓✗2, →FAUL, ←REB-D) — aktivní směr se modře zvýrazní. Pust až za hranicí karty, jinak se akce nezapíše. Nejrychlejší cesta pro 4 nejčastější situace.</td>
             </tr>
             <tr><td><strong>Krátké švihnutí ↓</strong></td><td>2 body NEdaný</td></tr>
-            <tr><td><strong>Krátké švihnutí →</strong></td><td>Faul (otevře výběr osobní/nesp./tech.)</td></tr>
+            <tr><td><strong>Krátké švihnutí →</strong></td><td>Faul (rovnou osobní)</td></tr>
             <tr><td><strong>Krátké švihnutí ←</strong></td><td>Doskok obranný (REB-D)</td></tr>
             <tr>
               <td><strong>Podržení prstu (~¼ s) + tažení</strong></td>
               <td>Radial menu — dvě soustředné vrstvy s 13 akcemi</td>
               <td>
-                <strong>Vnitřní kruh (8):</strong> ↑✓2, ↗✓3, →FAUL, ↘REB-O, ↓✗2, ↙✗3, ←REB-D, ↖✓FT.<br/>
-                <strong>Vnější kruh (5):</strong> AST, STL, BLK, TO, ✗FT — menší tmavší segmenty, dál od středu.<br/>
-                Slidneš prstem na požadovaný segment a pustíš = zápis. Vnitřní/vnější se rozlišuje vzdáleností (vnější ≥ 110 px od středu). Ve středu (×) nebo daleko mimo = cancel.
+                <strong>Vnitřní kruh (8):</strong> dané koše nahoře (↖✓FT, ↑✓2, ↗✓3), nedané dole (↙✗3, ↓✗2, ↘✗FT), doskoky po stranách (←REB-D, →REB-O). Protějšky jsou proti sobě.<br/>
+                <strong>Vnější kruh (5):</strong> AST, STL, BLK, TO, FAUL — dál od středu.<br/>
+                Táhneš prstem na výseč a pustíš = zápis. <strong>Uprostřed se ukáže, co zapíšeš</strong> (např. „2 body daný"). Vnitřní/vnější se rozlišuje vzdáleností (vnější ≥ 122 px). Ve středu (× zrušit) = cancel. Faul = rovnou osobní.
               </td>
             </tr>
           </tbody>
@@ -139,13 +148,13 @@
             <tr>
               <td><strong>Podržení tlačítka (~¼ s) + tažení</strong></td>
               <td>Radial menu s <strong>5 hráči na hřišti</strong> (číslo + příjmení)</td>
-              <td>Funguje na <strong>všech 13 akcí</strong> (✓2, ✓3, ✓FT, ✗2, ✗3, ✗FT, REB-O, REB-D, AST, STL, BLK, FAUL, TO). Faul navíc otevře výběr subtype. Tažením přes segment hráče a puštěním = zápis bez nutnosti tappnout hráče dopředu.</td>
+              <td>Funguje na <strong>všech 13 akcí</strong> (✓2, ✓3, ✓FT, ✗2, ✗3, ✗FT, REB-O, REB-D, AST, STL, BLK, FAUL, TO). Faul = rovnou osobní. Tažením přes segment hráče a puštěním = zápis bez nutnosti tappnout hráče dopředu.</td>
             </tr>
           </tbody>
         </table>
 
         <p class="muted-note">
-          <strong>Kardinální směry jsou v swipe i v radialu stejné</strong> (↑+2, ↓✗2, →faul, ←REB-D), takže nemusíš přepínat myšlení mezi swipe a radial.<br/>
+          <strong>V radialu drží logika:</strong> dané koše nahoře, nedané dole, doskoky po stranách — každá akce má svůj protějšek přímo proti sobě, takže si na směry rychle zvykneš.<br/>
           Tap na hráče (= výběr) + tap na tlačítko (= zápis) funguje pořád úplně stejně jako bez gest — gesta jsou jen rychlejší alternativa pro toho kdo si zvykne.
         </p>
       </section>
@@ -261,8 +270,8 @@
         <h4>2.8 Zálohování dat</h4>
         <p><strong>Domů → Záloha / přenos dat</strong>:</p>
         <ul>
-          <li><strong>Export</strong> → stáhne <code>basket-data-YYYY-MM-DD.json</code> s celou databází.</li>
-          <li><strong>Import</strong> → přepíše VŠECHNA data v této instanci (v tomto prohlížeči/zařízení).</li>
+          <li><strong>Export</strong> → stáhne <code>basket-data-YYYY-MM-DD.json</code> s <strong>celou databází</strong> — včetně <strong>rozehraných (neukončených) zápasů</strong> a všech jejich akcí, čtvrtin i stavu stopek. Rozehraný zápas tak jde přenést na jiné zařízení a tam dohrát.</li>
+          <li><strong>Import (přepsat)</strong> → přepíše VŠECHNA data v této instanci. <strong>Sloučit z JSON</strong> → přidá jen nové (nepřepíše, nezdvojí).</li>
         </ul>
         <p><strong>Workflow přenos trenér ↔ asistent:</strong></p>
         <ol>
@@ -295,7 +304,8 @@
       <section class="step warn">
         <ul>
           <li><strong>Stopky a minuty:</strong> pokud asistent stopky nepustil, sloupec <strong>Min</strong> ukáže <code>—</code>. Ostatní staty jsou v pořádku.</li>
-          <li><strong>Stopky a refresh stránky:</strong> po obnovení appky se klok resetuje na plnou délku Q (např. 10:00). Použij ✏️ <strong>Čas</strong> v live view.</li>
+          <li><strong>Stopky se ukládají:</strong> stav stopek se průběžně ukládá do čtvrtiny — odskok na Statistiky (i obnovení appky) a návrat do zápasu klok zachová. Kdyby přesto neseděl, dorovnej ✏️ <strong>Čas</strong>.</li>
+          <li><strong>Statistiky za běhu:</strong> Statistiky (horní menu) jdou prohlížet i během rozehraného zápasu — třeba o poločase. Rozehraný zápas tam má štítek <em>BĚŽÍ / POLOČAS</em>. (O poločase jsi na obrazovce výběru pětice pro další Q, ne v live totals — průběžné staty najdeš právě ve Statistikách.)</li>
           <li><strong>Stopky odpočítávají dolů</strong> (od délky Q → 0:00). Celkový čas v zápase pod nimi naopak roste od 0 k <code>počet_Q × délka_Q</code>.</li>
           <li><strong>Overtime:</strong> po poslední Q (Q4 nebo Q3 v přáteláku) nabízí appka prodloužení pokud je remíza, nebo ukončení.</li>
           <li><strong>Pravidla mládeže:</strong>
@@ -306,7 +316,9 @@
               <li>Appka varuje při porušení (lze pokračovat = vědomé porušení).</li>
             </ul>
           </li>
-          <li><strong>Foul-out:</strong> 5 osobních faulů → hráč musí být vystřídán, blokující modal.</li>
+          <li><strong>Foul-out:</strong> 5 faulů (všechny subtypy se počítají) → hráč musí být vystřídán, blokující modal.</li>
+          <li><strong>Náš faul:</strong> tlačítko <strong>Faul</strong> i gesto/radial = rovnou <em>osobní</em> (bez okna). Nesportovní/technickou zapíšeš tlačítkem <strong>Nesportovní / technická…</strong>. Faul trenéra/lavičky = <strong>Tech. lavička</strong> (bez hráče, nepočítá se k nikomu).</li>
+          <li><strong>Soupeř — fauly:</strong> osobní (<code>+1 faul…</code>, s/bez čísla), nesportovní (<code>Nesport.…</code>), technická (<code>Technická</code> — hned bez čísla, i trenér/lavička). Všechny jdou do faulů soupeře.</li>
           <li><strong>Soupeř — per hráč:</strong> sledují se body, fauly a doskoky per jersey (pokud klikneš na číslo soupeře před akcí). AST/STL/TO/BLK pro soupeřovy hráče se nezapisují.</li>
           <li><strong>Soupeř — bez čísla:</strong> klik na opp akci bez vybrané jersey → zapíše obecně do týmového totálu (v matchEnd jako řádek <em>Bez čísla hráče</em>).</li>
           <li><strong>Soupeř — full roster zobrazený</strong>: V live zápase vidíš všechny opp hráče jako chips (řazené dle čísla), ne jen 5 na hřišti. Soupeřovo střídání nesledujeme (přesah by byl příliš velký) — útoč po číslech které víš.</li>
