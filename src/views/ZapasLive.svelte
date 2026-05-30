@@ -1751,13 +1751,13 @@
       <button class="back" onclick={onBack}>← Zpět</button>
       <div class="teams">
         {#if zapas.nase_strana === 'home'}
-          <span class="us">My ({kategorieLabel(zapas.nase_kategorie)})</span>
+          <span class="us">Jižní Supi ({kategorieLabel(zapas.nase_kategorie)})</span>
           <span class="vs">vs</span>
           <span class="them">{souper.nazev}</span>
         {:else}
           <span class="them">{souper.nazev}</span>
           <span class="vs">vs</span>
-          <span class="us">My ({kategorieLabel(zapas.nase_kategorie)})</span>
+          <span class="us">Jižní Supi ({kategorieLabel(zapas.nase_kategorie)})</span>
         {/if}
       </div>
     </header>
