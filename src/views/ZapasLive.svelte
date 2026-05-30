@@ -1260,10 +1260,16 @@
   const SWIPE_FIRE_THRESHOLD_PX = 40;
   const GESTURE_CANCEL_DRIFT_PX = 12;
   const LONG_PRESS_MS = 250;
-  const RADIAL_INNER_RADIUS_PX = 80;
-  const RADIAL_OUTER_RADIUS_PX = 145;
-  const RADIAL_DEADZONE_PX = 22;
-  const RADIAL_RING_BOUNDARY_PX = 110;
+  const RADIAL_INNER_RADIUS_PX = 82;
+  const RADIAL_OUTER_RADIUS_PX = 162;
+  const RADIAL_DEADZONE_PX = 32;
+  const RADIAL_RING_BOUNDARY_PX = 122;
+  const RADIAL_VIEWBOX_PX = 220;
+  const RADIAL_INNER_BAND_RIN = 36;
+  const RADIAL_INNER_BAND_ROUT = 118;
+  const RADIAL_OUTER_BAND_RIN = 126;
+  const RADIAL_OUTER_BAND_ROUT = 200;
+  const RADIAL_WEDGE_GAP_DEG = 3;
 
   type GestureMode = 'idle' | 'swipe' | 'radial';
   interface ActiveGesture {
@@ -1446,6 +1452,14 @@
     return radialSegmentIndex(dx, dy);
   });
 
+  const radialActiveSeg = $derived.by<{ typ: GesturActionTyp; label: string; tone: SegTone } | null>(() => {
+    if (!radialActive) return null;
+    const seg = radialActive.ring === 'inner'
+      ? RADIAL_INNER_SEGMENTS[radialActive.idx]
+      : RADIAL_OUTER_SEGMENTS[radialActive.idx];
+    return seg ?? null;
+  });
+
   function radialInnerSegmentXY(i: number, r: number): { x: number; y: number } {
     const deg = -90 + i * 45;
     const rad = (deg * Math.PI) / 180;
@@ -1456,6 +1470,17 @@
     const deg = -90 + i * 72;
     const rad = (deg * Math.PI) / 180;
     return { x: Math.cos(rad) * r, y: Math.sin(rad) * r };
+  }
+
+  function radialWedgePath(centerDeg: number, spanDeg: number, rIn: number, rOut: number): string {
+    const half = spanDeg / 2 - RADIAL_WEDGE_GAP_DEG / 2;
+    const a0 = ((centerDeg - half) * Math.PI) / 180;
+    const a1 = ((centerDeg + half) * Math.PI) / 180;
+    const x0o = Math.cos(a0) * rOut, y0o = Math.sin(a0) * rOut;
+    const x1o = Math.cos(a1) * rOut, y1o = Math.sin(a1) * rOut;
+    const x1i = Math.cos(a1) * rIn, y1i = Math.sin(a1) * rIn;
+    const x0i = Math.cos(a0) * rIn, y0i = Math.sin(a0) * rIn;
+    return `M ${x0o} ${y0o} A ${rOut} ${rOut} 0 0 1 ${x1o} ${y1o} L ${x1i} ${y1i} A ${rIn} ${rIn} 0 0 0 ${x0i} ${y0i} Z`;
   }
 
   const ACTION_RADIAL_RADIUS_PX = 110;
@@ -2539,11 +2564,31 @@
 
     {#if activeGesture && activeGesture.mode === 'radial'}
       <div class="radial-overlay two-ring" class:has-active={radialActive !== null} style="left: {activeGesture.cardCx}px; top: {activeGesture.cardCy}px;" aria-hidden="true">
-        <div class="radial-hint">táhni na akci · pusť pro zápis</div>
+        <svg
+          class="radial-svg"
+          width={RADIAL_VIEWBOX_PX * 2}
+          height={RADIAL_VIEWBOX_PX * 2}
+          viewBox="{-RADIAL_VIEWBOX_PX} {-RADIAL_VIEWBOX_PX} {RADIAL_VIEWBOX_PX * 2} {RADIAL_VIEWBOX_PX * 2}"
+        >
+          {#each RADIAL_INNER_SEGMENTS as seg, i (seg.typ)}
+            <path
+              class="wedge tone-{seg.tone}"
+              class:active={radialActive?.ring === 'inner' && radialActive.idx === i}
+              d={radialWedgePath(-90 + i * 45, 45, RADIAL_INNER_BAND_RIN, RADIAL_INNER_BAND_ROUT)}
+            />
+          {/each}
+          {#each RADIAL_OUTER_SEGMENTS as seg, i (seg.typ)}
+            <path
+              class="wedge tone-{seg.tone}"
+              class:active={radialActive?.ring === 'outer' && radialActive.idx === i}
+              d={radialWedgePath(-90 + i * 72, 72, RADIAL_OUTER_BAND_RIN, RADIAL_OUTER_BAND_ROUT)}
+            />
+          {/each}
+        </svg>
         {#each RADIAL_INNER_SEGMENTS as seg, i (seg.typ)}
           {@const pos = radialInnerSegmentXY(i, RADIAL_INNER_RADIUS_PX)}
           <div
-            class="radial-seg radial-tone-{seg.tone}"
+            class="radial-lbl"
             class:active={radialActive?.ring === 'inner' && radialActive.idx === i}
             style="transform: translate({pos.x}px, {pos.y}px);"
           >{seg.label}</div>
@@ -2551,12 +2596,15 @@
         {#each RADIAL_OUTER_SEGMENTS as seg, i (seg.typ)}
           {@const pos = radialOuterSegmentXY(i, RADIAL_OUTER_RADIUS_PX)}
           <div
-            class="radial-seg radial-seg-outer radial-tone-{seg.tone}"
+            class="radial-lbl outer"
             class:active={radialActive?.ring === 'outer' && radialActive.idx === i}
             style="transform: translate({pos.x}px, {pos.y}px);"
           >{seg.label}</div>
         {/each}
-        <div class="radial-center" class:cancel={radialActive === null}>{radialActive === null ? '×' : '·'}</div>
+        <div class="radial-readout" class:cancel={radialActive === null}>
+          {radialActiveSeg ? popisAkce(radialActiveSeg.typ) : '× zrušit'}
+        </div>
+        <div class="radial-hint">táhni na akci · pusť pro zápis</div>
       </div>
     {/if}
 
@@ -4331,16 +4379,16 @@
     background: radial-gradient(circle, rgba(15, 23, 42, 0.55) 0%, rgba(15, 23, 42, 0.0) 70%);
   }
   .radial-overlay.two-ring::before {
-    left: -200px;
-    top: -200px;
-    width: 400px;
-    height: 400px;
-    background: radial-gradient(circle, rgba(15, 23, 42, 0.6) 0%, rgba(15, 23, 42, 0.3) 45%, rgba(15, 23, 42, 0.0) 75%);
+    left: -240px;
+    top: -240px;
+    width: 480px;
+    height: 480px;
+    background: radial-gradient(circle, rgba(15, 23, 42, 0.62) 0%, rgba(15, 23, 42, 0.34) 46%, rgba(15, 23, 42, 0.0) 74%);
   }
   .radial-hint {
     position: absolute;
     left: 50%;
-    bottom: -140px;
+    bottom: -230px;
     transform: translateX(-50%);
     background: rgba(15, 23, 42, 0.9);
     color: #ffffff;
@@ -4350,53 +4398,77 @@
     font-weight: 600;
     white-space: nowrap;
   }
-  .radial-seg {
+  .radial-svg {
     position: absolute;
     left: 0;
     top: 0;
-    margin-left: -30px;
-    margin-top: -22px;
-    width: 60px;
-    height: 44px;
+    margin-left: -220px;
+    margin-top: -220px;
+    overflow: visible;
+  }
+  .wedge {
+    stroke: rgba(15, 23, 42, 0.55);
+    stroke-width: 2;
+    transition: filter 0.08s ease, opacity 0.08s ease;
+  }
+  .wedge.tone-made { fill: var(--success); }
+  .wedge.tone-miss { fill: var(--danger); }
+  .wedge.tone-foul { fill: var(--warn); }
+  .wedge.tone-reb { fill: var(--accent-soft); }
+  .wedge.tone-pozit { fill: #7c3aed; }
+  .wedge.tone-negat { fill: var(--danger); }
+  .wedge.active {
+    stroke: #ffffff;
+    stroke-width: 3.5;
+    filter: brightness(1.18) saturate(1.2) drop-shadow(0 0 6px rgba(255, 255, 255, 0.55));
+  }
+  .radial-lbl {
+    position: absolute;
+    left: 0;
+    top: 0;
+    margin-left: -24px;
+    margin-top: -14px;
+    width: 48px;
+    height: 28px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(30, 41, 59, 0.96);
     color: #ffffff;
-    border: 2px solid rgba(255, 255, 255, 0.18);
-    border-radius: 8px;
-    font-size: 13px;
+    font-size: 16px;
     font-weight: 800;
     letter-spacing: 0.3px;
-    transition: transform 0.08s ease, background 0.08s ease, box-shadow 0.08s ease;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+    transition: scale 0.08s ease;
+    pointer-events: none;
   }
-  .radial-seg.radial-tone-made { background: var(--success); border-color: rgba(255, 255, 255, 0.42); }
-  .radial-seg.radial-tone-miss { background: var(--danger); border-color: rgba(255, 255, 255, 0.42); }
-  .radial-seg.radial-tone-foul { background: var(--warn); border-color: rgba(255, 255, 255, 0.42); }
-  .radial-seg.radial-tone-reb { background: var(--accent-soft); border-color: rgba(255, 255, 255, 0.42); }
-  .radial-seg.radial-tone-pozit { background: #7c3aed; border-color: rgba(255, 255, 255, 0.42); }
-  .radial-seg.radial-tone-negat { background: var(--danger); border-color: rgba(255, 255, 255, 0.42); }
-  .radial-seg-outer {
-    width: 54px;
-    height: 38px;
-    margin-left: -27px;
-    margin-top: -19px;
-    font-size: 12px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-    opacity: 0.95;
-  }
-  .radial-seg.active {
-    scale: 1.16;
-    border-color: #ffffff;
-    box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.9), 0 8px 22px rgba(0, 0, 0, 0.55);
-    filter: brightness(1.12) saturate(1.15);
-    opacity: 1;
-    z-index: 3;
-  }
-  .radial-overlay.has-active .radial-seg:not(.active),
+  .radial-lbl.outer { font-size: 13px; }
+  .radial-lbl.active { scale: 1.2; text-shadow: 0 2px 6px rgba(0, 0, 0, 0.85); }
+  .radial-overlay.has-active .radial-lbl:not(.active) { opacity: 0.5; }
   .radial-overlay.has-active .player-seg:not(.active) {
     opacity: 0.42;
     filter: saturate(0.7);
+  }
+  .radial-readout {
+    position: absolute;
+    left: 0;
+    top: 0;
+    transform: translate(-50%, -50%);
+    min-width: 56px;
+    max-width: 132px;
+    padding: 8px 12px;
+    border-radius: 12px;
+    background: rgba(15, 23, 42, 0.92);
+    border: 2px solid rgba(255, 255, 255, 0.32);
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1.15;
+    text-align: center;
+    pointer-events: none;
+  }
+  .radial-readout.cancel {
+    background: var(--danger);
+    border-color: var(--danger);
   }
   .radial-center {
     position: absolute;
