@@ -95,7 +95,7 @@
   let editRosterChyba = $state<string | null>(null);
 
   let foulSubtypePicker = $state<{ playerId: string } | null>(null);
-  let oppFoulPicker = $state(false);
+  let oppFoulPicker = $state<FoulSubtyp | null>(null);
 
   let oppRosterEditOpen = $state(false);
   let oppRosterDraft = $state<SouperHrac[]>([]);
@@ -655,10 +655,8 @@
     foulSubtypePicker = { playerId: selectedPlayer };
   }
 
-  async function recordFoul(subtyp: FoulSubtyp) {
-    const playerId = foulSubtypePicker?.playerId;
-    foulSubtypePicker = null;
-    if (!playerId || !zapas) return;
+  async function addFoul(playerId: string, subtyp: FoulSubtyp) {
+    if (!zapas) return;
     const hrac = hraci.find((h) => h.id === playerId);
     if (!hrac) return;
     const ev: Udalost = {
@@ -681,6 +679,13 @@
     }
     selectedPlayer = null;
     await updateZapasCache();
+  }
+
+  async function recordFoul(subtyp: FoulSubtyp) {
+    const playerId = foulSubtypePicker?.playerId;
+    foulSubtypePicker = null;
+    if (!playerId) return;
+    await addFoul(playerId, subtyp);
   }
 
   async function recordOddech(typ: 'oddech_my' | 'oddech_opp') {
@@ -752,12 +757,16 @@
     await updateZapasCache();
   }
 
-  function openOppFoulPicker() {
-    if (selectedOppCislo !== null) {
-      void recordOppFoul(selectedOppCislo);
+  function openOppFoul(subtyp: FoulSubtyp) {
+    if (subtyp === 'technical') {
+      void recordOppFoul(undefined, 'technical');
       return;
     }
-    oppFoulPicker = true;
+    if (selectedOppCislo !== null) {
+      void recordOppFoul(selectedOppCislo, subtyp);
+      return;
+    }
+    oppFoulPicker = subtyp;
   }
 
   function togglePickOpp(cislo: number) {
@@ -773,8 +782,8 @@
     selectedOppCislo = selectedOppCislo === cislo ? null : cislo;
   }
 
-  async function recordOppFoul(cislo?: number) {
-    oppFoulPicker = false;
+  async function recordOppFoul(cislo: number | undefined, subtyp: FoulSubtyp = 'personal') {
+    oppFoulPicker = null;
     if (!zapas) return;
     const ev: Udalost = {
       id: newId(),
@@ -784,13 +793,14 @@
       typ: 'opp_foul',
       hrac_id: null,
       opp_hrac_cislo: cislo,
+      foul_subtyp: subtyp,
       timestamp_at: Date.now(),
       cas_v_q_ms: aktualniCasVQMs(),
     };
     await db.udalosti.add(ev);
     udalosti = [...udalosti, ev];
     pushUndo({ kind: 'event', eventId: ev.id });
-    toast(`SOUPEŘ — Faul${typeof cislo === 'number' ? ` #${cislo}` : ''}`);
+    toast(`SOUPEŘ — Faul (${foulSubtypLabel(subtyp)})${typeof cislo === 'number' ? ` #${cislo}` : ''}`);
     selectedOppCislo = null;
     await updateZapasCache();
   }
@@ -1328,8 +1338,8 @@
   const RADIAL_INNER_SEGMENTS: { typ: GesturActionTyp; label: string; tone: SegTone }[] = [
     { typ: 'shot_2_made', label: '✓2', tone: 'made' },
     { typ: 'shot_3_made', label: '✓3', tone: 'made' },
-    { typ: 'foul', label: 'FAUL', tone: 'foul' },
     { typ: 'reb_off', label: 'REB-O', tone: 'reb' },
+    { typ: 'ft_miss', label: '✗FT', tone: 'miss' },
     { typ: 'shot_2_miss', label: '✗2', tone: 'miss' },
     { typ: 'shot_3_miss', label: '✗3', tone: 'miss' },
     { typ: 'reb_def', label: 'REB-D', tone: 'reb' },
@@ -1341,16 +1351,16 @@
     { typ: 'steal', label: 'STL', tone: 'pozit' },
     { typ: 'block', label: 'BLK', tone: 'pozit' },
     { typ: 'turnover', label: 'TO', tone: 'negat' },
-    { typ: 'ft_miss', label: '✗FT', tone: 'miss' },
+    { typ: 'foul', label: 'FAUL', tone: 'foul' },
   ];
 
   async function dispatchGesturAction(playerId: string, typ: GesturActionTyp) {
-    selectedPlayer = playerId;
-    await tick();
     if (typ === 'foul') {
-      foulSubtypePicker = { playerId };
+      await addFoul(playerId, 'personal');
       return;
     }
+    selectedPlayer = playerId;
+    await tick();
     await recordAction(typ);
   }
 
@@ -1536,19 +1546,19 @@
   });
 
   async function dispatchActionWithPlayer(typ: ActionGestureTyp, playerId: string) {
-    selectedPlayer = playerId;
-    await tick();
     if (typ === 'foul') {
-      foulSubtypePicker = { playerId };
+      await addFoul(playerId, 'personal');
       return;
     }
+    selectedPlayer = playerId;
+    await tick();
     await recordAction(typ);
   }
 
   function handleActionTap(typ: ActionGestureTyp) {
     if (!selectedPlayer) return;
     if (typ === 'foul') {
-      foulSubtypePicker = { playerId: selectedPlayer };
+      void addFoul(selectedPlayer, 'personal');
       return;
     }
     void recordAction(typ);
@@ -1643,13 +1653,14 @@
           <span class="us">My ({kategorieLabel(zapas.nase_kategorie)})</span>
         {/if}
       </div>
-      <div class="quarter">{fmtQ(aktualniCtvrtinaCislo)}{jeOT(aktualniCtvrtinaCislo) ? ' (prodloužení)' : ''}</div>
-      <div class="score">
-        <span class="us-score">{skore.nase}</span>
-        <span class="sep">:</span>
-        <span class="them-score">{skore.souper}</span>
-      </div>
     </header>
+
+    <div class="score-bar">
+      <span class="sb-q">{fmtQ(aktualniCtvrtinaCislo)}{jeOT(aktualniCtvrtinaCislo) ? ' • prodl.' : ''}</span>
+      <span class="us-score">{skore.nase}</span>
+      <span class="sep">:</span>
+      <span class="them-score">{skore.souper}</span>
+    </div>
 
     {#if skorePoCtvrtinach.length > 0}
       <div class="quarter-scores">
@@ -1806,8 +1817,14 @@
           <div class="action-group">
             <div class="group-label">NEGATIVNÍ</div>
             <div class="group-grid negat">
-              {@render aBtn('foul', 'Faul…', 'foul')}
+              {@render aBtn('foul', 'Faul', 'foul')}
               {@render aBtn('turnover', 'Ztráta', 'turnover')}
+              <button
+                class="action foul foul-special action-span-2"
+                class:disabled-look={!selectedPlayer}
+                onclick={() => { if (selectedPlayer) foulSubtypePicker = { playerId: selectedPlayer }; }}
+                title="Nesportovní / technická chyba (běžný faul zapíšeš tlačítkem Faul)"
+              >Nesportovní / technická…</button>
             </div>
           </div>
 
@@ -1894,7 +1911,9 @@
             <button class="opp" onclick={() => recordOpponent('opp_pts_2')}>+2 body</button>
             <button class="opp" onclick={() => recordOpponent('opp_pts_3')}>+3 body</button>
             <button class="opp" onclick={() => recordOpponent('opp_pts_1')}>+1 trestný</button>
-            <button class="opp" onclick={openOppFoulPicker}>+1 faul…</button>
+            <button class="opp" onclick={() => openOppFoul('personal')}>+1 faul…</button>
+            <button class="opp" onclick={() => openOppFoul('unsportsmanlike')}>Nesport.…</button>
+            <button class="opp" onclick={() => openOppFoul('technical')} title="Technická chyba (i trenér/lavička) — zapíše se bez čísla">Technická</button>
             <button class="opp" onclick={() => recordOpponent('opp_reb_off')}>+ dosk útoč.</button>
             <button class="opp" onclick={() => recordOpponent('opp_reb_def')}>+ dosk obr.</button>
           </div>
@@ -2483,15 +2502,15 @@
     {/if}
 
     {#if oppFoulPicker && souper}
-      <div class="modal-bg" onclick={() => (oppFoulPicker = false)} role="presentation">
+      <div class="modal-bg" onclick={() => (oppFoulPicker = null)} role="presentation">
         <div class="modal opp-foul-modal" onclick={(e) => e.stopPropagation()} role="presentation">
-          <h2>Faul soupeře — {souper.nazev}</h2>
+          <h2>Faul soupeře ({foulSubtypLabel(oppFoulPicker)}) — {souper.nazev}</h2>
           {#if souper.hraci_soupere && souper.hraci_soupere.length > 0}
             <p class="roster-hint">Vyber číslo hráče soupeře:</p>
             <div class="opp-numbers-grid">
               {#each souper.hraci_soupere.slice().sort((a, b) => a.cislo - b.cislo) as oh (oh.cislo)}
                 {@const aktualni = oppFaulyPerCisloMap.get(oh.cislo) ?? 0}
-                <button class="opp-num-btn" onclick={() => recordOppFoul(oh.cislo)} title={`${oh.jmeno ?? ''} ${oh.prijmeni ?? ''}`.trim() || `#${oh.cislo}`}>
+                <button class="opp-num-btn" onclick={() => recordOppFoul(oh.cislo, oppFoulPicker ?? 'personal')} title={`${oh.jmeno ?? ''} ${oh.prijmeni ?? ''}`.trim() || `#${oh.cislo}`}>
                   <span class="opp-num">#{oh.cislo}</span>
                   {#if oh.prijmeni}<span class="opp-pr">{oh.prijmeni}</span>{/if}
                   {#if aktualni > 0}<span class="opp-fa">F{aktualni}</span>{/if}
@@ -2502,8 +2521,8 @@
             <p class="roster-hint">Soupiska soupeře není vyplněna.</p>
           {/if}
           <div class="modal-buttons">
-            <button onclick={() => recordOppFoul(undefined)}>Bez určení čísla</button>
-            <button onclick={() => (oppFoulPicker = false)}>Zrušit</button>
+            <button onclick={() => recordOppFoul(undefined, oppFoulPicker ?? 'personal')}>Bez určení čísla</button>
+            <button onclick={() => (oppFoulPicker = null)}>Zrušit</button>
           </div>
         </div>
       </div>
@@ -2661,7 +2680,7 @@
 
   .head {
     display: grid;
-    grid-template-columns: auto 1fr auto auto;
+    grid-template-columns: auto 1fr;
     align-items: center;
     gap: 16px;
     background: var(--surface);
@@ -2686,22 +2705,33 @@
   .teams .us { color: var(--us-color); }
   .teams .them { color: var(--them-color); }
   .teams .vs { color: var(--text-muted); margin: 0 8px; }
-  .quarter {
-    background: var(--accent);
-    color: var(--accent-fg);
-    padding: 8px 18px;
-    border-radius: 6px;
-    font-weight: 700;
-    font-size: 18px;
+  .score-bar {
+    position: sticky;
+    top: 0;
+    z-index: 60;
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 12px;
+    margin: 8px 0;
+    padding: 8px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
   }
-  .score {
-    font-size: 32px;
+  .score-bar .sb-q {
+    align-self: center;
+    font-size: 14px;
     font-weight: 700;
-    font-family: "Consolas", monospace;
+    color: var(--accent);
+    background: var(--selected-bg);
+    padding: 3px 10px;
+    border-radius: 999px;
   }
-  .score .us-score { color: var(--us-color); }
-  .score .them-score { color: var(--them-color); }
-  .score .sep { color: var(--text-muted); margin: 0 8px; }
+  .score-bar .us-score { color: var(--us-color); font-size: 34px; font-weight: 800; font-family: "Consolas", monospace; }
+  .score-bar .them-score { color: var(--them-color); font-size: 34px; font-weight: 800; font-family: "Consolas", monospace; }
+  .score-bar .sep { color: var(--text-muted); font-size: 26px; }
 
   .quarter-scores {
     display: flex;
@@ -4581,17 +4611,13 @@
     .live-app { gap: 8px; min-height: calc(100vh - 60px); }
 
     .head {
-      grid-template-columns: auto 1fr auto;
-      grid-template-areas:
-        "back teams quarter"
-        "score score score";
+      grid-template-columns: auto 1fr;
       gap: 6px 8px;
       padding: 6px 10px;
       border-radius: 6px;
     }
-    .back { grid-area: back; padding: 5px 9px; font-size: 12px; }
+    .back { padding: 5px 9px; font-size: 12px; }
     .teams {
-      grid-area: teams;
       font-size: 14px;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -4599,9 +4625,10 @@
       min-width: 0;
     }
     .teams .vs { margin: 0 4px; }
-    .quarter { grid-area: quarter; font-size: 13px; padding: 5px 10px; }
-    .score { grid-area: score; font-size: 26px; text-align: center; }
-    .score .sep { margin: 0 6px; }
+    .score-bar { gap: 8px; padding: 5px 12px; margin: 6px 0; }
+    .score-bar .us-score, .score-bar .them-score { font-size: 26px; }
+    .score-bar .sep { font-size: 20px; }
+    .score-bar .sb-q { font-size: 12px; padding: 2px 8px; }
 
     .quarter-scores { gap: 4px; padding: 0 2px; }
     .qs { padding: 3px 7px; font-size: 11px; gap: 4px; }
@@ -4669,13 +4696,10 @@
     .live { grid-template-columns: 1fr; }
     .live > .opponent { grid-column: auto; }
     .head {
-      grid-template-columns: auto 1fr auto;
-      grid-template-areas:
-        "back teams quarter"
-        "score score score";
+      grid-template-columns: auto 1fr;
     }
     .teams { font-size: 13px; }
-    .score { font-size: 22px; }
+    .score-bar .us-score, .score-bar .them-score { font-size: 22px; }
     .clock-bar { gap: 8px; }
     .clock-display { font-size: 22px; min-width: 60px; }
     .clock-btn { padding: 5px 7px; font-size: 10px; }
