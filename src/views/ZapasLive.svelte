@@ -1007,9 +1007,11 @@
       return;
     }
 
-    const porusene = inHraci
-      .map((h) => ({ h, porus: poruseniLimitu(h.id, aktualniCtvrtinaCislo, zapas!.nase_kategorie, udalosti, ctvrtiny) }))
-      .filter((x) => x.porus.kind);
+    const porusene = soutez?.bez_limitu_mladeze
+      ? []
+      : inHraci
+          .map((h) => ({ h, porus: poruseniLimitu(h.id, aktualniCtvrtinaCislo, zapas!.nase_kategorie, udalosti, ctvrtiny) }))
+          .filter((x) => x.porus.kind);
 
     const doSub = async () => {
       const novaUd: Udalost[] = [];
@@ -1793,17 +1795,16 @@
           <button class="clock-btn ghost" onclick={resetKlok} title="Reset na 0:00">↺ Reset</button>
           <button class="clock-btn undo" onclick={undo} title="Smaže poslední zaznamenanou událost v této čtvrtině (faul, koš, doskok, střídání…)" disabled={undoStack.length === 0}>↶ Vrátit poslední</button>
         </div>
+        {#if posledniUndoPopisy.length > 0}
+          <div class="undo-hint">
+            <span class="uh-label">↶ Vrátíš:</span>
+            <span class="uh-last">{posledniUndoPopisy[0]}</span>
+            {#if posledniUndoPopisy[1]}
+              <span class="uh-prev">předtím: {posledniUndoPopisy[1]}</span>
+            {/if}
+          </div>
+        {/if}
       </section>
-
-      {#if posledniUndoPopisy.length > 0}
-        <div class="undo-hint">
-          <span class="uh-label">↶ Vrátíš:</span>
-          <span class="uh-last">{posledniUndoPopisy[0]}</span>
-          {#if posledniUndoPopisy[1]}
-            <span class="uh-prev">předtím: {posledniUndoPopisy[1]}</span>
-          {/if}
-        </div>
-      {/if}
 
       <section class="live">
         <div class="actions" class:disabled={!selectedPlayer}>
@@ -2778,14 +2779,15 @@
   .score-bar .sep { color: var(--text-muted); font-size: 26px; }
 
   .undo-hint {
+    flex-basis: 100%;
+    width: 100%;
     display: flex;
     align-items: baseline;
     flex-wrap: wrap;
     gap: 6px 10px;
-    padding: 5px 12px;
-    background: var(--surface-2);
-    border: 1px dashed var(--border-strong);
-    border-radius: 8px;
+    margin-top: 4px;
+    padding-top: 8px;
+    border-top: 1px dashed var(--border);
     font-size: 13px;
   }
   .undo-hint .uh-label { font-weight: 700; color: var(--warn); white-space: nowrap; }

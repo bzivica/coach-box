@@ -226,6 +226,7 @@
       <section class="step">
         <h4>2.4 Soutěže</h4>
         <p><strong>Soutěže</strong> — předdefinováno: Liga, Extraliga, Nadregionální liga, Pražský přebor, ČEYBL, MČR, Easter Cup, Mezinárodní turnaj, Přátelák. Můžeš přidat / upravit / deaktivovat.</p>
+        <p>U každé soutěže je přepínač <strong>„Neplatí limity mládeže"</strong> — když je zapnutý, na zápasech té soutěže se nehlídají limity počtu čtvrtin ani U14 pravidlo Q1+Q2+Q3. CEYBL, Easter Cup a turnaje to mají zapnuté automaticky.</p>
       </section>
 
       <section class="step">
@@ -314,6 +315,7 @@
               <li>U14: max. 3 čtvrtiny / hráč</li>
               <li>U12, U13: max. 2 čtvrtiny / hráč</li>
               <li>Appka varuje při porušení (lze pokračovat = vědomé porušení).</li>
+              <li><strong>Výjimka:</strong> u soutěží s přepínačem <em>„Neplatí limity mládeže"</em> (CEYBL, Easter Cup, turnaje) se tato pravidla <strong>nehlídají</strong> — žádné varování. Nastavíš v <strong>Soutěže → upravit soutěž</strong>; CEYBL a turnaje to mají zapnuté automaticky.</li>
             </ul>
           </li>
           <li><strong>Foul-out:</strong> 5 faulů (všechny subtypy se počítají) → hráč musí být vystřídán, blokující modal.</li>

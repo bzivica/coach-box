@@ -18,12 +18,14 @@
     nazev: existing?.nazev ?? '',
     typ: (existing?.typ ?? 'liga') as SoutezTyp,
     region: (existing?.region ?? '') as SoutezRegion | '',
+    bezLimitu: existing?.bez_limitu_mladeze ?? false,
     aktivni: existing?.aktivni ?? true,
   }));
 
   let nazev = $state(initial.nazev);
   let typ = $state<SoutezTyp>(initial.typ);
   let region = $state<SoutezRegion | ''>(initial.region);
+  let bezLimituMladeze = $state(initial.bezLimitu);
   let aktivni = $state(initial.aktivni);
 
   let chyba = $state<string | null>(null);
@@ -41,6 +43,7 @@
           nazev: nazev.trim(),
           typ,
           region: region || undefined,
+          bez_limitu_mladeze: bezLimituMladeze || undefined,
           aktivni,
           updated_at: now,
         });
@@ -50,6 +53,7 @@
           nazev: nazev.trim(),
           typ,
           region: region || undefined,
+          bez_limitu_mladeze: bezLimituMladeze || undefined,
           aktivni,
           vytvoreno_at: now,
           updated_at: now,
@@ -94,6 +98,11 @@
           </select>
         </label>
       </div>
+
+      <label class="checkbox">
+        <input bind:checked={bezLimituMladeze} type="checkbox" />
+        <span>Neplatí limity mládeže (turnaje, CEYBL apod. — žádné varování na počet čtvrtin ani U14 Q1+Q2+Q3)</span>
+      </label>
 
       <label class="checkbox">
         <input bind:checked={aktivni} type="checkbox" />

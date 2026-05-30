@@ -122,6 +122,7 @@ export interface Soutez {
   nazev: string;
   typ: SoutezTyp;
   region?: SoutezRegion;
+  bez_limitu_mladeze?: boolean;
   aktivni: boolean;
   vytvoreno_at: number;
   updated_at: number;

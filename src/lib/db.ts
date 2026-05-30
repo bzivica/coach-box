@@ -52,10 +52,10 @@ export async function seedSouteze(): Promise<void> {
     { nazev: 'Extraliga', typ: 'liga', region: 'domaci', aktivni: true, vytvoreno_at: now, updated_at: now },
     { nazev: 'Nadregionální liga', typ: 'liga', region: 'regionalni', aktivni: true, vytvoreno_at: now, updated_at: now },
     { nazev: 'Pražský přebor', typ: 'liga', region: 'regionalni', aktivni: true, vytvoreno_at: now, updated_at: now },
-    { nazev: 'ČEYBL', typ: 'liga', region: 'mezinarodni', aktivni: true, vytvoreno_at: now, updated_at: now },
+    { nazev: 'ČEYBL', typ: 'liga', region: 'mezinarodni', bez_limitu_mladeze: true, aktivni: true, vytvoreno_at: now, updated_at: now },
     { nazev: 'MČR', typ: 'pohar', region: 'domaci', aktivni: true, vytvoreno_at: now, updated_at: now },
-    { nazev: 'Easter Cup', typ: 'turnaj', region: 'mezinarodni', aktivni: true, vytvoreno_at: now, updated_at: now },
-    { nazev: 'Mezinárodní turnaj', typ: 'turnaj', region: 'mezinarodni', aktivni: true, vytvoreno_at: now, updated_at: now },
+    { nazev: 'Easter Cup', typ: 'turnaj', region: 'mezinarodni', bez_limitu_mladeze: true, aktivni: true, vytvoreno_at: now, updated_at: now },
+    { nazev: 'Mezinárodní turnaj', typ: 'turnaj', region: 'mezinarodni', bez_limitu_mladeze: true, aktivni: true, vytvoreno_at: now, updated_at: now },
     { nazev: 'Přátelák', typ: 'pratelak', aktivni: true, vytvoreno_at: now, updated_at: now },
   ];
 
@@ -181,10 +181,23 @@ async function migrateLegacyKategorie(): Promise<void> {
   }
 }
 
+async function migrateSoutezLimity(): Promise<void> {
+  const souteze = await db.souteze.toArray();
+  for (const s of souteze) {
+    if (s.bez_limitu_mladeze === undefined) {
+      const exempt = s.typ === 'turnaj' || /eybl/i.test(s.nazev);
+      if (exempt) {
+        await db.souteze.update(s.id, { bez_limitu_mladeze: true, updated_at: Date.now() });
+      }
+    }
+  }
+}
+
 export async function seedAll(): Promise<void> {
   await migrateLegacyKategorie();
   await removeStaleSeedPlaceholders();
   await seedSouteze();
+  await migrateSoutezLimity();
   await seedHraci();
 }
 
