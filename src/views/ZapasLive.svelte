@@ -119,6 +119,33 @@
     return () => clearInterval(id);
   });
 
+  $effect(() => {
+    const zakladna = casZakladnaMs;
+    const started = casStartedAt;
+    if (mode !== 'inProgress') return;
+    const cur = ctvrtiny.find((c) => c.cislo === aktualniCtvrtinaCislo && !c.konec_at);
+    if (!cur) return;
+    void db.ctvrtiny.update(cur.id, { klok_zakladna_ms: zakladna, klok_started_at: started });
+  });
+
+  const TIMEOUT_DELKA_MS = 60 * 1000;
+  let toBeziDo = $state<number | null>(null);
+  let toTyp = $state<'oddech_my' | 'oddech_opp' | null>(null);
+  let toTed = $state(Date.now());
+  const toZbyvaMs = $derived(toBeziDo === null ? 0 : Math.max(0, toBeziDo - toTed));
+  const toDobehl = $derived(toBeziDo !== null && toZbyvaMs === 0);
+
+  $effect(() => {
+    if (toBeziDo === null) return;
+    const id = setInterval(() => { toTed = Date.now(); }, TICK_MS);
+    return () => clearInterval(id);
+  });
+
+  function ukoncitOddech() {
+    toBeziDo = null;
+    toTyp = null;
+  }
+
   function formatCas(ms: number): string {
     const total = Math.max(0, Math.floor(ms / 1000));
     const m = Math.floor(total / 60);
@@ -315,6 +342,9 @@
       aktualniCtvrtinaCislo = aktualni.cislo;
       onCourt = computeOnCourt(aktualni, udalosti);
       oppOnCourt = [...(aktualni.petice_soupere_start ?? [])];
+      casZakladnaMs = aktualni.klok_zakladna_ms ?? 0;
+      casStartedAt = aktualni.klok_started_at ?? null;
+      ted = Date.now();
       mode = 'inProgress';
     } else {
       const last = ctvrtiny[ctvrtiny.length - 1];
@@ -676,6 +706,9 @@
     udalosti = [...udalosti, ev];
     pushUndo({ kind: 'event', eventId: ev.id });
     pauseKlok();
+    toTed = Date.now();
+    toBeziDo = toTed + TIMEOUT_DELKA_MS;
+    toTyp = typ;
     toast(`${typ === 'oddech_my' ? 'MY' : 'SOUPEŘ'} — Oddech (${obdobi}, ${pouzite + 1}/${povoleno})`);
     await updateZapasCache();
   }
@@ -2494,8 +2527,18 @@
       </div>
     {/if}
 
+    {#if toBeziDo !== null}
+      <div class="to-countdown" class:done={toDobehl} role="status" aria-live="polite">
+        <div class="toc-label">{toTyp === 'oddech_my' ? '⏱ Oddech — MY' : '⏱ Oddech — SOUPEŘ'}</div>
+        <div class="toc-time">{toDobehl ? 'Oddech skončil' : formatCas(toZbyvaMs)}</div>
+        <button class="toc-end" onclick={ukoncitOddech}>
+          {toDobehl ? 'Zavřít' : '⏹ Konec oddechu'}
+        </button>
+      </div>
+    {/if}
+
     {#if activeGesture && activeGesture.mode === 'radial'}
-      <div class="radial-overlay two-ring" style="left: {activeGesture.cardCx}px; top: {activeGesture.cardCy}px;" aria-hidden="true">
+      <div class="radial-overlay two-ring" class:has-active={radialActive !== null} style="left: {activeGesture.cardCx}px; top: {activeGesture.cardCy}px;" aria-hidden="true">
         <div class="radial-hint">táhni na akci · pusť pro zápis</div>
         {#each RADIAL_INNER_SEGMENTS as seg, i (seg.typ)}
           {@const pos = radialInnerSegmentXY(i, RADIAL_INNER_RADIUS_PX)}
@@ -2518,7 +2561,7 @@
     {/if}
 
     {#if actionGesture && actionGesture.mode === 'radial'}
-      <div class="radial-overlay action-radial" style="left: {actionGesture.btnCx}px; top: {actionGesture.btnCy}px;" aria-hidden="true">
+      <div class="radial-overlay action-radial" class:has-active={actionRadialActiveIdx !== null} style="left: {actionGesture.btnCx}px; top: {actionGesture.btnCy}px;" aria-hidden="true">
         <div class="radial-hint">táhni na hráče · pusť pro zápis</div>
         {#if radialPlayers.length === 0}
           <div class="radial-empty">žádní hráči na hřišti</div>
@@ -4172,6 +4215,63 @@
   .to-btn .to-zbyva strong { font-size: 22px; font-family: ui-monospace, monospace; }
   .to-btn .to-celkem { font-size: 11px; font-weight: 500; opacity: 0.8; }
 
+  .to-countdown {
+    position: fixed;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1800;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 20px;
+    border-radius: 14px;
+    background: var(--accent);
+    color: #ffffff;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.4);
+    border: 2px solid rgba(255, 255, 255, 0.25);
+  }
+  .to-countdown .toc-label {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+  }
+  .to-countdown .toc-time {
+    font-size: 32px;
+    font-weight: 800;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-variant-numeric: tabular-nums;
+    min-width: 86px;
+    text-align: center;
+  }
+  .to-countdown.done .toc-time {
+    font-size: 18px;
+    min-width: 0;
+  }
+  .to-countdown .toc-end {
+    background: #ffffff;
+    color: var(--accent);
+    border: none;
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    white-space: nowrap;
+  }
+  .to-countdown .toc-end:hover { filter: brightness(0.94); }
+  .to-countdown.done {
+    background: var(--danger);
+    animation: toc-blink 0.7s ease-in-out infinite;
+  }
+  .to-countdown.done .toc-end { color: var(--danger); }
+  @keyframes toc-blink {
+    0%, 100% { box-shadow: 0 10px 30px rgba(15, 23, 42, 0.4), 0 0 0 0 rgba(220, 38, 38, 0.6); }
+    50% { box-shadow: 0 10px 30px rgba(15, 23, 42, 0.4), 0 0 0 10px rgba(220, 38, 38, 0); }
+  }
+
   .swipe-hud {
     position: absolute;
     inset: 0;
@@ -4214,6 +4314,11 @@
     height: 0;
     pointer-events: none;
     z-index: 1500;
+    animation: radial-pop 0.13s ease-out;
+  }
+  @keyframes radial-pop {
+    from { opacity: 0; transform: scale(0.82); }
+    to { opacity: 1; transform: scale(1); }
   }
   .radial-overlay::before {
     content: '';
@@ -4265,26 +4370,33 @@
     letter-spacing: 0.3px;
     transition: transform 0.08s ease, background 0.08s ease, box-shadow 0.08s ease;
   }
-  .radial-seg.radial-tone-made { border-left: 4px solid var(--success); }
-  .radial-seg.radial-tone-miss { border-left: 4px solid var(--danger); }
-  .radial-seg.radial-tone-foul { border-left: 4px solid var(--warn); }
-  .radial-seg.radial-tone-reb { border-left: 4px solid var(--accent); }
-  .radial-seg.radial-tone-pozit { border-left: 4px solid #a78bfa; }
-  .radial-seg.radial-tone-negat { border-left: 4px solid var(--danger); }
+  .radial-seg.radial-tone-made { background: var(--success); border-color: rgba(255, 255, 255, 0.42); }
+  .radial-seg.radial-tone-miss { background: var(--danger); border-color: rgba(255, 255, 255, 0.42); }
+  .radial-seg.radial-tone-foul { background: var(--warn); border-color: rgba(255, 255, 255, 0.42); }
+  .radial-seg.radial-tone-reb { background: var(--accent-soft); border-color: rgba(255, 255, 255, 0.42); }
+  .radial-seg.radial-tone-pozit { background: #7c3aed; border-color: rgba(255, 255, 255, 0.42); }
+  .radial-seg.radial-tone-negat { background: var(--danger); border-color: rgba(255, 255, 255, 0.42); }
   .radial-seg-outer {
     width: 54px;
     height: 38px;
     margin-left: -27px;
     margin-top: -19px;
     font-size: 12px;
-    background: rgba(51, 65, 85, 0.96);
-    border-color: rgba(255, 255, 255, 0.14);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    opacity: 0.95;
   }
   .radial-seg.active {
-    background: var(--accent);
-    border-color: var(--accent);
-    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.45);
+    scale: 1.16;
+    border-color: #ffffff;
+    box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.9), 0 8px 22px rgba(0, 0, 0, 0.55);
+    filter: brightness(1.12) saturate(1.15);
+    opacity: 1;
+    z-index: 3;
+  }
+  .radial-overlay.has-active .radial-seg:not(.active),
+  .radial-overlay.has-active .player-seg:not(.active) {
+    opacity: 0.42;
+    filter: saturate(0.7);
   }
   .radial-center {
     position: absolute;
@@ -4329,20 +4441,19 @@
     align-items: center;
     justify-content: center;
     gap: 2px;
-    background: rgba(30, 41, 59, 0.98);
+    background: #1d4ed8;
     color: #ffffff;
-    border: 2px solid rgba(255, 255, 255, 0.22);
-    border-left: 4px solid var(--accent);
-    border-radius: 10px;
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    border-radius: 12px;
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
     transition: transform 0.08s ease, background 0.08s ease, box-shadow 0.08s ease;
     padding: 4px 6px;
   }
   .player-seg-num {
-    font-size: 16px;
+    font-size: 17px;
     font-weight: 800;
     line-height: 1;
-    color: var(--accent);
+    color: #ffffff;
   }
   .player-seg-name {
     font-size: 11px;
@@ -4355,11 +4466,14 @@
     white-space: nowrap;
   }
   .player-seg.active {
-    background: var(--accent);
-    border-color: var(--accent);
-    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.5);
+    scale: 1.14;
+    border-color: #ffffff;
+    box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.9), 0 10px 24px rgba(0, 0, 0, 0.5);
+    filter: brightness(1.14);
+    opacity: 1;
+    z-index: 3;
   }
-  .player-seg.active .player-seg-num { color: var(--accent-fg); }
+  .player-seg.active .player-seg-num { color: #ffffff; }
   .radial-empty {
     position: absolute;
     left: 50%;

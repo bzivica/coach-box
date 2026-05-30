@@ -177,6 +177,8 @@ export interface Ctvrtina {
   petice_soupere_start?: number[];
   zacatek_at: number;
   konec_at?: number;
+  klok_zakladna_ms?: number;
+  klok_started_at?: number | null;
 }
 
 export interface Udalost {
