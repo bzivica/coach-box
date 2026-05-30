@@ -194,6 +194,31 @@
       <h3>Trenér — Úplný průvodce</h3>
 
       <section class="step">
+        <h4>2.0 Instalace aplikace (přidat na plochu)</h4>
+        <p>Coach Box se <strong>neinstaluje z obchodu</strong> - otevřeš odkaz v prohlížeči a „přidáš na plochu". Pak funguje jako normální appka <strong>i bez internetu</strong>.</p>
+        <p>Odkaz: <code>https://bzivica.github.io/coach-box/</code></p>
+        <h5>Android (telefon/tablet) nebo počítač — Chrome / Edge</h5>
+        <ol>
+          <li>Otevři odkaz v <strong>Chrome</strong> (nebo Edge).</li>
+          <li>Klikni <strong>„Instalovat aplikaci"</strong> (ikonka v adresním řádku), nebo menu <strong>⋮</strong> → <strong>„Přidat na plochu" / „Instalovat aplikaci"</strong>.</li>
+          <li>Potvrď <strong>Instalovat</strong> → na ploše se objeví ikona Coach Box (logo Supů).</li>
+          <li>Spouštěj appku už jen přes tu ikonu (otevře se na celou obrazovku).</li>
+        </ol>
+        <h5>iPhone / iPad — musí to být v Safari</h5>
+        <ol>
+          <li>Otevři odkaz v <strong>Safari</strong> (na iOS to Chrome neumí).</li>
+          <li>Ťukni na <strong>Sdílet</strong> (čtvereček se šipkou ↑).</li>
+          <li>Sjeď dolů → <strong>„Přidat na plochu"</strong> → <strong>Přidat</strong>.</li>
+        </ol>
+        <ul>
+          <li><strong>Funguje offline</strong> — v hale internet nepotřebuješ (jen jednou na instalaci).</li>
+          <li><strong>Data jsou jen v tvém zařízení</strong> — nikam se neposílají.</li>
+          <li><strong>Aktualizace:</strong> když jsi online a appku otevřeš, sama nabídne „Nová verze — Aktualizovat".</li>
+          <li><strong>Sdílení s asistentem:</strong> přes <strong>Domů → Export / Import</strong> (JSON).</li>
+        </ul>
+      </section>
+
+      <section class="step">
         <h4>2.1 Hráči (klubová soupiska)</h4>
         <p><strong>Hráči → + Nový hráč</strong>. Pole:</p>
         <ul>
