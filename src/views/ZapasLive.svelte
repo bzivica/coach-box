@@ -2783,6 +2783,7 @@
     width: 100%;
     display: flex;
     align-items: baseline;
+    justify-content: flex-end;
     flex-wrap: wrap;
     gap: 6px 10px;
     margin-top: 4px;
