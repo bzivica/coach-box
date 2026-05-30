@@ -936,6 +936,40 @@
     }
   }
 
+  function popisUdalostKratce(ev: Udalost): string {
+    const akce = ev.typ === 'foul' && ev.foul_subtyp
+      ? `faul (${foulSubtypLabel(ev.foul_subtyp)})`
+      : popisAkce(ev.typ);
+    if (ev.hrac_id) {
+      const h = hraci.find((x) => x.id === ev.hrac_id);
+      return h ? `#${h.cislo_dresu ?? '?'} ${h.prijmeni} — ${akce}` : akce;
+    }
+    if (ev.typ.startsWith('opp_')) {
+      const num = typeof ev.opp_hrac_cislo === 'number' ? ` #${ev.opp_hrac_cislo}` : '';
+      return `Soupeř${num} — ${akce}`;
+    }
+    if (ev.typ.startsWith('team_pts')) return `Tým (bez hráče) — ${akce}`;
+    return akce;
+  }
+
+  const posledniUndoPopisy = $derived.by<string[]>(() => {
+    const out: string[] = [];
+    for (let i = undoStack.length - 1; i >= 0 && out.length < 2; i--) {
+      const op = undoStack[i];
+      if (op.kind === 'event') {
+        const ev = udalosti.find((u) => u.id === op.eventId);
+        out.push(ev ? popisUdalostKratce(ev) : 'akce');
+      } else if (op.kind === 'q-rename') {
+        out.push(`přejmenování Q${op.fromCislo} → ${op.toCislo}`);
+      } else if (op.kind === 'q-split') {
+        out.push('rozdělení čtvrtiny');
+      } else if (op.kind === 'set-time') {
+        out.push('nastavení času');
+      }
+    }
+    return out;
+  });
+
   function openSub() {
     subOuts = [];
     subIns = [];
@@ -1760,6 +1794,16 @@
           <button class="clock-btn undo" onclick={undo} title="Smaže poslední zaznamenanou událost v této čtvrtině (faul, koš, doskok, střídání…)" disabled={undoStack.length === 0}>↶ Vrátit poslední</button>
         </div>
       </section>
+
+      {#if posledniUndoPopisy.length > 0}
+        <div class="undo-hint">
+          <span class="uh-label">↶ Vrátíš:</span>
+          <span class="uh-last">{posledniUndoPopisy[0]}</span>
+          {#if posledniUndoPopisy[1]}
+            <span class="uh-prev">předtím: {posledniUndoPopisy[1]}</span>
+          {/if}
+        </div>
+      {/if}
 
       <section class="live">
         <div class="actions" class:disabled={!selectedPlayer}>
@@ -2732,6 +2776,21 @@
   .score-bar .us-score { color: var(--us-color); font-size: 34px; font-weight: 800; font-family: "Consolas", monospace; }
   .score-bar .them-score { color: var(--them-color); font-size: 34px; font-weight: 800; font-family: "Consolas", monospace; }
   .score-bar .sep { color: var(--text-muted); font-size: 26px; }
+
+  .undo-hint {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 6px 10px;
+    padding: 5px 12px;
+    background: var(--surface-2);
+    border: 1px dashed var(--border-strong);
+    border-radius: 8px;
+    font-size: 13px;
+  }
+  .undo-hint .uh-label { font-weight: 700; color: var(--warn); white-space: nowrap; }
+  .undo-hint .uh-last { font-weight: 700; color: var(--text); }
+  .undo-hint .uh-prev { color: var(--text-muted); font-size: 12px; }
 
   .quarter-scores {
     display: flex;

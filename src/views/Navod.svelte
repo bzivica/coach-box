@@ -83,7 +83,7 @@
             </tr>
             <tr>
               <td>Omyl (jakákoli akce)</td>
-              <td>Klikni <strong>↶ Vrátit poslední</strong> v clock-baru nahoře — vrátí poslední událost, změnu Q čísla i ruční nastavení času.</td>
+              <td>Klikni <strong>↶ Vrátit poslední</strong> v clock-baru nahoře — vrátí poslední událost, změnu Q čísla i ruční nastavení času. Pod clock-barem je <strong>řádek „↶ Vrátíš:"</strong> s poslední (a předposlední) akcí, takže dopředu vidíš, co smažeš.</td>
             </tr>
             <tr>
               <td>Stopky čas</td>
@@ -324,7 +324,7 @@
           <li><strong>Soupeř — full roster zobrazený</strong>: V live zápase vidíš všechny opp hráče jako chips (řazené dle čísla), ne jen 5 na hřišti. Soupeřovo střídání nesledujeme (přesah by byl příliš velký) — útoč po číslech které víš.</li>
           <li><strong>Náš tým bez hráče (rychlý zápis):</strong> tlačítka <code>+2 tým</code> / <code>+3 tým</code> / <code>+1 tým</code> v sekci dole vlevo. Body jdou do skóre (sedí semafor), ale ne k žádnému hráči. V matchEnd zvláštní řádek <em>Bez hráče</em> nad TÝM totalem.</li>
           <li><strong>Tmavá sada dresů:</strong> automaticky u zápasů kde <em>Naše strana = H</em> (hosté).</li>
-          <li><strong>Undo:</strong> tlačítko <strong>↶ Vrátit poslední</strong> v clock-baru nahoře. Vrátí zaznamenanou událost (koš, faul, střídání, oddech), ruční změnu Q čísla nebo času. Stack se vyčistí na začátku nové Q.</li>
+          <li><strong>Undo:</strong> tlačítko <strong>↶ Vrátit poslední</strong> v clock-baru nahoře. Pod ním je řádek <strong>„↶ Vrátíš:"</strong> ukazující poslední a předposlední akci (víš dopředu, co se smaže). Vrátí zaznamenanou událost (koš, faul, střídání, oddech), ruční změnu Q čísla nebo času. Stack se vyčistí na začátku nové Q.</li>
           <li><strong>Bench strip dole:</strong> kompaktní jednořádkový seznam hráčů na lavičce (#5 Černý · #8 Dvořák · …). Bez interakce, jen informace. Pro střídání použijte ⇄ tlačítko.</li>
         </ul>
       </section>
