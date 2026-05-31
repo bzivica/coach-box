@@ -1389,6 +1389,8 @@
   const RADIAL_OUTER_BAND_RIN = 126;
   const RADIAL_OUTER_BAND_ROUT = 200;
   const RADIAL_WEDGE_GAP_DEG = 3;
+  const RADIAL_MOBILE_SCALE = 0.72;
+  let radialScale = $state(1);
 
   type GestureMode = 'idle' | 'swipe' | 'radial';
   interface ActiveGesture {
@@ -1542,8 +1544,8 @@
       if (typ) void dispatchGesturAction(g.playerId, typ);
       return;
     }
-    const radialDx = g.curX - g.cardCx;
-    const radialDy = g.curY - g.cardCy;
+    const radialDx = (g.curX - g.cardCx) / radialScale;
+    const radialDy = (g.curY - g.cardCy) / radialScale;
     const hit = radialSegmentIndex(radialDx, radialDy);
     if (hit === null) return;
     const seg = hit.ring === 'inner' ? RADIAL_INNER_SEGMENTS[hit.idx] : RADIAL_OUTER_SEGMENTS[hit.idx];
@@ -1566,8 +1568,8 @@
 
   const radialActive = $derived.by<RadialHit | null>(() => {
     if (!activeGesture || activeGesture.mode !== 'radial') return null;
-    const dx = activeGesture.curX - activeGesture.cardCx;
-    const dy = activeGesture.curY - activeGesture.cardCy;
+    const dx = (activeGesture.curX - activeGesture.cardCx) / radialScale;
+    const dy = (activeGesture.curY - activeGesture.cardCy) / radialScale;
     return radialSegmentIndex(dx, dy);
   });
 
@@ -1577,6 +1579,14 @@
       ? RADIAL_INNER_SEGMENTS[radialActive.idx]
       : RADIAL_OUTER_SEGMENTS[radialActive.idx];
     return seg ?? null;
+  });
+
+  $effect(() => {
+    const mq = window.matchMedia('(max-width: 600px), (max-height: 500px)');
+    const update = () => { radialScale = mq.matches ? RADIAL_MOBILE_SCALE : 1; };
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
   });
 
   function radialInnerSegmentXY(i: number, r: number): { x: number; y: number } {
@@ -2772,7 +2782,7 @@
     {/if}
 
     {#if activeGesture && activeGesture.mode === 'radial'}
-      <div class="radial-overlay two-ring" class:has-active={radialActive !== null} style="left: {activeGesture.cardCx}px; top: {activeGesture.cardCy}px;" aria-hidden="true">
+      <div class="radial-overlay two-ring" class:has-active={radialActive !== null} style="left: {activeGesture.cardCx}px; top: {activeGesture.cardCy}px; --rs: {radialScale};" aria-hidden="true">
         <svg
           class="radial-svg"
           width={RADIAL_VIEWBOX_PX * 2}
@@ -4755,11 +4765,12 @@
     height: 0;
     pointer-events: none;
     z-index: 1500;
+    transform: scale(var(--rs, 1));
     animation: radial-pop 0.13s ease-out;
   }
   @keyframes radial-pop {
-    from { opacity: 0; transform: scale(0.82); }
-    to { opacity: 1; transform: scale(1); }
+    from { opacity: 0; transform: scale(calc(var(--rs, 1) * 0.82)); }
+    to { opacity: 1; transform: scale(var(--rs, 1)); }
   }
   .radial-overlay::before {
     content: '';
@@ -5101,6 +5112,13 @@
     /* #3 sbalit vedlejsi sekce pri zive hre (oddech + stridacka zustavaji) */
     .live-totals { display: none; }
     .vyvoj-skore-live { display: none; }
+
+    /* Okno Stridani: redundantni hlaska pryc (counters + varovani staci), zestihlit tlacitkovy pruh */
+    .sub-hint { display: none; }
+    .sub-modal { padding: 12px 14px; }
+    .sub-modal h2 { font-size: 16px; margin-bottom: 4px; }
+    .sub-modal .modal-buttons { margin-top: 8px; padding-top: 8px; gap: 8px; }
+    .sub-modal .modal-buttons button { padding: 9px 14px; font-size: 13px; }
   }
 
   /* #2 hraci v mrizce na sirku (jen telefon na sirku) */
