@@ -14,6 +14,7 @@
   type Theme = 'light' | 'dark';
 
   const THEME_KEY = 'js_theme';
+  const KLUB_URL = 'https://www.jiznisupi.cz/';
 
   let view = $state<View>('home');
   let theme = $state<Theme>('light');
@@ -90,12 +91,12 @@
   <header>
     <div class="brand">
       <div class="brand-title">
-        <div class="club-logo" title="Jižní Supi">
+        <a class="club-logo" href={KLUB_URL} target="_blank" rel="noopener noreferrer" title="Jižní Supi — oficiální web klubu (otevře se v nové záložce)">
           <img src="{import.meta.env.BASE_URL}logo-jizni-supi.png" alt="Jižní Supi" />
-        </div>
+        </a>
         <div class="brand-text">
-          <h1>Jižní Supi <span class="brand-sep">—</span> <span class="app-name">Coach Box</span></h1>
-          <span class="version">v0.0.32</span>
+          <h1><a class="club-link" href={KLUB_URL} target="_blank" rel="noopener noreferrer" title="Oficiální web klubu Jižní Supi (otevře se v nové záložce)">Jižní Supi</a> <span class="brand-sep">—</span> <span class="app-name">Coach Box</span></h1>
+          <span class="version">v0.0.33</span>
         </div>
       </div>
       <button class="theme-toggle" onclick={toggleTheme} title={theme === 'light' ? 'Přepnout na tmavé téma' : 'Přepnout na světlé téma'}>
@@ -317,6 +318,13 @@
     color: var(--accent);
     letter-spacing: 0.2px;
     line-height: 1.15;
+  }
+  .club-link {
+    color: inherit;
+    text-decoration: none;
+  }
+  .club-link:hover {
+    text-decoration: underline;
   }
   .brand-sep {
     color: var(--text-muted);
