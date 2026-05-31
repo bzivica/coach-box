@@ -1962,6 +1962,16 @@
         <div class="players-col">
           <div class="pc-label">NA HŘIŠTI</div>
           <div class="pc-mobile-hint">Podrž hráče → vyber akci, nebo švihni: ✓2 ↑ · ✗2 ↓ · faul → · doskok ←</div>
+          <div class="pc-undo-row">
+            <button class="pc-undo-btn" onclick={undo} disabled={undoStack.length === 0} title="Smaže poslední zaznamenanou událost v této čtvrtině">↶ Vrátit</button>
+            {#if posledniUndoPopisy.length > 0}
+              <ol class="pc-recent-list">
+                {#each posledniUndoPopisy.slice(0, 4) as popis}
+                  <li>{popis}</li>
+                {/each}
+              </ol>
+            {/if}
+          </div>
           <div class="pc-list">
             {#each naHristi as h (h.id)}
               {@const fauly = pocetFauluZobr(h.id)}
@@ -1995,16 +2005,6 @@
             {/each}
           </div>
           <button class="pc-sub-btn" onclick={openSub} title="Otevři střídání (multi-výběr)">⇄ Střídání</button>
-          {#if posledniUndoPopisy.length > 0}
-            <div class="pc-recent">
-              <div class="pc-recent-label">Poslední akce</div>
-              <ol class="pc-recent-list">
-                {#each posledniUndoPopisy.slice(0, 5) as popis}
-                  <li>{popis}</li>
-                {/each}
-              </ol>
-            </div>
-          {/if}
         </div>
 
         <section class="opponent">
@@ -3032,32 +3032,45 @@
     padding: 6px 8px;
     text-align: center;
   }
-  .pc-recent {
+  .pc-undo-row {
     display: none;
-    margin-top: 4px;
+    align-items: stretch;
+    gap: 8px;
   }
-  .pc-recent-label {
-    font-size: 9px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
+  .pc-undo-btn {
+    flex: 0 0 auto;
+    align-self: stretch;
+    background: var(--surface-2);
+    border: 1px solid var(--warn);
+    color: var(--warn);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-family: inherit;
+    font-size: 13px;
     font-weight: 700;
-    color: var(--text-muted);
-    padding: 2px 0;
+    cursor: pointer;
+    white-space: nowrap;
   }
+  .pc-undo-btn:disabled { opacity: 0.4; cursor: not-allowed; }
   .pc-recent-list {
+    flex: 1 1 auto;
+    min-width: 0;
+    list-style: none;
     margin: 0;
-    padding: 0 0 0 18px;
+    padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 1px;
+    justify-content: center;
   }
   .pc-recent-list li {
     font-size: 11px;
-    color: var(--text);
+    color: var(--text-muted);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
+  .pc-recent-list li:first-child { color: var(--text); font-weight: 600; }
   .pc-list {
     display: flex;
     flex-direction: column;
@@ -3770,7 +3783,7 @@
   }
   .sub-list {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
     gap: 6px;
     align-content: start;
   }
@@ -3789,7 +3802,7 @@
     gap: 3px;
     position: relative;
   }
-  .sub-card :global(.avatar) { width: 44px !important; height: 44px !important; }
+  .sub-card :global(.avatar) { width: 34px !important; height: 34px !important; }
   .sub-card .name {
     font-size: 12px;
     font-weight: 700;
@@ -5063,7 +5076,9 @@
     .pc-sub-btn { padding: 11px; font-size: 14px; font-weight: 700; }
 
     .pc-mobile-hint { display: block; }
-    .pc-recent { display: block; }
+    .pc-undo-row { display: flex; }
+    .clock-btn.undo { display: none; }
+    .undo-hint { display: none; }
 
     .opponent { padding: 7px 9px; }
     .opp-label { font-size: 9px; }
