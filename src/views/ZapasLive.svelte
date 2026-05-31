@@ -1027,7 +1027,7 @@
 
   const posledniUndoPopisy = $derived.by<string[]>(() => {
     const out: string[] = [];
-    for (let i = undoStack.length - 1; i >= 0 && out.length < 2; i--) {
+    for (let i = undoStack.length - 1; i >= 0 && out.length < 6; i--) {
       const op = undoStack[i];
       if (op.kind === 'event') {
         const ev = udalosti.find((u) => u.id === op.eventId);
@@ -1903,7 +1903,7 @@
             >{label}</button>
           {/snippet}
 
-          <div class="action-group">
+          <div class="action-group pp-only">
             <div class="group-label">ÚTOK</div>
             <div class="group-grid utok">
               {@render aBtn('shot_2_made', '✓ 2 body', 'made')}
@@ -1915,7 +1915,7 @@
             </div>
           </div>
 
-          <div class="action-group">
+          <div class="action-group pp-only">
             <div class="group-label">DOSKOK</div>
             <div class="group-grid doskok">
               {@render aBtn('reb_off', 'Útočný', 'reb-off')}
@@ -1923,7 +1923,7 @@
             </div>
           </div>
 
-          <div class="action-group">
+          <div class="action-group pp-only">
             <div class="group-label">POZITIVNÍ</div>
             <div class="group-grid pozit">
               {@render aBtn('assist', 'Asistence', 'assist')}
@@ -1932,7 +1932,7 @@
             </div>
           </div>
 
-          <div class="action-group">
+          <div class="action-group pp-only">
             <div class="group-label">NEGATIVNÍ</div>
             <div class="group-grid negat">
               {@render aBtn('foul', 'Faul', 'foul')}
@@ -1961,6 +1961,7 @@
 
         <div class="players-col">
           <div class="pc-label">NA HŘIŠTI</div>
+          <div class="pc-mobile-hint">Podrž hráče → vyber akci, nebo švihni: ✓2 ↑ · ✗2 ↓ · faul → · doskok ←</div>
           <div class="pc-list">
             {#each naHristi as h (h.id)}
               {@const fauly = pocetFauluZobr(h.id)}
@@ -1994,6 +1995,16 @@
             {/each}
           </div>
           <button class="pc-sub-btn" onclick={openSub} title="Otevři střídání (multi-výběr)">⇄ Střídání</button>
+          {#if posledniUndoPopisy.length > 0}
+            <div class="pc-recent">
+              <div class="pc-recent-label">Poslední akce</div>
+              <ol class="pc-recent-list">
+                {#each posledniUndoPopisy.slice(0, 5) as popis}
+                  <li>{popis}</li>
+                {/each}
+              </ol>
+            </div>
+          {/if}
         </div>
 
         <section class="opponent">
@@ -3009,6 +3020,43 @@
     font-weight: 700;
     text-align: center;
     padding: 4px 0 2px;
+  }
+  .pc-mobile-hint {
+    display: none;
+    font-size: 11px;
+    line-height: 1.35;
+    color: var(--text-muted);
+    background: var(--surface-2);
+    border: 1px dashed var(--border-strong);
+    border-radius: 6px;
+    padding: 6px 8px;
+    text-align: center;
+  }
+  .pc-recent {
+    display: none;
+    margin-top: 4px;
+  }
+  .pc-recent-label {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 700;
+    color: var(--text-muted);
+    padding: 2px 0;
+  }
+  .pc-recent-list {
+    margin: 0;
+    padding: 0 0 0 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .pc-recent-list li {
+    font-size: 11px;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .pc-list {
     display: flex;
@@ -4990,5 +5038,34 @@
     .clock-bar { gap: 8px; }
     .clock-display { font-size: 22px; min-width: 60px; }
     .clock-btn { padding: 5px 7px; font-size: 10px; }
+  }
+
+  /* === TELEFON (na výšku i na šířku) — způsob 2: hráč → akce jako primární ===
+     Cíleno na telefon v obou orientacích, ne na tablet:
+     na výšku přes šířku, na šířku přes nízkou výšku (tablet má na šířku výšku 768+). */
+  @media (max-width: 600px), (max-height: 500px) {
+    .live { display: grid; grid-template-columns: 1fr; gap: 8px; }
+    .live > .players-col { order: 1; }
+    .live > .actions { order: 2; }
+    .live > .opponent { order: 3; }
+
+    .actions > .actions-label { display: none; }
+    .actions .pp-only { display: none; }
+    .actions { padding: 8px; gap: 6px; }
+    .action.team-pts, .action.bench-tech { padding: 11px 8px; font-size: 13px; text-align: center; }
+    .group-grid.utok { grid-template-columns: 1fr 1fr; }
+
+    .players-col { padding: 8px; gap: 7px; }
+    .pc-card { padding: 9px 11px; gap: 10px; }
+    :global(.pc-card .avatar) { width: 38px !important; height: 38px !important; }
+    .pc-num { font-size: 18px; }
+    .pc-name { font-size: 14px; }
+    .pc-sub-btn { padding: 11px; font-size: 14px; font-weight: 700; }
+
+    .pc-mobile-hint { display: block; }
+    .pc-recent { display: block; }
+
+    .opponent { padding: 7px 9px; }
+    .opp-label { font-size: 9px; }
   }
 </style>
