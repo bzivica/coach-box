@@ -364,7 +364,7 @@
           <button class="chip" class:on={selectedSezony.includes(s)} onclick={() => toggleSezona(s)}>{s}</button>
         {/each}
         {#if selectedSezony.length > 0}
-          <button class="chip clear" onclick={() => selectedSezony = []}>× vyčistit</button>
+          <button class="chip clear" onclick={() => selectedSezony = []}>× zrušit výběr</button>
         {/if}
       </div>
     </div>
@@ -376,7 +376,7 @@
           <button class="chip" class:on={selectedSouteze.includes(s.id)} onclick={() => toggleSoutez(s.id)}>{s.nazev}</button>
         {/each}
         {#if selectedSouteze.length > 0}
-          <button class="chip clear" onclick={() => selectedSouteze = []}>× vyčistit</button>
+          <button class="chip clear" onclick={() => selectedSouteze = []}>× zrušit výběr</button>
         {/if}
       </div>
     </div>
@@ -388,7 +388,7 @@
           <button class="chip" class:on={selectedKategorie.includes(k)} onclick={() => toggleKategorie(k)}>{kategorieLabel(k)}</button>
         {/each}
         {#if selectedKategorie.length > 0}
-          <button class="chip clear" onclick={() => selectedKategorie = []}>× vyčistit</button>
+          <button class="chip clear" onclick={() => selectedKategorie = []}>× zrušit výběr</button>
         {/if}
       </div>
     </div>
@@ -420,7 +420,7 @@
             </button>
           {/each}
           {#if selectedHraci.length > 0}
-            <button class="chip clear" onclick={() => selectedHraci = []}>× vyčistit</button>
+            <button class="chip clear" onclick={() => selectedHraci = []}>× zrušit výběr</button>
           {/if}
         </div>
       </div>
