@@ -1961,7 +1961,6 @@
 
         <div class="players-col">
           <div class="pc-label">NA HŘIŠTI</div>
-          <div class="pc-mobile-hint">Podrž hráče → vyber akci, nebo švihni: ✓2 ↑ · ✗2 ↓ · faul → · doskok ←</div>
           <div class="pc-undo-row">
             <button class="pc-undo-btn" onclick={undo} disabled={undoStack.length === 0} title="Smaže poslední zaznamenanou událost v této čtvrtině">↶ Vrátit</button>
             {#if posledniUndoPopisy.length > 0}
@@ -3020,17 +3019,6 @@
     font-weight: 700;
     text-align: center;
     padding: 4px 0 2px;
-  }
-  .pc-mobile-hint {
-    display: none;
-    font-size: 11px;
-    line-height: 1.35;
-    color: var(--text-muted);
-    background: var(--surface-2);
-    border: 1px dashed var(--border-strong);
-    border-radius: 6px;
-    padding: 6px 8px;
-    text-align: center;
   }
   .pc-undo-row {
     display: none;
@@ -5075,7 +5063,6 @@
     .pc-name { font-size: 14px; }
     .pc-sub-btn { padding: 11px; font-size: 14px; font-weight: 700; }
 
-    .pc-mobile-hint { display: block; }
     .pc-undo-row { display: flex; }
     .clock-btn.undo { display: none; }
     .undo-hint { display: none; }
