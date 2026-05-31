@@ -1857,6 +1857,11 @@
           <span class="clock-total-val">{formatCas(casVZapaseMs)}</span>
           <span class="clock-total-meta">/ {formatCas(pocetCtvrtin * delkaQMs)}</span>
         </div>
+        <div class="clock-score" aria-hidden="true">
+          <span class="cs-val">{skore.nase}</span>
+          <span class="cs-sep">:</span>
+          <span class="cs-val">{skore.souper}</span>
+        </div>
         <div class="clock-buttons">
           {#if klokBezi}
             <button class="clock-btn" onclick={pauseKlok} title="Pauza">⏸ Pauza</button>
@@ -3837,6 +3842,15 @@
   .clock-bar.running {
     border-color: var(--success);
   }
+  .clock-score {
+    display: none;
+    align-items: baseline;
+    gap: 4px;
+    font-family: "Consolas", monospace;
+    font-weight: 700;
+  }
+  .clock-score .cs-val { font-size: 22px; color: var(--text); }
+  .clock-score .cs-sep { color: var(--text-muted); }
   .clock-cislo {
     display: flex;
     align-items: baseline;
@@ -5069,5 +5083,33 @@
 
     .opponent { padding: 7px 9px; }
     .opp-label { font-size: 9px; }
+
+    /* #1 kompaktni horni lista: skore do clock-baru, schovat samostatny skore-bar + skore po Q */
+    .score-bar { display: none; }
+    .quarter-scores { display: none; }
+    .clock-total { display: none; }
+    .clock-score { display: flex; }
+
+    /* #4 sticky skore+cas nahore */
+    .clock-bar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28);
+    }
+
+    /* #3 sbalit vedlejsi sekce pri zive hre (oddech + stridacka zustavaji) */
+    .live-totals { display: none; }
+    .vyvoj-skore-live { display: none; }
+  }
+
+  /* #2 hraci v mrizce na sirku (jen telefon na sirku) */
+  @media (orientation: landscape) and (max-height: 540px) {
+    .pc-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 6px;
+    }
+    .pc-card { padding: 7px 9px; gap: 8px; }
   }
 </style>
