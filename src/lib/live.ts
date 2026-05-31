@@ -683,6 +683,21 @@ function addStat(target: BoxStat, src: BoxStat): void {
   target.minuty_ms += src.minuty_ms;
 }
 
+export function hraciKteriHrali(udalosti: Udalost[], ctvrtiny: Ctvrtina[]): Set<string> {
+  const hrali = new Set<string>();
+  for (const c of ctvrtiny) {
+    for (const id of c.petice_start) hrali.add(id);
+  }
+  for (const u of udalosti) {
+    if (u.typ === 'substitution') {
+      if (u.sub_in_id) hrali.add(u.sub_in_id);
+    } else if (u.hrac_id) {
+      hrali.add(u.hrac_id);
+    }
+  }
+  return hrali;
+}
+
 export function aggregateAcrossMatches(
   zapasy: Zapas[],
   udalosti: Udalost[],
@@ -706,7 +721,9 @@ export function aggregateAcrossMatches(
     const u = udByZapas.get(z.id) ?? [];
     const c = ctByZapas.get(z.id) ?? [];
     const box = computeBoxscore(u, c, z.nasazeni_hraci, z);
+    const hrali = hraciKteriHrali(u, c);
     for (const id of z.nasazeni_hraci) {
+      if (!hrali.has(id)) continue;
       let agg = out.get(id);
       if (!agg) { agg = emptyAggregate(); out.set(id, agg); }
       agg.gp += 1;
