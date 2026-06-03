@@ -1790,27 +1790,22 @@
     </header>
 
     <div class="score-bar">
-      <span class="sb-role" class:us={naseDoma}>Domácí</span>
-      <span class="sb-q">{fmtQ(aktualniCtvrtinaCislo)}{jeOT(aktualniCtvrtinaCislo) ? ' • prodl.' : ''}</span>
-      <span class="sb-role" class:us={!naseDoma}>Hosté</span>
+      <div class="sb-cluster">
+        <span class="sb-role sb-role-l" class:us={naseDoma}>Domácí</span>
+        <span class="sb-q">{fmtQ(aktualniCtvrtinaCislo)}{jeOT(aktualniCtvrtinaCislo) ? ' • prodl.' : ''}</span>
+        <span class="sb-role sb-role-r" class:us={!naseDoma}>Hosté</span>
 
-      <span class="sb-score" class:us={naseDoma}>{homeScore}</span>
-      <span class="sb-colon">:</span>
-      <span class="sb-score" class:us={!naseDoma}>{awayScore}</span>
+        <span class="sb-score" class:us={naseDoma}>{homeScore}</span>
+        <span class="sb-colon">:</span>
+        <span class="sb-score" class:us={!naseDoma}>{awayScore}</span>
 
-      {#if mode === 'inProgress'}
-        <span
-          class="sb-fauly"
-          class:bonus={homeBonus}
-          title={`Týmové fauly v ${fmtQ(aktualniCtvrtinaCislo)}${homeBonus ? ' — hosté střílí trestné (bonus)' : ''}`}
-        >Fauly {homeFaulyQ}{#if homeBonus} • BONUS{/if}</span>
-        <span class="sb-fauly-mid" aria-hidden="true"></span>
-        <span
-          class="sb-fauly"
-          class:bonus={awayBonus}
-          title={`Týmové fauly v ${fmtQ(aktualniCtvrtinaCislo)}${awayBonus ? ' — domácí střílí trestné (bonus)' : ''}`}
-        >Fauly {awayFaulyQ}{#if awayBonus} • BONUS{/if}</span>
-      {/if}
+        {#if mode === 'inProgress'}
+          <span
+            class="sb-fauly"
+            title={`Týmové fauly v ${fmtQ(aktualniCtvrtinaCislo)} (domácí:hosté)${homeBonus || awayBonus ? ' — 5+ = soupeř střílí trestné (bonus)' : ''}`}
+          ><span class="sbf-label">Fauly</span> <span class="sbf-num" class:bonus={homeBonus}>{homeFaulyQ}</span><span class="sbf-colon">:</span><span class="sbf-num" class:bonus={awayBonus}>{awayFaulyQ}</span></span>
+        {/if}
+      </div>
     </div>
 
     {#if skorePoCtvrtinach.length > 0}
@@ -2969,18 +2964,22 @@
     position: sticky;
     top: 0;
     z-index: 60;
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
-    align-items: center;
-    justify-items: center;
-    column-gap: 18px;
-    row-gap: 2px;
+    display: flex;
+    justify-content: center;
     margin: 8px 0;
     padding: 8px 16px;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 10px;
     box-shadow: var(--shadow);
+  }
+  .sb-cluster {
+    display: inline-grid;
+    grid-template-columns: auto auto auto;
+    justify-items: center;
+    align-items: center;
+    column-gap: 10px;
+    row-gap: 2px;
   }
   .score-bar .sb-role {
     font-size: 11px;
@@ -2991,7 +2990,7 @@
   }
   .score-bar .sb-role.us { color: var(--us-color); }
   .score-bar .sb-q {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 700;
     color: var(--accent);
     background: var(--selected-bg);
@@ -3008,14 +3007,32 @@
   .score-bar .sb-score.us { color: var(--us-color); }
   .score-bar .sb-colon { font-size: 26px; font-weight: 800; color: var(--text-muted); }
   .score-bar .sb-fauly {
-    font-size: 12px;
-    font-weight: 700;
+    grid-column: 1 / -1;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 4px;
+    margin-top: 2px;
     color: var(--text-muted);
   }
-  .score-bar .sb-fauly.bonus { color: var(--danger); font-weight: 800; }
+  .score-bar .sbf-label {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .score-bar .sbf-num {
+    font-family: "Consolas", monospace;
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--text);
+  }
+  .score-bar .sbf-colon { font-size: 20px; font-weight: 800; }
+  .score-bar .sb-fauly .bonus { color: var(--danger); }
   @media (max-width: 700px) {
-    .score-bar { column-gap: 12px; padding: 5px 12px; margin: 6px 0; }
+    .score-bar { padding: 5px 12px; margin: 6px 0; }
+    .sb-cluster { column-gap: 8px; }
     .score-bar .sb-score { font-size: 26px; }
+    .score-bar .sbf-num { font-size: 19px; }
     .score-bar .sb-q { font-size: 12px; padding: 2px 8px; }
   }
 
