@@ -401,6 +401,14 @@
   const naseVBonusu = $derived(faulyQ.nase >= BONUS_FAULY_CTVRTINA);
   const souperVBonusu = $derived(faulyQ.souper >= BONUS_FAULY_CTVRTINA);
 
+  const naseDoma = $derived(zapas?.nase_strana !== 'away');
+  const homeScore = $derived(naseDoma ? skore.nase : skore.souper);
+  const awayScore = $derived(naseDoma ? skore.souper : skore.nase);
+  const homeFaulyQ = $derived(naseDoma ? faulyQ.nase : faulyQ.souper);
+  const awayFaulyQ = $derived(naseDoma ? faulyQ.souper : faulyQ.nase);
+  const homeBonus = $derived(naseDoma ? naseVBonusu : souperVBonusu);
+  const awayBonus = $derived(naseDoma ? souperVBonusu : naseVBonusu);
+
   const opponentRoster = $derived.by(() => {
     const all = souper?.hraci_soupere ?? [];
     const seen = new Map<number, typeof all[number]>();
@@ -1782,35 +1790,28 @@
     </header>
 
     <div class="score-bar">
+      <span class="sb-role" class:us={naseDoma}>Domácí</span>
       <span class="sb-q">{fmtQ(aktualniCtvrtinaCislo)}{jeOT(aktualniCtvrtinaCislo) ? ' • prodl.' : ''}</span>
-      <span class="us-score">{skore.nase}</span>
-      <span class="sep">:</span>
-      <span class="them-score">{skore.souper}</span>
-    </div>
+      <span class="sb-role" class:us={!naseDoma}>Hosté</span>
 
-    {#if mode === 'inProgress'}
-      <div class="team-fouls-bar">
+      <span class="sb-score" class:us={naseDoma}>{homeScore}</span>
+      <span class="sb-colon">:</span>
+      <span class="sb-score" class:us={!naseDoma}>{awayScore}</span>
+
+      {#if mode === 'inProgress'}
         <span
-          class="tf-side us"
-          class:bonus={naseVBonusu}
-          title={`Týmové fauly MY v ${fmtQ(aktualniCtvrtinaCislo)}${naseVBonusu ? ' — soupeř střílí trestné (bonus)' : ''}`}
-        >
-          <span class="tf-label">Fauly MY</span>
-          <span class="tf-count">{faulyQ.nase}</span>
-          {#if naseVBonusu}<span class="tf-bonus">BONUS</span>{/if}
-        </span>
-        <span class="tf-q">{fmtQ(aktualniCtvrtinaCislo)}</span>
+          class="sb-fauly"
+          class:bonus={homeBonus}
+          title={`Týmové fauly v ${fmtQ(aktualniCtvrtinaCislo)}${homeBonus ? ' — hosté střílí trestné (bonus)' : ''}`}
+        >Fauly {homeFaulyQ}{#if homeBonus} • BONUS{/if}</span>
+        <span class="sb-fauly-mid" aria-hidden="true"></span>
         <span
-          class="tf-side them"
-          class:bonus={souperVBonusu}
-          title={`Týmové fauly SOUPEŘ v ${fmtQ(aktualniCtvrtinaCislo)}${souperVBonusu ? ' — my střílíme trestné (bonus)' : ''}`}
-        >
-          {#if souperVBonusu}<span class="tf-bonus">BONUS</span>{/if}
-          <span class="tf-count">{faulyQ.souper}</span>
-          <span class="tf-label">Fauly SOUPEŘ</span>
-        </span>
-      </div>
-    {/if}
+          class="sb-fauly"
+          class:bonus={awayBonus}
+          title={`Týmové fauly v ${fmtQ(aktualniCtvrtinaCislo)}${awayBonus ? ' — domácí střílí trestné (bonus)' : ''}`}
+        >Fauly {awayFaulyQ}{#if awayBonus} • BONUS{/if}</span>
+      {/if}
+    </div>
 
     {#if skorePoCtvrtinach.length > 0}
       <div class="quarter-scores">
@@ -2968,10 +2969,12 @@
     position: sticky;
     top: 0;
     z-index: 60;
-    display: flex;
-    align-items: baseline;
-    justify-content: center;
-    gap: 12px;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    justify-items: center;
+    column-gap: 18px;
+    row-gap: 2px;
     margin: 8px 0;
     padding: 8px 16px;
     background: var(--surface);
@@ -2979,8 +2982,15 @@
     border-radius: 10px;
     box-shadow: var(--shadow);
   }
+  .score-bar .sb-role {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+  }
+  .score-bar .sb-role.us { color: var(--us-color); }
   .score-bar .sb-q {
-    align-self: center;
     font-size: 14px;
     font-weight: 700;
     color: var(--accent);
@@ -2988,66 +2998,25 @@
     padding: 3px 10px;
     border-radius: 999px;
   }
-  .score-bar .us-score { color: var(--us-color); font-size: 34px; font-weight: 800; font-family: "Consolas", monospace; }
-  .score-bar .them-score { color: var(--them-color); font-size: 34px; font-weight: 800; font-family: "Consolas", monospace; }
-  .score-bar .sep { color: var(--text-muted); font-size: 26px; }
-
-  .team-fouls-bar {
-    display: flex;
-    align-items: stretch;
-    justify-content: center;
-    gap: 8px;
-    margin: -2px 0 8px;
+  .score-bar .sb-score {
+    font-size: 34px;
+    font-weight: 800;
+    font-family: "Consolas", monospace;
+    line-height: 1;
+    color: var(--them-color);
   }
-  .tf-side {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 12px;
-    border-radius: 8px;
-    background: var(--surface);
-    border: 1px solid var(--border);
+  .score-bar .sb-score.us { color: var(--us-color); }
+  .score-bar .sb-colon { font-size: 26px; font-weight: 800; color: var(--text-muted); }
+  .score-bar .sb-fauly {
     font-size: 12px;
     font-weight: 700;
     color: var(--text-muted);
   }
-  .tf-side.us { border-left: 4px solid var(--us-color); }
-  .tf-side.them { border-right: 4px solid var(--them-color); }
-  .tf-label { text-transform: uppercase; letter-spacing: 0.5px; }
-  .tf-count {
-    font-family: "Consolas", monospace;
-    font-size: 18px;
-    font-weight: 800;
-    color: var(--text);
-    min-width: 18px;
-    text-align: center;
-  }
-  .tf-side.bonus {
-    background: var(--danger-bg, #fee2e2);
-    border-color: var(--danger);
-    color: var(--danger);
-  }
-  .tf-side.bonus .tf-count { color: var(--danger); }
-  .tf-bonus {
-    background: var(--danger);
-    color: var(--accent-fg);
-    font-size: 10px;
-    font-weight: 800;
-    letter-spacing: 0.5px;
-    padding: 2px 6px;
-    border-radius: 999px;
-  }
-  .tf-q {
-    align-self: center;
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--text-muted);
-    padding: 0 2px;
-  }
+  .score-bar .sb-fauly.bonus { color: var(--danger); font-weight: 800; }
   @media (max-width: 700px) {
-    .team-fouls-bar { gap: 6px; margin: 4px 0; }
-    .tf-side { padding: 3px 8px; font-size: 11px; }
-    .tf-count { font-size: 15px; }
+    .score-bar { column-gap: 12px; padding: 5px 12px; margin: 6px 0; }
+    .score-bar .sb-score { font-size: 26px; }
+    .score-bar .sb-q { font-size: 12px; padding: 2px 8px; }
   }
 
   .undo-hint {
@@ -5169,8 +5138,8 @@
     }
     .teams .vs { margin: 0 4px; }
     .score-bar { gap: 8px; padding: 5px 12px; margin: 6px 0; }
-    .score-bar .us-score, .score-bar .them-score { font-size: 26px; }
-    .score-bar .sep { font-size: 20px; }
+    .score-bar .sb-score { font-size: 26px; }
+    .score-bar .sb-colon { font-size: 20px; }
     .score-bar .sb-q { font-size: 12px; padding: 2px 8px; }
 
     .quarter-scores { gap: 4px; padding: 0 2px; }
@@ -5242,7 +5211,7 @@
       grid-template-columns: auto 1fr;
     }
     .teams { font-size: 13px; }
-    .score-bar .us-score, .score-bar .them-score { font-size: 22px; }
+    .score-bar .sb-score { font-size: 22px; }
     .clock-bar { gap: 8px; }
     .clock-display { font-size: 22px; min-width: 60px; }
     .clock-btn { padding: 5px 7px; font-size: 10px; }

@@ -325,10 +325,6 @@
     return `${Number(day)}.${Number(m)}.`;
   }
 
-  function toggleZapas(id: string) {
-    selectedZapasId = selectedZapasId === id ? null : id;
-  }
-
   function otevriZapas(z: Zapas) {
     liveZapasId = z.id;
   }
@@ -417,30 +413,24 @@
 
     <div class="filter-group">
       <span class="fg-label">Zápas</span>
-      <div class="chips chips-zapasy">
-        {#if zapasyProVyber.length === 0}
-          <span class="preset-hint">Žádný zápas pro tento filtr</span>
-        {/if}
+      <select
+        class="zapas-select"
+        value={selectedZapasId ?? ''}
+        disabled={zapasyProVyber.length === 0}
+        onchange={(e) => (selectedZapasId = e.currentTarget.value || null)}
+      >
+        <option value="">— součet za celý filtr ({zapasyProVyber.length} {zapasyProVyber.length === 1 ? 'zápas' : 'zápasů'}) —</option>
         {#each zapasyProVyber as z (z.id)}
           {@const stav = stavByZapasId.get(z.id)}
           {@const live = stav && stav.kind !== 'ukonceny' && stav.kind !== 'preruseny'}
-          <button
-            class="chip chip-zapas"
-            class:on={selectedZapasId === z.id}
-            class:live
-            onclick={() => toggleZapas(z.id)}
-            title={`${fmtDatum(z.datum)} · ${souperByID.get(z.souper_id)?.nazev ?? '?'} (${z.nase_strana === 'home' ? 'doma' : 'venku'})${live ? ' · právě běží' : ''}`}
-          >
-            {#if live}<span class="z-live-dot"></span>{/if}
-            <span class="cz-date">{fmtDatumKratce(z.datum)}</span>
-            <span class="cz-opp">{souperByID.get(z.souper_id)?.nazev ?? '?'}</span>
-            <span class="cz-score">{z.skore_nase}:{z.skore_souper}</span>
-          </button>
+          <option value={z.id}>
+            {fmtDatumKratce(z.datum)} · {souperByID.get(z.souper_id)?.nazev ?? '?'} ({z.nase_strana === 'home' ? 'D' : 'H'}) · {z.skore_nase}:{z.skore_souper}{live ? ' · ▶ běží' : ''}
+          </option>
         {/each}
-        {#if selectedZapasId}
-          <button class="chip clear" onclick={() => selectedZapasId = null}>× zrušit výběr (zpět na součet)</button>
-        {/if}
-      </div>
+      </select>
+      {#if selectedZapasId}
+        <button class="chip clear" onclick={() => selectedZapasId = null}>× zrušit výběr</button>
+      {/if}
       <p class="okno-hint">
         Bez výběru = součet za celou kategorii/soutěž dle filtrů. Vyber jeden zápas (i právě běžící) pro statistiky jen z něj.
       </p>
@@ -792,23 +782,22 @@
     font-family: "Consolas", monospace;
     opacity: 0.85;
   }
-  .chip-zapas {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
+  .zapas-select {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 7px 12px;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    max-width: 100%;
+    min-width: 260px;
   }
-  .chip-zapas .cz-date { font-family: "Consolas", monospace; opacity: 0.8; }
-  .chip-zapas .cz-opp { font-weight: 700; }
-  .chip-zapas .cz-score { font-family: "Consolas", monospace; opacity: 0.85; }
-  .chip-zapas.live { border-color: #fdba74; }
-  .chip-zapas.live.on { border-color: var(--accent); }
-  .z-live-dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: #ea580c;
-    flex-shrink: 0;
-  }
+  .zapas-select:hover:not(:disabled) { border-color: var(--border-strong); }
+  .zapas-select:focus { outline: none; border-color: var(--accent); }
+  .zapas-select:disabled { opacity: 0.5; cursor: not-allowed; }
 
   .tabs {
     display: flex;
