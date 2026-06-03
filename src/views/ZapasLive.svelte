@@ -471,6 +471,19 @@
     [...ctvrtiny].map((c) => c.cislo).sort((a, b) => a - b),
   );
 
+  const faulyPoCtvrtinach = $derived(
+    dostupneCtvrtiny.map((q) => {
+      const f = tymoveFaulyVCtvrtine(udalosti, q);
+      return {
+        q,
+        home: naseDoma ? f.nase : f.souper,
+        away: naseDoma ? f.souper : f.nase,
+      };
+    }),
+  );
+  const faulyCelkemHome = $derived(faulyPoCtvrtinach.reduce((s, x) => s + x.home, 0));
+  const faulyCelkemAway = $derived(faulyPoCtvrtinach.reduce((s, x) => s + x.away, 0));
+
   const toObdobi = $derived(timeoutoveObdobi(aktualniCtvrtinaCislo, pocetCtvrtin));
   const toPovoleno = $derived(timeoutyPovolene(toObdobi));
   const toMyPouzite = $derived(timeoutyPouzite(udalosti, 'oddech_my', toObdobi, pocetCtvrtin));
@@ -1930,6 +1943,42 @@
             </tbody>
           </table>
         </div>
+
+        {#if faulyPoCtvrtinach.length > 0}
+          <div class="tfq-wrap">
+            <h4 class="tfq-title">Týmové fauly po čtvrtinách</h4>
+            <div class="bs-scroll">
+              <table class="bs-table tfq-table">
+                <thead>
+                  <tr>
+                    <th class="th-sticky">Tým</th>
+                    {#each faulyPoCtvrtinach as r (r.q)}
+                      <th>{fmtQ(r.q)}</th>
+                    {/each}
+                    <th>Celkem</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="td-name">Domácí</td>
+                    {#each faulyPoCtvrtinach as r (r.q)}
+                      <td class="td-mono" class:tfq-bonus={r.home >= BONUS_FAULY_CTVRTINA}>{r.home}</td>
+                    {/each}
+                    <td class="td-mono td-pts">{faulyCelkemHome}</td>
+                  </tr>
+                  <tr>
+                    <td class="td-name">Hosté</td>
+                    {#each faulyPoCtvrtinach as r (r.q)}
+                      <td class="td-mono" class:tfq-bonus={r.away >= BONUS_FAULY_CTVRTINA}>{r.away}</td>
+                    {/each}
+                    <td class="td-mono td-pts">{faulyCelkemAway}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="tfq-hint">Červeně = {BONUS_FAULY_CTVRTINA}+ faulů v Q (soupeř střílí trestné - bonus).</p>
+          </div>
+        {/if}
       </section>
     {/snippet}
 
@@ -4419,6 +4468,17 @@
     border: none;
     border-radius: 0;
   }
+  .tfq-wrap { margin-top: 16px; }
+  .tfq-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+  .tfq-table { min-width: auto; }
+  .tfq-table .td-name { text-align: left; font-weight: 600; white-space: nowrap; }
+  .tfq-table .tfq-bonus { color: var(--danger); font-weight: 800; }
+  .tfq-hint { font-size: 11px; color: var(--text-muted); margin-top: 6px; }
   .prirazeni-hint { font-size: 13px; color: var(--text-muted); line-height: 1.5; margin-bottom: 12px; }
   .prirazeni-hint strong { color: var(--text); }
   .prirazeni-empty { font-size: 13px; color: var(--text-muted); font-style: italic; }

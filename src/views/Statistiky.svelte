@@ -18,8 +18,6 @@
     computeZapasStav,
     formatMinSec,
     klokByPouzit,
-    filtrEventyVOkne,
-    type CasoveOkno,
   } from '../lib/live';
   import Avatar from '../components/Avatar.svelte';
   import ZapasLive from './ZapasLive.svelte';
@@ -56,7 +54,6 @@
 
   let tab = $state<Tab>('hraci');
   let perGame = $state(false);
-  let casoveOkno = $state<CasoveOkno>('cela');
   let liveZapasId = $state<string | null>(null);
 
   let presety = $state<FilterPreset[]>([]);
@@ -162,7 +159,6 @@
     selectedKategorie = [];
     selectedHraci = [];
     selectedZapasId = null;
-    casoveOkno = 'cela';
   }
 
   const allSezony = $derived([...new Set(zapasy.map((z) => z.sezona))].sort().reverse());
@@ -196,16 +192,12 @@
   const filteredUd = $derived(udalosti.filter((u) => zapasIds.has(u.zapas_id)));
   const filteredCt = $derived(ctvrtiny.filter((c) => zapasIds.has(c.zapas_id)));
 
-  const windowFilteredUd = $derived(
-    filtrEventyVOkne(filteredUd, filteredCt, filteredZapasy, casoveOkno),
-  );
   const aggregates = $derived(
-    aggregateAcrossMatches(filteredZapasy, windowFilteredUd, filteredCt),
+    aggregateAcrossMatches(filteredZapasy, filteredUd, filteredCt),
   );
   const finishedZapasy = $derived(filteredZapasy.filter((z) => z.status === 'ukonceny'));
   const teamRecord = $derived(computeTeamRecord(finishedZapasy));
   const klokPouzitFiltr = $derived(klokByPouzit(filteredUd));
-  const oknoAktivni = $derived(casoveOkno !== 'cela');
   const stavByZapasId = $derived(
     new Map(zapasyDleZakladnichFiltru.map((z) => [z.id, computeZapasStav(z, ctvrtiny)])),
   );
@@ -294,7 +286,6 @@
   }
 
   function fmtMinutes(total: number, gp: number): string {
-    if (oknoAktivni) return '—';
     if (!klokPouzitFiltr) return '—';
     if (!perGame) return formatMinSec(total);
     if (gp === 0) return '0:00';
@@ -307,7 +298,6 @@
   }
 
   function fmtPM(total: number, gp: number): string {
-    if (oknoAktivni) return '—';
     if (perGame && gp > 0) {
       const avg = total / gp;
       return (avg > 0 ? '+' : '') + avg.toFixed(1);
@@ -436,21 +426,6 @@
       </p>
     </div>
 
-    <div class="filter-group">
-      <span class="fg-label">Část čtvrtiny</span>
-      <div class="chips">
-        <button class="chip" class:on={casoveOkno === 'cela'} onclick={() => casoveOkno = 'cela'}>Celá Q</button>
-        <button class="chip" class:on={casoveOkno === 'prvni_pol'} onclick={() => casoveOkno = 'prvni_pol'}>1. polovina Q</button>
-        <button class="chip" class:on={casoveOkno === 'druha_pol'} onclick={() => casoveOkno = 'druha_pol'}>2. polovina Q</button>
-      </div>
-      <p class="okno-hint">
-        Počítat statistiky jen z první nebo druhé poloviny každé čtvrtiny (podle stopek) - např. jak hrajeme na začátku vs. na konci čtvrtin. „Celá Q" = celá čtvrtina (běžné nastavení).
-        {#if oknoAktivni}
-          <br>Pro Q bez stopek se půlka odhaduje z reálného času (zahrnuje pauzy). Min a +/- jsou v tomto režimu „—". Korekce skóre po zápase se nezapočítávají.
-        {/if}
-      </p>
-    </div>
-
     {#if tab === 'hraci'}
       <div class="filter-group">
         <span class="fg-label">Hráči (porovnání)</span>
@@ -523,7 +498,7 @@
                 <td class="td-mono">{fmtNum(r.agg.ztraty, r.agg.gp)}</td>
                 <td class="td-mono">{fmtNum(r.agg.bloky, r.agg.gp)}</td>
                 <td class="td-mono">{fmtNum(r.agg.fauly, r.agg.gp)}</td>
-                <td class="td-mono td-pm" class:pm-plus={!oknoAktivni && r.agg.plus_minus > 0} class:pm-minus={!oknoAktivni && r.agg.plus_minus < 0}>{fmtPM(r.agg.plus_minus, r.agg.gp)}</td>
+                <td class="td-mono td-pm" class:pm-plus={r.agg.plus_minus > 0} class:pm-minus={r.agg.plus_minus < 0}>{fmtPM(r.agg.plus_minus, r.agg.gp)}</td>
                 <td class="td-mono td-eff">{fmtNum(r.agg.efficiency, r.agg.gp)}</td>
               </tr>
             {/each}
