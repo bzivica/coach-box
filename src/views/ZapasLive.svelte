@@ -405,6 +405,8 @@
   const awayScore = $derived(naseDoma ? skore.souper : skore.nase);
   const homeFaulyQ = $derived(naseDoma ? faulyQ.nase : faulyQ.souper);
   const awayFaulyQ = $derived(naseDoma ? faulyQ.souper : faulyQ.nase);
+  const homeFaulyQZobr = $derived(Math.min(homeFaulyQ, BONUS_FAULY_CTVRTINA));
+  const awayFaulyQZobr = $derived(Math.min(awayFaulyQ, BONUS_FAULY_CTVRTINA));
   const homeBonus = $derived(naseDoma ? naseVBonusu : souperVBonusu);
   const awayBonus = $derived(naseDoma ? souperVBonusu : naseVBonusu);
 
@@ -1808,9 +1810,9 @@
             class="sb-fauly"
             title={`Týmové fauly v ${fmtQ(aktualniCtvrtinaCislo)} (domácí:hosté)${homeBonus || awayBonus ? ' — 5+ = soupeř střílí trestné (bonus)' : ''}`}
           >
-            <span class="sbf-num sbf-home" class:bonus={homeBonus}>{homeFaulyQ}</span>
+            <span class="sbf-num sbf-home" class:bonus={homeBonus}>{homeFaulyQZobr}</span>
             <span class="sbf-colon">:</span>
-            <span class="sbf-num sbf-away" class:bonus={awayBonus}>{awayFaulyQ}</span>
+            <span class="sbf-num sbf-away" class:bonus={awayBonus}>{awayFaulyQZobr}</span>
             <span class="sbf-label">Fauly</span>
           </span>
         {/if}
