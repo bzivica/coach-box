@@ -1803,7 +1803,12 @@
           <span
             class="sb-fauly"
             title={`Týmové fauly v ${fmtQ(aktualniCtvrtinaCislo)} (domácí:hosté)${homeBonus || awayBonus ? ' — 5+ = soupeř střílí trestné (bonus)' : ''}`}
-          ><span class="sbf-label">Fauly</span> <span class="sbf-num" class:bonus={homeBonus}>{homeFaulyQ}</span><span class="sbf-colon">:</span><span class="sbf-num" class:bonus={awayBonus}>{awayFaulyQ}</span></span>
+          >
+            <span class="sbf-num sbf-home" class:bonus={homeBonus}>{homeFaulyQ}</span>
+            <span class="sbf-colon">:</span>
+            <span class="sbf-num sbf-away" class:bonus={awayBonus}>{awayFaulyQ}</span>
+            <span class="sbf-label">Fauly</span>
+          </span>
         {/if}
       </div>
     </div>
@@ -3006,28 +3011,35 @@
   }
   .score-bar .sb-score.us { color: var(--us-color); }
   .score-bar .sb-colon { font-size: 26px; font-weight: 800; color: var(--text-muted); }
-  .score-bar .sb-fauly {
-    grid-column: 1 / -1;
-    display: inline-flex;
-    align-items: baseline;
-    gap: 4px;
-    margin-top: 2px;
-    color: var(--text-muted);
-  }
-  .score-bar .sbf-label {
-    font-size: 13px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
+  .score-bar .sb-fauly { display: contents; color: var(--text-muted); }
   .score-bar .sbf-num {
+    grid-row: 3;
+    margin-top: 3px;
     font-family: "Consolas", monospace;
     font-size: 24px;
     font-weight: 800;
     color: var(--text);
   }
-  .score-bar .sbf-colon { font-size: 20px; font-weight: 800; }
-  .score-bar .sb-fauly .bonus { color: var(--danger); }
+  .score-bar .sbf-home { grid-column: 1; }
+  .score-bar .sbf-away { grid-column: 3; }
+  .score-bar .sbf-colon {
+    grid-row: 3;
+    grid-column: 2;
+    margin-top: 3px;
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--text-muted);
+  }
+  .score-bar .sbf-label {
+    grid-row: 4;
+    grid-column: 1 / -1;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+  }
+  .score-bar .sbf-num.bonus { color: var(--danger); }
   @media (max-width: 700px) {
     .score-bar { padding: 5px 12px; margin: 6px 0; }
     .sb-cluster { column-gap: 8px; }
