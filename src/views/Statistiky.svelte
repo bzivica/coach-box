@@ -52,6 +52,7 @@
   let selectedSouteze = $state<string[]>([]);
   let selectedKategorie = $state<Kategorie[]>([]);
   let selectedHraci = $state<string[]>([]);
+  let selectedZapasId = $state<string | null>(null);
 
   let tab = $state<Tab>('hraci');
   let perGame = $state(false);
@@ -150,7 +151,8 @@
       selectedSezony.length > 0 ||
       selectedSouteze.length > 0 ||
       selectedKategorie.length > 0 ||
-      selectedHraci.length > 0
+      selectedHraci.length > 0 ||
+      selectedZapasId !== null
     );
   }
 
@@ -159,6 +161,7 @@
     selectedSouteze = [];
     selectedKategorie = [];
     selectedHraci = [];
+    selectedZapasId = null;
     casoveOkno = 'cela';
   }
 
@@ -170,13 +173,23 @@
   );
   const allSouteze = $derived(souteze.filter((s) => zapasy.some((z) => z.soutez_id === s.id)));
 
-  const filteredZapasy = $derived(
+  const zapasyDleZakladnichFiltru = $derived(
     zapasy.filter((z) => {
       if (selectedSezony.length > 0 && !selectedSezony.includes(z.sezona)) return false;
       if (selectedSouteze.length > 0 && !selectedSouteze.includes(z.soutez_id)) return false;
       if (selectedKategorie.length > 0 && !selectedKategorie.includes(z.nase_kategorie)) return false;
       return true;
     }),
+  );
+
+  const filteredZapasy = $derived(
+    selectedZapasId && zapasyDleZakladnichFiltru.some((z) => z.id === selectedZapasId)
+      ? zapasyDleZakladnichFiltru.filter((z) => z.id === selectedZapasId)
+      : zapasyDleZakladnichFiltru,
+  );
+
+  const zapasyProVyber = $derived(
+    [...zapasyDleZakladnichFiltru].sort((a, b) => b.datum.localeCompare(a.datum)),
   );
 
   const zapasIds = $derived(new Set(filteredZapasy.map((z) => z.id)));
@@ -194,7 +207,7 @@
   const klokPouzitFiltr = $derived(klokByPouzit(filteredUd));
   const oknoAktivni = $derived(casoveOkno !== 'cela');
   const stavByZapasId = $derived(
-    new Map(filteredZapasy.map((z) => [z.id, computeZapasStav(z, ctvrtiny)])),
+    new Map(zapasyDleZakladnichFiltru.map((z) => [z.id, computeZapasStav(z, ctvrtiny)])),
   );
   const liveCount = $derived(
     filteredZapasy.filter((z) => z.status === 'rozehrany').length,
@@ -307,6 +320,15 @@
     return `${day}.${m}.${y}`;
   }
 
+  function fmtDatumKratce(d: string): string {
+    const [, m, day] = d.split('-');
+    return `${Number(day)}.${Number(m)}.`;
+  }
+
+  function toggleZapas(id: string) {
+    selectedZapasId = selectedZapasId === id ? null : id;
+  }
+
   function otevriZapas(z: Zapas) {
     liveZapasId = z.id;
   }
@@ -394,19 +416,49 @@
     </div>
 
     <div class="filter-group">
-      <span class="fg-label">Časové okno v Q</span>
+      <span class="fg-label">Zápas</span>
+      <div class="chips chips-zapasy">
+        {#if zapasyProVyber.length === 0}
+          <span class="preset-hint">Žádný zápas pro tento filtr</span>
+        {/if}
+        {#each zapasyProVyber as z (z.id)}
+          {@const stav = stavByZapasId.get(z.id)}
+          {@const live = stav && stav.kind !== 'ukonceny' && stav.kind !== 'preruseny'}
+          <button
+            class="chip chip-zapas"
+            class:on={selectedZapasId === z.id}
+            class:live
+            onclick={() => toggleZapas(z.id)}
+            title={`${fmtDatum(z.datum)} · ${souperByID.get(z.souper_id)?.nazev ?? '?'} (${z.nase_strana === 'home' ? 'doma' : 'venku'})${live ? ' · právě běží' : ''}`}
+          >
+            {#if live}<span class="z-live-dot"></span>{/if}
+            <span class="cz-date">{fmtDatumKratce(z.datum)}</span>
+            <span class="cz-opp">{souperByID.get(z.souper_id)?.nazev ?? '?'}</span>
+            <span class="cz-score">{z.skore_nase}:{z.skore_souper}</span>
+          </button>
+        {/each}
+        {#if selectedZapasId}
+          <button class="chip clear" onclick={() => selectedZapasId = null}>× zrušit výběr (zpět na součet)</button>
+        {/if}
+      </div>
+      <p class="okno-hint">
+        Bez výběru = součet za celou kategorii/soutěž dle filtrů. Vyber jeden zápas (i právě běžící) pro statistiky jen z něj.
+      </p>
+    </div>
+
+    <div class="filter-group">
+      <span class="fg-label">Část čtvrtiny</span>
       <div class="chips">
         <button class="chip" class:on={casoveOkno === 'cela'} onclick={() => casoveOkno = 'cela'}>Celá Q</button>
         <button class="chip" class:on={casoveOkno === 'prvni_pol'} onclick={() => casoveOkno = 'prvni_pol'}>1. polovina Q</button>
         <button class="chip" class:on={casoveOkno === 'druha_pol'} onclick={() => casoveOkno = 'druha_pol'}>2. polovina Q</button>
       </div>
-      {#if oknoAktivni}
-        <p class="okno-hint">
-          Pro Q bez stopek se půlka odhaduje z reálného času (zahrnuje pauzy).
-          Min a +/- jsou v okenním režimu „—".
-          Korekce z matchEnd se do okna nezapočítávají.
-        </p>
-      {/if}
+      <p class="okno-hint">
+        Počítat statistiky jen z první nebo druhé poloviny každé čtvrtiny (podle stopek) - např. jak hrajeme na začátku vs. na konci čtvrtin. „Celá Q" = celá čtvrtina (běžné nastavení).
+        {#if oknoAktivni}
+          <br>Pro Q bez stopek se půlka odhaduje z reálného času (zahrnuje pauzy). Min a +/- jsou v tomto režimu „—". Korekce skóre po zápase se nezapočítávají.
+        {/if}
+      </p>
     </div>
 
     {#if tab === 'hraci'}
@@ -739,6 +791,23 @@
   .chip-num {
     font-family: "Consolas", monospace;
     opacity: 0.85;
+  }
+  .chip-zapas {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .chip-zapas .cz-date { font-family: "Consolas", monospace; opacity: 0.8; }
+  .chip-zapas .cz-opp { font-weight: 700; }
+  .chip-zapas .cz-score { font-family: "Consolas", monospace; opacity: 0.85; }
+  .chip-zapas.live { border-color: #fdba74; }
+  .chip-zapas.live.on { border-color: var(--accent); }
+  .z-live-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #ea580c;
+    flex-shrink: 0;
   }
 
   .tabs {

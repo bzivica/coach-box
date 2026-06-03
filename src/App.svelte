@@ -96,7 +96,7 @@
         </a>
         <div class="brand-text">
           <h1><a class="club-link" href={KLUB_URL} target="_blank" rel="noopener noreferrer" title="Oficiální web klubu Jižní Supi (otevře se v nové záložce)">Jižní Supi</a> <span class="brand-sep">—</span> <span class="app-name">Coach Box</span></h1>
-          <span class="version">v0.0.33</span>
+          <span class="version">v0.0.34</span>
         </div>
       </div>
       <button class="theme-toggle" onclick={toggleTheme} title={theme === 'light' ? 'Přepnout na tmavé téma' : 'Přepnout na světlé téma'}>

@@ -40,6 +40,8 @@
     timeoutyCelkem,
     jeFouledOut,
     MAX_FAULU,
+    BONUS_FAULY_CTVRTINA,
+    tymoveFaulyVCtvrtine,
     type BoxStat,
   } from '../lib/live';
   import Avatar from '../components/Avatar.svelte';
@@ -395,6 +397,10 @@
   const oppFaulyPerCisloMap = $derived(oppFaulyPerCislo(udalosti));
   const pocetCtvrtin = $derived(zapas?.pocet_ctvrtin ?? DEFAULT_POCET_CTVRTIN);
 
+  const faulyQ = $derived(tymoveFaulyVCtvrtine(udalosti, aktualniCtvrtinaCislo));
+  const naseVBonusu = $derived(faulyQ.nase >= BONUS_FAULY_CTVRTINA);
+  const souperVBonusu = $derived(faulyQ.souper >= BONUS_FAULY_CTVRTINA);
+
   const opponentRoster = $derived.by(() => {
     const all = souper?.hraci_soupere ?? [];
     const seen = new Map<number, typeof all[number]>();
@@ -484,6 +490,7 @@
 
   let prirazovaniOpen = $state(false);
   let vyvojGrafLiveOpen = $state(false);
+  let statsPanelOpen = $state(true);
 
   const REASSIGN_TYPY: readonly UdalostTyp[] = [
     'shot_2_made', 'shot_3_made', 'ft_made',
@@ -1781,6 +1788,30 @@
       <span class="them-score">{skore.souper}</span>
     </div>
 
+    {#if mode === 'inProgress'}
+      <div class="team-fouls-bar">
+        <span
+          class="tf-side us"
+          class:bonus={naseVBonusu}
+          title={`Týmové fauly MY v ${fmtQ(aktualniCtvrtinaCislo)}${naseVBonusu ? ' — soupeř střílí trestné (bonus)' : ''}`}
+        >
+          <span class="tf-label">Fauly MY</span>
+          <span class="tf-count">{faulyQ.nase}</span>
+          {#if naseVBonusu}<span class="tf-bonus">BONUS</span>{/if}
+        </span>
+        <span class="tf-q">{fmtQ(aktualniCtvrtinaCislo)}</span>
+        <span
+          class="tf-side them"
+          class:bonus={souperVBonusu}
+          title={`Týmové fauly SOUPEŘ v ${fmtQ(aktualniCtvrtinaCislo)}${souperVBonusu ? ' — my střílíme trestné (bonus)' : ''}`}
+        >
+          {#if souperVBonusu}<span class="tf-bonus">BONUS</span>{/if}
+          <span class="tf-count">{faulyQ.souper}</span>
+          <span class="tf-label">Fauly SOUPEŘ</span>
+        </span>
+      </div>
+    {/if}
+
     {#if skorePoCtvrtinach.length > 0}
       <div class="quarter-scores">
         {#each skorePoCtvrtinach as qs}
@@ -1790,6 +1821,139 @@
           </div>
         {/each}
       </div>
+    {/if}
+
+    {#snippet boxscorePanel()}
+      <section class="boxscore">
+        <header class="bs-head">
+          <h3>Boxscore — My ({kategorieLabel(zapas.nase_kategorie)})</h3>
+          <span class="bs-hint">{periodKlokPouzit ? 'Stopky aktivní' : 'Stopky nebyly použité — minuty se nepočítají'}</span>
+        </header>
+        <div class="period-tabs">
+          <button
+            class="period-tab"
+            class:active={selectedPeriod === 'total'}
+            onclick={() => (selectedPeriod = 'total')}
+          >Celkem</button>
+          {#each dostupneCtvrtiny as q (q)}
+            <button
+              class="period-tab"
+              class:active={selectedPeriod === q}
+              onclick={() => (selectedPeriod = q)}
+            >{fmtQ(q)}</button>
+          {/each}
+        </div>
+        <div class="bs-scroll">
+          <table class="bs-table">
+            <thead>
+              <tr>
+                <th class="th-sticky" colspan="2">Hráč</th>
+                <th title="Minuty na hřišti">Min</th>
+                <th title="Body">PTS</th>
+                <th title="2 body daný/pokus">2P</th>
+                <th title="3 body daný/pokus">3P</th>
+                <th title="Trestné daný/pokus">FT</th>
+                <th title="Doskok útočný">OFF</th>
+                <th title="Doskok obranný">DEF</th>
+                <th title="Doskoky celkem (OFF+DEF)">REB</th>
+                <th title="Asistence">AST</th>
+                <th title="Zisky / steals">STL</th>
+                <th title="Ztráty / turnovers">TO</th>
+                <th title="Bloky">BLK</th>
+                <th title="Osobní fauly — celkem za zápas (cesta k vyloučení = 5)">PF</th>
+                <th title="Plus/minus">+/-</th>
+                <th title="Efficiency = PTS + REB + AST + STL + BLK − miss − TO">EFF</th>
+              </tr>
+            </thead>
+            <tbody>
+              {#each hraciSerazeni as h (h.id)}
+                {@const s = statHrace(h.id)}
+                {@const fo = jeFouledOut(udalosti, h.id)}
+                {@const faulyCelkem = pocetFaulu(udalosti, h.id)}
+                <tr class:foulout={fo}>
+                  <td class="td-num">{h.cislo_dresu ?? '?'}</td>
+                  <td class="td-name">
+                    <span class="bs-name">{h.prijmeni} {h.jmeno}</span>
+                    {#if fo}<span class="bs-tag-fo">FO</span>{/if}
+                  </td>
+                  <td class="td-mono">{periodKlokPouzit ? formatMinSec(s.minuty_ms) : '—'}</td>
+                  <td class="td-mono td-pts">{s.body}</td>
+                  <td class="td-mono">{s.dany_2}/{s.pokusy_2}</td>
+                  <td class="td-mono">{s.dany_3}/{s.pokusy_3}</td>
+                  <td class="td-mono">{s.dany_th}/{s.pokusy_th}</td>
+                  <td class="td-mono">{s.doskoky_off}</td>
+                  <td class="td-mono">{s.doskoky_def}</td>
+                  <td class="td-mono">{s.doskoky_off + s.doskoky_def}</td>
+                  <td class="td-mono">{s.asistence}</td>
+                  <td class="td-mono">{s.zisky}</td>
+                  <td class="td-mono">{s.ztraty}</td>
+                  <td class="td-mono">{s.bloky}</td>
+                  <td
+                    class="td-mono td-pf"
+                    class:pf-high={faulyCelkem >= MAX_FAULU - 1}
+                    title={selectedPeriod === 'total' ? 'Osobní fauly celkem za zápas' : `Celkem za zápas (v ${fmtQ(selectedPeriod)}: ${s.fauly})`}
+                  >{faulyCelkem}</td>
+                  <td class="td-mono td-pm" class:pm-plus={s.plus_minus > 0} class:pm-minus={s.plus_minus < 0}>{formatPlusMinus(s.plus_minus)}</td>
+                  <td class="td-mono td-eff">{s.efficiency}</td>
+                </tr>
+              {/each}
+              {#if periodTeamUnattributed.body > 0 || periodTeamUnattributed.ztraty > 0}
+                <tr class="row-bez-hrace">
+                  <td colspan="2" class="td-name td-bezhrace">Bez hráče</td>
+                  <td class="td-mono">—</td>
+                  <td class="td-mono td-pts">{periodTeamUnattributed.body}</td>
+                  <td class="td-mono" title="2-bodové koše bez hráče">{periodTeamUnattributed.body_2}</td>
+                  <td class="td-mono" title="3-bodové koše bez hráče">{periodTeamUnattributed.body_3}</td>
+                  <td class="td-mono" title="Trestné body bez hráče">{periodTeamUnattributed.body_th}</td>
+                  <td class="td-mono">—</td>
+                  <td class="td-mono">—</td>
+                  <td class="td-mono">—</td>
+                  <td class="td-mono">—</td>
+                  <td class="td-mono">—</td>
+                  <td class="td-mono" title="Týmové ztráty bez hráče">{periodTeamUnattributed.ztraty || '—'}</td>
+                  <td class="td-mono">—</td>
+                  <td class="td-mono">—</td>
+                  <td class="td-mono">—</td>
+                  <td class="td-mono">—</td>
+                </tr>
+              {/if}
+              <tr class="row-total">
+                <td colspan="2" class="td-name">TÝM</td>
+                <td class="td-mono">{periodKlokPouzit ? formatMinSec(periodTeamTotals.minuty_ms) : '—'}</td>
+                <td class="td-mono td-pts">{periodTeamTotals.body + periodTeamUnattributed.body}</td>
+                <td class="td-mono">{periodTeamTotals.dany_2}/{periodTeamTotals.pokusy_2}</td>
+                <td class="td-mono">{periodTeamTotals.dany_3}/{periodTeamTotals.pokusy_3}</td>
+                <td class="td-mono">{periodTeamTotals.dany_th}/{periodTeamTotals.pokusy_th}</td>
+                <td class="td-mono">{periodTeamTotals.doskoky_off}</td>
+                <td class="td-mono">{periodTeamTotals.doskoky_def}</td>
+                <td class="td-mono">{periodTeamTotals.doskoky_off + periodTeamTotals.doskoky_def}</td>
+                <td class="td-mono">{periodTeamTotals.asistence}</td>
+                <td class="td-mono">{periodTeamTotals.zisky}</td>
+                <td class="td-mono">{periodTeamTotals.ztraty + periodTeamUnattributed.ztraty}</td>
+                <td class="td-mono">{periodTeamTotals.bloky}</td>
+                <td class="td-mono">{periodTeamTotals.fauly}</td>
+                <td class="td-mono">—</td>
+                <td class="td-mono td-eff">{periodTeamTotals.efficiency}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    {/snippet}
+
+    {#snippet statsPanelBox()}
+      <section class="stats-panel">
+        <button class="stats-toggle" onclick={() => (statsPanelOpen = !statsPanelOpen)} title="Statistiky tohoto zápasu (box score po hráčích a týmu)">
+          📊 Statistiky zápasu — box score <span class="sp-arrow">{statsPanelOpen ? '▲' : '▼'}</span>
+        </button>
+        {#if statsPanelOpen}
+          {@render boxscorePanel()}
+        {/if}
+      </section>
+    {/snippet}
+
+    {#if mode !== 'loading' && mode !== 'inProgress'}
+      {@render statsPanelBox()}
     {/if}
 
     {#if mode === 'pickLineup'}
@@ -2006,7 +2170,7 @@
                   <div class="pc-num">#{h.cislo_dresu ?? '?'}</div>
                   <div class="pc-name">{h.prijmeni}</div>
                 </div>
-                {#if fauly > 0}<div class="pc-fauly">F{fauly}</div>{/if}
+                {#if fauly > 0}<div class="pc-fauly" class:fauly-high={fauly >= MAX_FAULU - 1}>{fauly}<span class="pcf-f">F</span></div>{/if}
                 {#if activeGesture?.playerId === h.id && activeGesture.mode === 'swipe'}
                   <div class="swipe-hud" aria-hidden="true">
                     <span class="swipe-dir swipe-up" class:active={swipeActiveDir === 'shot_2_made'}>✓2</span>
@@ -2178,6 +2342,8 @@
         </section>
       {/if}
 
+      {@render statsPanelBox()}
+
       <footer class="foot">
         <button class="primary" onclick={endQuarter}>Konec {fmtQ(aktualniCtvrtinaCislo)}</button>
         <div class="spacer"></div>
@@ -2252,117 +2418,6 @@
               </div>
             </div>
           {/each}
-        </div>
-      </section>
-
-      <section class="boxscore">
-        <header class="bs-head">
-          <h3>Boxscore — My ({kategorieLabel(zapas.nase_kategorie)})</h3>
-          <span class="bs-hint">{periodKlokPouzit ? 'Stopky aktivní' : 'Stopky nebyly použité — minuty se nepočítají'}</span>
-        </header>
-        <div class="period-tabs">
-          <button
-            class="period-tab"
-            class:active={selectedPeriod === 'total'}
-            onclick={() => (selectedPeriod = 'total')}
-          >Celkem</button>
-          {#each dostupneCtvrtiny as q (q)}
-            <button
-              class="period-tab"
-              class:active={selectedPeriod === q}
-              onclick={() => (selectedPeriod = q)}
-            >{fmtQ(q)}</button>
-          {/each}
-        </div>
-        <div class="bs-scroll">
-          <table class="bs-table">
-            <thead>
-              <tr>
-                <th class="th-sticky" colspan="2">Hráč</th>
-                <th title="Minuty na hřišti">Min</th>
-                <th title="Body">PTS</th>
-                <th title="2 body daný/pokus">2P</th>
-                <th title="3 body daný/pokus">3P</th>
-                <th title="Trestné daný/pokus">FT</th>
-                <th title="Doskok útočný">OFF</th>
-                <th title="Doskok obranný">DEF</th>
-                <th title="Doskoky celkem (OFF+DEF)">REB</th>
-                <th title="Asistence">AST</th>
-                <th title="Zisky / steals">STL</th>
-                <th title="Ztráty / turnovers">TO</th>
-                <th title="Bloky">BLK</th>
-                <th title="Osobní fauly">PF</th>
-                <th title="Plus/minus">+/-</th>
-                <th title="Efficiency = PTS + REB + AST + STL + BLK − miss − TO">EFF</th>
-              </tr>
-            </thead>
-            <tbody>
-              {#each hraciSerazeni as h (h.id)}
-                {@const s = statHrace(h.id)}
-                {@const fo = jeFouledOut(udalosti, h.id)}
-                <tr class:foulout={fo}>
-                  <td class="td-num">{h.cislo_dresu ?? '?'}</td>
-                  <td class="td-name">
-                    <span class="bs-name">{h.prijmeni} {h.jmeno}</span>
-                    {#if fo}<span class="bs-tag-fo">FO</span>{/if}
-                  </td>
-                  <td class="td-mono">{periodKlokPouzit ? formatMinSec(s.minuty_ms) : '—'}</td>
-                  <td class="td-mono td-pts">{s.body}</td>
-                  <td class="td-mono">{s.dany_2}/{s.pokusy_2}</td>
-                  <td class="td-mono">{s.dany_3}/{s.pokusy_3}</td>
-                  <td class="td-mono">{s.dany_th}/{s.pokusy_th}</td>
-                  <td class="td-mono">{s.doskoky_off}</td>
-                  <td class="td-mono">{s.doskoky_def}</td>
-                  <td class="td-mono">{s.doskoky_off + s.doskoky_def}</td>
-                  <td class="td-mono">{s.asistence}</td>
-                  <td class="td-mono">{s.zisky}</td>
-                  <td class="td-mono">{s.ztraty}</td>
-                  <td class="td-mono">{s.bloky}</td>
-                  <td class="td-mono">{s.fauly}</td>
-                  <td class="td-mono td-pm" class:pm-plus={s.plus_minus > 0} class:pm-minus={s.plus_minus < 0}>{formatPlusMinus(s.plus_minus)}</td>
-                  <td class="td-mono td-eff">{s.efficiency}</td>
-                </tr>
-              {/each}
-              {#if periodTeamUnattributed.body > 0 || periodTeamUnattributed.ztraty > 0}
-                <tr class="row-bez-hrace">
-                  <td colspan="2" class="td-name td-bezhrace">Bez hráče</td>
-                  <td class="td-mono">—</td>
-                  <td class="td-mono td-pts">{periodTeamUnattributed.body}</td>
-                  <td class="td-mono" title="2-bodové koše bez hráče">{periodTeamUnattributed.body_2}</td>
-                  <td class="td-mono" title="3-bodové koše bez hráče">{periodTeamUnattributed.body_3}</td>
-                  <td class="td-mono" title="Trestné body bez hráče">{periodTeamUnattributed.body_th}</td>
-                  <td class="td-mono">—</td>
-                  <td class="td-mono">—</td>
-                  <td class="td-mono">—</td>
-                  <td class="td-mono">—</td>
-                  <td class="td-mono">—</td>
-                  <td class="td-mono" title="Týmové ztráty bez hráče">{periodTeamUnattributed.ztraty || '—'}</td>
-                  <td class="td-mono">—</td>
-                  <td class="td-mono">—</td>
-                  <td class="td-mono">—</td>
-                  <td class="td-mono">—</td>
-                </tr>
-              {/if}
-              <tr class="row-total">
-                <td colspan="2" class="td-name">TÝM</td>
-                <td class="td-mono">{periodKlokPouzit ? formatMinSec(periodTeamTotals.minuty_ms) : '—'}</td>
-                <td class="td-mono td-pts">{periodTeamTotals.body + periodTeamUnattributed.body}</td>
-                <td class="td-mono">{periodTeamTotals.dany_2}/{periodTeamTotals.pokusy_2}</td>
-                <td class="td-mono">{periodTeamTotals.dany_3}/{periodTeamTotals.pokusy_3}</td>
-                <td class="td-mono">{periodTeamTotals.dany_th}/{periodTeamTotals.pokusy_th}</td>
-                <td class="td-mono">{periodTeamTotals.doskoky_off}</td>
-                <td class="td-mono">{periodTeamTotals.doskoky_def}</td>
-                <td class="td-mono">{periodTeamTotals.doskoky_off + periodTeamTotals.doskoky_def}</td>
-                <td class="td-mono">{periodTeamTotals.asistence}</td>
-                <td class="td-mono">{periodTeamTotals.zisky}</td>
-                <td class="td-mono">{periodTeamTotals.ztraty + periodTeamUnattributed.ztraty}</td>
-                <td class="td-mono">{periodTeamTotals.bloky}</td>
-                <td class="td-mono">{periodTeamTotals.fauly}</td>
-                <td class="td-mono">—</td>
-                <td class="td-mono td-eff">{periodTeamTotals.efficiency}</td>
-              </tr>
-            </tbody>
-          </table>
         </div>
       </section>
 
@@ -2514,9 +2569,11 @@
               <div class="sub-list">
                 {#each naHristi as h (h.id)}
                   {@const idx = subOuts.indexOf(h.id)}
+                  {@const fauly = pocetFauluZobr(h.id)}
                   <button class="sub-card" class:selected={idx >= 0} onclick={() => toggleSubOut(h.id)}>
                     <Avatar foto={h.foto} cislo={h.cislo_dresu} size={SUB_AVATAR_SIZE} alt={`${h.jmeno} ${h.prijmeni}`} tmavy={zapas?.nase_strana === 'away'} />
                     <span class="name">#{h.cislo_dresu ?? '?'} {h.prijmeni}</span>
+                    <span class="sub-fauly" class:fauly-high={fauly >= MAX_FAULU - 1}>{fauly}F</span>
                     {#if idx >= 0}<span class="sub-order">{idx + 1}</span>{/if}
                   </button>
                 {/each}
@@ -2528,6 +2585,7 @@
                 {#each lavicka as h (h.id)}
                   {@const fouledOut = jeFouledOut(udalosti, h.id)}
                   {@const idx = subIns.indexOf(h.id)}
+                  {@const fauly = pocetFauluZobr(h.id)}
                   <button
                     class="sub-card"
                     class:selected={idx >= 0}
@@ -2537,6 +2595,7 @@
                   >
                     <Avatar foto={h.foto} cislo={h.cislo_dresu} size={SUB_AVATAR_SIZE} alt={`${h.jmeno} ${h.prijmeni}`} tmavy={zapas?.nase_strana === 'away'} />
                     <span class="name">#{h.cislo_dresu ?? '?'} {h.prijmeni}</span>
+                    {#if !fouledOut}<span class="sub-fauly" class:fauly-high={fauly >= MAX_FAULU - 1}>{fauly}F</span>{/if}
                     {#if idx >= 0}<span class="sub-order">{idx + 1}</span>{/if}
                     {#if fouledOut}<span class="fouled-tag">VYLOUČEN</span>{/if}
                   </button>
@@ -2933,6 +2992,64 @@
   .score-bar .them-score { color: var(--them-color); font-size: 34px; font-weight: 800; font-family: "Consolas", monospace; }
   .score-bar .sep { color: var(--text-muted); font-size: 26px; }
 
+  .team-fouls-bar {
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    gap: 8px;
+    margin: -2px 0 8px;
+  }
+  .tf-side {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-muted);
+  }
+  .tf-side.us { border-left: 4px solid var(--us-color); }
+  .tf-side.them { border-right: 4px solid var(--them-color); }
+  .tf-label { text-transform: uppercase; letter-spacing: 0.5px; }
+  .tf-count {
+    font-family: "Consolas", monospace;
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--text);
+    min-width: 18px;
+    text-align: center;
+  }
+  .tf-side.bonus {
+    background: var(--danger-bg, #fee2e2);
+    border-color: var(--danger);
+    color: var(--danger);
+  }
+  .tf-side.bonus .tf-count { color: var(--danger); }
+  .tf-bonus {
+    background: var(--danger);
+    color: var(--accent-fg);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    padding: 2px 6px;
+    border-radius: 999px;
+  }
+  .tf-q {
+    align-self: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    padding: 0 2px;
+  }
+  @media (max-width: 700px) {
+    .team-fouls-bar { gap: 6px; margin: 4px 0; }
+    .tf-side { padding: 3px 8px; font-size: 11px; }
+    .tf-count { font-size: 15px; }
+  }
+
   .undo-hint {
     flex-basis: 100%;
     width: 100%;
@@ -2997,7 +3114,7 @@
 
   .live {
     display: grid;
-    grid-template-columns: minmax(0, 1.1fr) 260px minmax(0, 1fr);
+    grid-template-columns: minmax(0, 0.8fr) 260px minmax(0, 1.05fr);
     gap: 12px;
     flex: 1;
   }
@@ -3112,10 +3229,25 @@
   .pc-fauly {
     position: absolute;
     top: 4px;
-    right: 8px;
+    right: 6px;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 1px;
+    background: var(--warn-bg, var(--surface-hover));
     color: var(--warn);
-    font-size: 11px;
-    font-weight: 700;
+    border: 1.5px solid var(--warn);
+    border-radius: 999px;
+    padding: 1px 8px;
+    font-family: "Consolas", monospace;
+    font-size: 17px;
+    font-weight: 800;
+    line-height: 1.2;
+  }
+  .pc-fauly .pcf-f { font-size: 11px; font-weight: 700; opacity: 0.85; }
+  .pc-fauly.fauly-high {
+    background: var(--danger);
+    color: var(--accent-fg);
+    border-color: var(--danger);
   }
   .pc-sub-btn {
     margin-top: 6px;
@@ -3255,10 +3387,10 @@
     border: 1px solid var(--border);
     color: var(--text);
     border-radius: 6px;
-    padding: 14px 14px;
+    padding: 10px 10px;
     cursor: pointer;
     font-family: inherit;
-    font-size: 15px;
+    font-size: 13.5px;
     font-weight: 600;
     text-align: left;
     transition: all 0.1s ease;
@@ -3824,6 +3956,23 @@
     color: var(--danger);
     font-weight: 700;
   }
+  .sub-card .sub-fauly {
+    font-family: "Consolas", monospace;
+    font-size: 14px;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--warn);
+    background: var(--warn-bg, var(--surface-hover));
+    border: 1.5px solid var(--warn);
+    border-radius: 999px;
+    padding: 1px 7px;
+  }
+  .sub-card .sub-fauly.fauly-high {
+    color: var(--accent-fg);
+    background: var(--danger);
+    border-color: var(--danger);
+  }
+  .sub-card.selected .sub-fauly { background: var(--surface); }
   .sub-card:hover:not(:disabled) { background: var(--surface-hover); }
   .sub-modal .modal-buttons {
     margin-top: 10px;
@@ -4183,6 +4332,7 @@
   .td-pts { font-weight: 700; color: var(--accent); }
   .td-pm.pm-plus { color: var(--success); font-weight: 700; }
   .td-pm.pm-minus { color: var(--danger); font-weight: 700; }
+  .td-pf.pf-high { color: var(--danger); font-weight: 800; }
   .td-eff { font-weight: 700; }
   .row-total td {
     background: var(--surface-2);
@@ -4267,6 +4417,38 @@
   .vsl-toggle:hover { background: var(--surface-hover); }
   .vsl-arrow { color: var(--text-muted); font-size: 12px; }
   .vsl-body { padding: 0 16px 14px; }
+
+  .stats-panel {
+    margin: 8px 0;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .stats-toggle {
+    width: 100%;
+    text-align: left;
+    background: var(--surface-2);
+    border: none;
+    border-bottom: 1px solid var(--border);
+    color: var(--accent);
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 700;
+    padding: 12px 16px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .stats-toggle:hover { background: var(--surface-hover); }
+  .stats-panel .sp-arrow { color: var(--text-muted); font-size: 12px; }
+  .stats-panel .boxscore {
+    box-shadow: none;
+    border: none;
+    border-radius: 0;
+  }
   .prirazeni-hint { font-size: 13px; color: var(--text-muted); line-height: 1.5; margin-bottom: 12px; }
   .prirazeni-hint strong { color: var(--text); }
   .prirazeni-empty { font-size: 13px; color: var(--text-muted); font-style: italic; }

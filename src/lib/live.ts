@@ -551,6 +551,24 @@ export function poruseniLimitu(
 
 export const MAX_FAULU = 5;
 
+export const BONUS_FAULY_CTVRTINA = 5;
+
+export interface FaulyVCtvrtine {
+  nase: number;
+  souper: number;
+}
+
+export function tymoveFaulyVCtvrtine(udalosti: Udalost[], ctvrtinaCislo: number): FaulyVCtvrtine {
+  let nase = 0;
+  let souper = 0;
+  for (const u of udalosti) {
+    if (u.ctvrtina_cislo !== ctvrtinaCislo) continue;
+    if (u.typ === 'foul' || u.typ === 'foul_technical_bench') nase++;
+    else if (u.typ === 'opp_foul') souper++;
+  }
+  return { nase, souper };
+}
+
 export type TimeoutObdobi = '1H' | '2H' | `OT${number}`;
 
 export function timeoutoveObdobi(ctvrtinaCislo: number, pocetCtvrtin: number): TimeoutObdobi {
