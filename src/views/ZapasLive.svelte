@@ -98,7 +98,6 @@
   let editRosterChyba = $state<string | null>(null);
 
   let foulSubtypePicker = $state<{ playerId: string } | null>(null);
-  let oppFoulPicker = $state<FoulSubtyp | null>(null);
 
   let oppRosterEditOpen = $state(false);
   let oppRosterDraft = $state<SouperHrac[]>([]);
@@ -844,15 +843,8 @@
   }
 
   function openOppFoul(subtyp: FoulSubtyp) {
-    if (subtyp === 'technical') {
-      void recordOppFoul(undefined, 'technical');
-      return;
-    }
-    if (selectedOppCislo !== null) {
-      void recordOppFoul(selectedOppCislo, subtyp);
-      return;
-    }
-    oppFoulPicker = subtyp;
+    const cislo = subtyp === 'technical' ? undefined : (selectedOppCislo ?? undefined);
+    void recordOppFoul(cislo, subtyp);
   }
 
   function togglePickOpp(cislo: number) {
@@ -869,7 +861,6 @@
   }
 
   async function recordOppFoul(cislo: number | undefined, subtyp: FoulSubtyp = 'personal') {
-    oppFoulPicker = null;
     if (!zapas) return;
     const ev: Udalost = {
       id: newId(),
@@ -1795,9 +1786,9 @@
         <span class="sb-q">{fmtQ(aktualniCtvrtinaCislo)}{jeOT(aktualniCtvrtinaCislo) ? ' • prodl.' : ''}</span>
         <span class="sb-role sb-role-r" class:us={!naseDoma}>Hosté</span>
 
-        <span class="sb-score" class:us={naseDoma}>{homeScore}</span>
+        <span class="sb-score sb-score-l" class:us={naseDoma}>{homeScore}</span>
         <span class="sb-colon">:</span>
-        <span class="sb-score" class:us={!naseDoma}>{awayScore}</span>
+        <span class="sb-score sb-score-r" class:us={!naseDoma}>{awayScore}</span>
 
         {#if mode === 'inProgress'}
           <span
@@ -2220,8 +2211,8 @@
             <button class="opp" onclick={() => recordOpponent('opp_pts_2')}>+2 body</button>
             <button class="opp" onclick={() => recordOpponent('opp_pts_3')}>+3 body</button>
             <button class="opp" onclick={() => recordOpponent('opp_pts_1')}>+1 trestný</button>
-            <button class="opp" onclick={() => openOppFoul('personal')}>+1 faul…</button>
-            <button class="opp" onclick={() => openOppFoul('unsportsmanlike')}>Nesport.…</button>
+            <button class="opp" onclick={() => openOppFoul('personal')} title="Osobní faul soupeře. Když máš vybrané číslo hráče, přiřadí se mu; jinak se zapíše jako týmový faul bez čísla.">+1 faul</button>
+            <button class="opp" onclick={() => openOppFoul('unsportsmanlike')} title="Nesportovní faul soupeře (přiřadí vybranému číslu, jinak bez čísla).">Nesport.</button>
             <button class="opp" onclick={() => openOppFoul('technical')} title="Technická chyba (i trenér/lavička) — zapíše se bez čísla">Technická</button>
             <button class="opp" onclick={() => recordOpponent('opp_reb_off')}>+ dosk útoč.</button>
             <button class="opp" onclick={() => recordOpponent('opp_reb_def')}>+ dosk obr.</button>
@@ -2761,32 +2752,6 @@
       </div>
     {/if}
 
-    {#if oppFoulPicker && souper}
-      <div class="modal-bg" onclick={() => (oppFoulPicker = null)} role="presentation">
-        <div class="modal opp-foul-modal" onclick={(e) => e.stopPropagation()} role="presentation">
-          <h2>Faul soupeře ({foulSubtypLabel(oppFoulPicker)}) — {souper.nazev}</h2>
-          {#if souper.hraci_soupere && souper.hraci_soupere.length > 0}
-            <p class="roster-hint">Vyber číslo hráče soupeře:</p>
-            <div class="opp-numbers-grid">
-              {#each souper.hraci_soupere.slice().sort((a, b) => a.cislo - b.cislo) as oh (oh.cislo)}
-                {@const aktualni = oppFaulyPerCisloMap.get(oh.cislo) ?? 0}
-                <button class="opp-num-btn" onclick={() => recordOppFoul(oh.cislo, oppFoulPicker ?? 'personal')} title={`${oh.jmeno ?? ''} ${oh.prijmeni ?? ''}`.trim() || `#${oh.cislo}`}>
-                  <span class="opp-num">#{oh.cislo}</span>
-                  {#if oh.prijmeni}<span class="opp-pr">{oh.prijmeni}</span>{/if}
-                  {#if aktualni > 0}<span class="opp-fa">F{aktualni}</span>{/if}
-                </button>
-              {/each}
-            </div>
-          {:else}
-            <p class="roster-hint">Soupiska soupeře není vyplněna.</p>
-          {/if}
-          <div class="modal-buttons">
-            <button onclick={() => recordOppFoul(undefined, oppFoulPicker ?? 'personal')}>Bez určení čísla</button>
-            <button onclick={() => (oppFoulPicker = null)}>Zrušit</button>
-          </div>
-        </div>
-      </div>
-    {/if}
 
     {#if oppRosterEditOpen && souper}
       <div class="modal-bg" onclick={() => (oppRosterEditOpen = false)} role="presentation">
@@ -2980,12 +2945,19 @@
   }
   .sb-cluster {
     display: inline-grid;
-    grid-template-columns: auto auto auto;
+    grid-template-columns: 1fr auto 1fr;
     justify-items: center;
     align-items: center;
     column-gap: 10px;
     row-gap: 2px;
+    min-width: 220px;
   }
+  .sb-cluster .sb-role-l,
+  .sb-cluster .sb-score-l,
+  .sb-cluster .sbf-home { justify-self: end; }
+  .sb-cluster .sb-role-r,
+  .sb-cluster .sb-score-r,
+  .sb-cluster .sbf-away { justify-self: start; }
   .score-bar .sb-role {
     font-size: 11px;
     font-weight: 700;
