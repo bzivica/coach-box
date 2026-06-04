@@ -136,13 +136,21 @@
 
   const vedeniHome = $derived(naseDoma ? vedeni.nase : vedeni.souper);
   const vedeniAway = $derived(naseDoma ? vedeni.souper : vedeni.nase);
+
+  // Logo Jižních Supů - zobrazí se u našeho týmu (domácí logo když jsme doma, jinak u hostů).
+  const LOGO_SUPI = `${import.meta.env.BASE_URL}logo-jizni-supi.png`;
+  const homeJeSupi = $derived(homeJsmeMy);
+  const awayJeSupi = $derived(!homeJsmeMy);
 </script>
 
 <div class="prehled-overlay" role="dialog" aria-modal="true">
   <div class="prehled">
     <header class="ph-head">
       <div class="ph-team ph-home" class:us={homeJsmeMy}>
-        <span class="ph-team-name">{homeNazev}</span>
+        <div class="ph-team-line">
+          {#if homeJeSupi}<img class="ph-logo" src={LOGO_SUPI} alt="Jižní Supi" />{/if}
+          <span class="ph-team-name">{homeNazev}</span>
+        </div>
         <span class="ph-team-tag">Domácí</span>
       </div>
       <div class="ph-score">
@@ -151,7 +159,10 @@
         <span class="ph-score-num" class:us={!homeJsmeMy} class:them={homeJsmeMy}>{awayScore}</span>
       </div>
       <div class="ph-team ph-away" class:us={!homeJsmeMy}>
-        <span class="ph-team-name">{awayNazev}</span>
+        <div class="ph-team-line">
+          <span class="ph-team-name">{awayNazev}</span>
+          {#if awayJeSupi}<img class="ph-logo" src={LOGO_SUPI} alt="Jižní Supi" />{/if}
+        </div>
         <span class="ph-team-tag">Hosté</span>
       </div>
     </header>
@@ -195,9 +206,19 @@
       <table class="ph-table">
         <thead>
           <tr>
-            <th class="ph-th-home" class:us={homeJsmeMy}>{homeNazev}</th>
+            <th class="ph-th-home" class:us={homeJsmeMy}>
+              <span class="ph-th-line">
+                {#if homeJeSupi}<img class="ph-logo-sm" src={LOGO_SUPI} alt="Jižní Supi" />{/if}
+                <span>{homeNazev}</span>
+              </span>
+            </th>
             <th class="ph-th-mid"></th>
-            <th class="ph-th-away" class:us={!homeJsmeMy}>{awayNazev}</th>
+            <th class="ph-th-away" class:us={!homeJsmeMy}>
+              <span class="ph-th-line ph-th-line-right">
+                <span>{awayNazev}</span>
+                {#if awayJeSupi}<img class="ph-logo-sm" src={LOGO_SUPI} alt="Jižní Supi" />{/if}
+              </span>
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -257,6 +278,18 @@
   }
   .ph-home { align-items: flex-start; text-align: left; }
   .ph-away { align-items: flex-end; text-align: right; }
+  .ph-team-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .ph-logo {
+    width: 30px;
+    height: 30px;
+    object-fit: contain;
+    flex-shrink: 0;
+    filter: drop-shadow(0 1px 2px rgba(15, 23, 42, 0.25));
+  }
   .ph-team-name {
     font-size: 18px;
     font-weight: 800;
@@ -394,6 +427,18 @@
   .ph-table th.us { color: var(--us-color); }
   .ph-th-home { text-align: left; }
   .ph-th-away { text-align: right; }
+  .ph-th-line {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .ph-th-line-right { justify-content: flex-end; }
+  .ph-logo-sm {
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+    flex-shrink: 0;
+  }
   .ph-table td {
     padding: 7px 8px;
     border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
