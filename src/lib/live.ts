@@ -154,7 +154,7 @@ function buildOnCourtIntervaly(
 
   for (const id of hraciIds) {
     if (!intervaly.some((iv) => iv.hrac_id === id)) {
-      // hráč nikdy nebyl na hřišti — nic
+      // hráč nikdy nebyl na hřišti - nic
     }
   }
 
@@ -464,7 +464,7 @@ export function maxVedeni(udalosti: Udalost[]): { nase: number; souper: number }
   return { nase, souper };
 }
 
-// Týmový souhrn střelby NAŠEHO týmu přímo z událostí (bez minut) — pro přehledový panel.
+// Týmový souhrn střelby NAŠEHO týmu přímo z událostí (bez minut) - pro přehledový panel.
 export interface TeamSummary {
   body: number;
   dany_2: number;
@@ -511,7 +511,7 @@ export function computeTeamSummary(udalosti: Udalost[]): TeamSummary {
   return t;
 }
 
-// Procento úspěšnosti střelby; null když žádné pokusy (zobrazí se jako „—").
+// Procento úspěšnosti střelby; null když žádné pokusy (zobrazí se jako „-").
 export function strelbaProcento(dany: number, pokusy: number): number | null {
   if (pokusy <= 0) return null;
   return Math.round((dany / pokusy) * 100);
@@ -899,7 +899,7 @@ export function computeZapasStav(zapas: Zapas, ctvrtinyProZapas: Ctvrtina[]): Za
 
   return {
     kind: 'mezi_q',
-    label: `MEZI ${formatCtvrtina(predchozi, pocet)}–${formatCtvrtina(dalsi, pocet)}`,
+    label: `MEZI ${formatCtvrtina(predchozi, pocet)}-${formatCtvrtina(dalsi, pocet)}`,
     predchoziQ: predchozi,
   };
 }

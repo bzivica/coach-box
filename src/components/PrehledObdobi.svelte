@@ -107,10 +107,10 @@
       { label: '3 body', nas: fmtStrelbaNas(n.dany_3, n.pokusy_3), opp: `${o.body_3 / 3} košů` },
       { label: 'Trestné', nas: fmtStrelbaNas(n.dany_th, n.pokusy_th), opp: `${o.body_th} košů` },
       { label: 'Doskoky', nas: String(n.doskoky_off + n.doskoky_def), opp: String(o.doskoky_off + o.doskoky_def + o.doskoky_neznamy) },
-      { label: 'Asistence', nas: String(n.asistence), opp: '—' },
-      { label: 'Zisky', nas: String(n.zisky), opp: '—' },
+      { label: 'Asistence', nas: String(n.asistence), opp: '-' },
+      { label: 'Zisky', nas: String(n.zisky), opp: '-' },
       { label: 'Ztráty', nas: String(n.ztraty), opp: String(o.ztraty) },
-      { label: 'Bloky', nas: String(n.bloky), opp: '—' },
+      { label: 'Bloky', nas: String(n.bloky), opp: '-' },
       { label: 'Fauly', nas: String(n.fauly), opp: String(o.fauly) },
     ];
   });
@@ -179,7 +179,7 @@
 
     <div class="ph-stats">
       <div class="ph-stats-title">
-        Statistiky — {aktivni?.label ?? 'Celý zápas'}
+        Statistiky - {aktivni?.label ?? 'Celý zápas'}
       </div>
       <table class="ph-table">
         <thead>

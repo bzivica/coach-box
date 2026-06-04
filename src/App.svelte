@@ -85,17 +85,17 @@
     <div class="update-toast" role="status">
       <span class="update-text">🔄 Nová verze Coach Box je dostupná</span>
       <button class="update-btn" onclick={applyUpdate}>Aktualizovat</button>
-      <button class="update-dismiss" onclick={dismissUpdate} title="Zavřít — verze se nainstaluje při dalším spuštění">✕</button>
+      <button class="update-dismiss" onclick={dismissUpdate} title="Zavřít - verze se nainstaluje při dalším spuštění">✕</button>
     </div>
   {/if}
   <header>
     <div class="brand">
       <div class="brand-title">
-        <a class="club-logo" href={KLUB_URL} target="_blank" rel="noopener noreferrer" title="Jižní Supi — oficiální web klubu (otevře se v nové záložce)">
+        <a class="club-logo" href={KLUB_URL} target="_blank" rel="noopener noreferrer" title="Jižní Supi - oficiální web klubu (otevře se v nové záložce)">
           <img src="{import.meta.env.BASE_URL}logo-jizni-supi.png" alt="Jižní Supi" />
         </a>
         <div class="brand-text">
-          <h1><a class="club-link" href={KLUB_URL} target="_blank" rel="noopener noreferrer" title="Oficiální web klubu Jižní Supi (otevře se v nové záložce)">Jižní Supi</a> <span class="brand-sep">—</span> <span class="app-name">Coach Box</span></h1>
+          <h1><a class="club-link" href={KLUB_URL} target="_blank" rel="noopener noreferrer" title="Oficiální web klubu Jižní Supi (otevře se v nové záložce)">Jižní Supi</a> <span class="brand-sep">-</span> <span class="app-name">Coach Box</span></h1>
           <span class="version">v0.0.41</span>
         </div>
       </div>

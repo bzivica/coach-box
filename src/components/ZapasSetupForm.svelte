@@ -161,7 +161,7 @@
     if (!sezona.trim()) { chyba = 'Sezona je povinná'; return; }
     const delkaParsed = Number(delka_ctvrtiny);
     if (!Number.isFinite(delkaParsed) || delkaParsed < MIN_Q_LENGTH || delkaParsed > MAX_Q_LENGTH) {
-      chyba = `Délka čtvrtiny musí být ${MIN_Q_LENGTH}–${MAX_Q_LENGTH} minut`;
+      chyba = `Délka čtvrtiny musí být ${MIN_Q_LENGTH}-${MAX_Q_LENGTH} minut`;
       return;
     }
     if (nasazeni.length < 5) { chyba = `Musíš vybrat alespoň 5 hráčů (vybrali jsme ${nasazeni.length})`; return; }
@@ -230,7 +230,7 @@
         <label>
           <span>Soupeř *</span>
           <select bind:value={souper_id} disabled={je_pratelak && souper_nas_tym}>
-            <option value="">— vyber —</option>
+            <option value="">- vyber -</option>
             {#each filtrovani_souperi as s}
               <option value={s.id}>{s.nazev}</option>
             {/each}
@@ -244,7 +244,7 @@
         <label>
           <span>Soutěž *</span>
           <select bind:value={soutez_id}>
-            <option value="">— vyber —</option>
+            <option value="">- vyber -</option>
             {#each souteze as s}
               <option value={s.id}>{s.nazev}</option>
             {/each}
@@ -294,7 +294,7 @@
 
       <div class="roster-section">
         <div class="roster-header">
-          <span class="label">Nasazení hráči ({nasazeni.length} vybráno, min. 5) — kategorie {kategorieLabel(nase_kategorie)} a starší</span>
+          <span class="label">Nasazení hráči ({nasazeni.length} vybráno, min. 5) - kategorie {kategorieLabel(nase_kategorie)} a starší</span>
           <div class="roster-buttons">
             <button type="button" class="small" onclick={vybratVse}>Vybrat všechny</button>
             <button type="button" class="small" onclick={odznacitVse}>Odznačit</button>

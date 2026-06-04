@@ -55,7 +55,7 @@
       if (typeof u.opp_hrac_cislo === 'number') nalezenaCisla.add(u.opp_hrac_cislo);
     }
     if (nalezenaCisla.size === 0) {
-      nactenoZeZapasuInfo = `Zápas ${posledni.datum} — žádná čísla soupeře nebyla atribuována při zápise.`;
+      nactenoZeZapasuInfo = `Zápas ${posledni.datum} - žádná čísla soupeře nebyla atribuována při zápise.`;
       return;
     }
     const stavajici = new Set(hraci.map((h) => h.cislo));
@@ -111,7 +111,7 @@
         return;
       }
       if (h.cislo < 0 || h.cislo > 99) {
-        chyba = `Řádek ${i + 1}: číslo musí být 0–99`;
+        chyba = `Řádek ${i + 1}: číslo musí být 0-99`;
         return;
       }
       cisteniHraci.push({

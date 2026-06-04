@@ -100,8 +100,8 @@
         <tr class:neaktivni={!s.aktivni}>
           <td class="nazev">{s.nazev}</td>
           <td>{s.typ}</td>
-          <td>{s.region ?? '—'}</td>
-          <td>{s.aktivni ? '✓' : '—'}</td>
+          <td>{s.region ?? '-'}</td>
+          <td>{s.aktivni ? '✓' : '-'}</td>
           <td class="actions">
             <button onclick={() => upravit(s)}>Upravit</button>
             <button class="danger" onclick={() => smazat(s)}>Smazat</button>

@@ -101,7 +101,7 @@
     if (r.ctvrtiny.added) lines.push(`Čtvrtiny: +${r.ctvrtiny.added} nových`);
     if (r.udalosti.added) lines.push(`Události: +${r.udalosti.added} nových`);
     if (r.zapasy_with_changes) lines.push(`Přepočítáno skóre ${r.zapasy_with_changes} zápasů`);
-    return lines.length ? lines.join('; ') : 'Žádné nové změny — všechno už máš.';
+    return lines.length ? lines.join('; ') : 'Žádné nové změny - všechno už máš.';
   }
 
   async function importDataMerge(e: Event) {
@@ -147,10 +147,10 @@
 
 <section class="aktivni-sezona">
   <h2>Aktivní sezona</h2>
-  <p class="muted">Pokud nastavíš aktivní sezonu, <strong>Statistiky</strong> se na ni defaultně předfiltrují. Můžeš ji v Statistikách kdykoli ručně přepnout — toto je jen výchozí stav po otevření aplikace.</p>
+  <p class="muted">Pokud nastavíš aktivní sezonu, <strong>Statistiky</strong> se na ni defaultně předfiltrují. Můžeš ji v Statistikách kdykoli ručně přepnout - toto je jen výchozí stav po otevření aplikace.</p>
   <div class="sezona-row">
     <select bind:value={aktivniSezona} onchange={(e) => ulozAktivniSezonu((e.currentTarget as HTMLSelectElement).value)}>
-      <option value="">— bez výchozí sezony —</option>
+      <option value="">- bez výchozí sezony -</option>
       {#each aktivniSezony as s}
         <option value={s}>{s}</option>
       {/each}

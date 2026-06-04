@@ -286,7 +286,7 @@
   }
 
   function fmtMinutes(total: number, gp: number): string {
-    if (!klokPouzitFiltr) return '—';
+    if (!klokPouzitFiltr) return '-';
     if (!perGame) return formatMinSec(total);
     if (gp === 0) return '0:00';
     return formatMinSec(total / gp);
@@ -409,7 +409,7 @@
         disabled={zapasyProVyber.length === 0}
         onchange={(e) => (selectedZapasId = e.currentTarget.value || null)}
       >
-        <option value="">— součet za celý filtr ({zapasyProVyber.length} {zapasyProVyber.length === 1 ? 'zápas' : 'zápasů'}) —</option>
+        <option value="">- součet za celý filtr ({zapasyProVyber.length} {zapasyProVyber.length === 1 ? 'zápas' : 'zápasů'}) -</option>
         {#each zapasyProVyber as z (z.id)}
           {@const stav = stavByZapasId.get(z.id)}
           {@const live = stav && stav.kind !== 'ukonceny' && stav.kind !== 'preruseny'}
@@ -514,7 +514,7 @@
       <div class="tym-cards">
         <div class="tym-card">
           <div class="tym-card-l">Bilance</div>
-          <div class="tym-card-v big">{teamRecord.vyhry} <span class="sep">–</span> {teamRecord.prohry}{#if teamRecord.remizy > 0}<span class="sep">–</span> {teamRecord.remizy}{/if}</div>
+          <div class="tym-card-v big">{teamRecord.vyhry} <span class="sep">-</span> {teamRecord.prohry}{#if teamRecord.remizy > 0}<span class="sep">-</span> {teamRecord.remizy}{/if}</div>
           <div class="tym-card-meta">{teamRecord.gp} {teamRecord.gp === 1 ? 'zápas' : 'zápasů'}</div>
         </div>
         <div class="tym-card">
@@ -596,8 +596,8 @@
               <tr class="zapas-row" class:row-live={live} class:row-preruseny={stav?.kind === 'preruseny'} onclick={() => otevriZapas(z)} title="Otevřít detail zápasu">
                 <td>{fmtDatum(z.datum)}</td>
                 <td class="td-mono">{kategorieLabel(z.nase_kategorie)}</td>
-                <td class="td-name">{souperByID.get(z.souper_id)?.nazev ?? '— ?'} <span class="strana">({z.nase_strana === 'home' ? 'D' : 'H'})</span></td>
-                <td>{soutezByID.get(z.soutez_id)?.nazev ?? '— ?'}</td>
+                <td class="td-name">{souperByID.get(z.souper_id)?.nazev ?? '- ?'} <span class="strana">({z.nase_strana === 'home' ? 'D' : 'H'})</span></td>
+                <td>{soutezByID.get(z.soutez_id)?.nazev ?? '- ?'}</td>
                 <td class="td-mono">{z.sezona}</td>
                 <td class="td-mono td-pts">{z.skore_nase}:{z.skore_souper}</td>
                 <td>

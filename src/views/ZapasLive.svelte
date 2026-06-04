@@ -83,7 +83,7 @@
 
   let warning = $state<{ msg: string; onConfirm?: () => void } | null>(null);
 
-  // TV-style přehled (celoobrazovkový) — zobrazí se po každé čtvrtině a na vyžádání v matchEnd.
+  // TV-style přehled (celoobrazovkový) - zobrazí se po každé čtvrtině a na vyžádání v matchEnd.
   let prehledVisible = $state(false);
   let prehledInitPeriod = $state<string | undefined>(undefined);
   let prehledCloseLabel = $state('Pokračovat');
@@ -267,7 +267,7 @@
       return;
     }
     if (ctvrtiny.some((c) => c.cislo === parsed && c.id !== cur.id)) {
-      toast(`Čtvrtina ${parsed} už existuje — nelze přepsat`);
+      toast(`Čtvrtina ${parsed} už existuje - nelze přepsat`);
       return;
     }
     const oldCislo = cur.cislo;
@@ -637,7 +637,7 @@
     pushUndo({ kind: 'event', eventId: ev.id });
 
     const label = popisAkce(typ);
-    toast(`#${hrac.cislo_dresu ?? '?'} ${hrac.prijmeni} — ${label}`);
+    toast(`#${hrac.cislo_dresu ?? '?'} ${hrac.prijmeni} - ${label}`);
 
     if (typ === 'foul' && pocetFaulu(udalosti, hrac.id) >= MAX_FAULU) {
       foulOutPrompt = { playerId: hrac.id };
@@ -664,7 +664,7 @@
     await db.udalosti.add(ev);
     udalosti = [...udalosti, ev];
     pushUndo({ kind: 'event', eventId: ev.id });
-    toast(`SOUPEŘ${typeof cislo === 'number' ? ` #${cislo}` : ''} — ${popisAkce(typ)}`);
+    toast(`SOUPEŘ${typeof cislo === 'number' ? ` #${cislo}` : ''} - ${popisAkce(typ)}`);
     selectedOppCislo = null;
     await updateZapasCache();
   }
@@ -773,7 +773,7 @@
     await db.udalosti.add(ev);
     udalosti = [...udalosti, ev];
     pushUndo({ kind: 'event', eventId: ev.id });
-    toast(`#${hrac.cislo_dresu ?? '?'} ${hrac.prijmeni} — Faul (${foulSubtypLabel(subtyp)})`);
+    toast(`#${hrac.cislo_dresu ?? '?'} ${hrac.prijmeni} - Faul (${foulSubtypLabel(subtyp)})`);
     if (pocetFaulu(udalosti, hrac.id) >= MAX_FAULU) {
       foulOutPrompt = { playerId: hrac.id };
     }
@@ -814,7 +814,7 @@
     toTed = Date.now();
     toBeziDo = toTed + TIMEOUT_DELKA_MS;
     toTyp = typ;
-    toast(`${typ === 'oddech_my' ? 'MY' : 'SOUPEŘ'} — Oddech (${obdobi}, ${pouzite + 1}/${povoleno})`);
+    toast(`${typ === 'oddech_my' ? 'MY' : 'SOUPEŘ'} - Oddech (${obdobi}, ${pouzite + 1}/${povoleno})`);
     await updateZapasCache();
   }
 
@@ -833,7 +833,7 @@
     await db.udalosti.add(ev);
     udalosti = [...udalosti, ev];
     pushUndo({ kind: 'event', eventId: ev.id });
-    toast('Technická chyba — lavička');
+    toast('Technická chyba - lavička');
     await updateZapasCache();
   }
 
@@ -872,7 +872,7 @@
     await db.udalosti.add(ev);
     udalosti = [...udalosti, ev];
     pushUndo({ kind: 'event', eventId: ev.id });
-    toast('MY — ztráta (bez hráče)');
+    toast('MY - ztráta (bez hráče)');
     await updateZapasCache();
   }
 
@@ -911,7 +911,7 @@
     await db.udalosti.add(ev);
     udalosti = [...udalosti, ev];
     pushUndo({ kind: 'event', eventId: ev.id });
-    toast(`SOUPEŘ — Faul (${foulSubtypLabel(subtyp)})${typeof cislo === 'number' ? ` #${cislo}` : ''}`);
+    toast(`SOUPEŘ - Faul (${foulSubtypLabel(subtyp)})${typeof cislo === 'number' ? ` #${cislo}` : ''}`);
     selectedOppCislo = null;
     await updateZapasCache();
   }
@@ -976,7 +976,7 @@
         return;
       }
       if (c < 0 || c > 99) {
-        oppRosterChyba = `Řádek ${i + 1}: číslo musí být 0–99`;
+        oppRosterChyba = `Řádek ${i + 1}: číslo musí být 0-99`;
         return;
       }
       if (videnaCisla.has(c)) {
@@ -1055,13 +1055,13 @@
       : popisAkce(ev.typ);
     if (ev.hrac_id) {
       const h = hraci.find((x) => x.id === ev.hrac_id);
-      return h ? `#${h.cislo_dresu ?? '?'} ${h.prijmeni} — ${akce}` : akce;
+      return h ? `#${h.cislo_dresu ?? '?'} ${h.prijmeni} - ${akce}` : akce;
     }
     if (ev.typ.startsWith('opp_')) {
       const num = typeof ev.opp_hrac_cislo === 'number' ? ` #${ev.opp_hrac_cislo}` : '';
-      return `Soupeř${num} — ${akce}`;
+      return `Soupeř${num} - ${akce}`;
     }
-    if (ev.typ.startsWith('team_')) return `Tým (bez hráče) — ${akce}`;
+    if (ev.typ.startsWith('team_')) return `Tým (bez hráče) - ${akce}`;
     return akce;
   }
 
@@ -1354,7 +1354,7 @@
         return;
       }
       if (ctvrtiny.some((c) => c.cislo === op.fromCislo && c.id !== ctv.id)) {
-        toast(`Čtvrtina ${op.fromCislo} už znova existuje — nelze vrátit`);
+        toast(`Čtvrtina ${op.fromCislo} už znova existuje - nelze vrátit`);
         return;
       }
       await db.ctvrtiny.update(ctv.id, { cislo: op.fromCislo });
@@ -1376,7 +1376,7 @@
         return;
       }
       if (udalosti.some((u) => u.ctvrtina_cislo === op.toCislo)) {
-        toast(`V nové Q už jsou eventy — nejdřív je vrať`);
+        toast(`V nové Q už jsou eventy - nejdřív je vrať`);
         return;
       }
       await db.ctvrtiny.delete(newCtv.id);
@@ -1845,7 +1845,7 @@
           {#if mode === 'inProgress'}
             <div
               class="sb-dots"
-              title={`Týmové fauly domácích v ${fmtQ(aktualniCtvrtinaCislo)}: ${homeFaulyQ}${homeBonus ? ' — BONUS (soupeř střílí trestné)' : ''}`}
+              title={`Týmové fauly domácích v ${fmtQ(aktualniCtvrtinaCislo)}: ${homeFaulyQ}${homeBonus ? ' - BONUS (soupeř střílí trestné)' : ''}`}
             >
               {#each faulDotSloty as prah (prah)}
                 <span class="sb-dot" class:on={homeFaulyQ > prah} class:bonus={homeBonus}></span>
@@ -1862,7 +1862,7 @@
           {#if mode === 'inProgress'}
             <div
               class="sb-dots"
-              title={`Týmové fauly hostů v ${fmtQ(aktualniCtvrtinaCislo)}: ${awayFaulyQ}${awayBonus ? ' — BONUS (my střílíme trestné)' : ''}`}
+              title={`Týmové fauly hostů v ${fmtQ(aktualniCtvrtinaCislo)}: ${awayFaulyQ}${awayBonus ? ' - BONUS (my střílíme trestné)' : ''}`}
             >
               {#each faulDotSloty as prah (prah)}
                 <span class="sb-dot" class:on={awayFaulyQ > prah} class:bonus={awayBonus}></span>
@@ -1900,8 +1900,8 @@
     {#snippet boxscorePanel()}
       <section class="boxscore">
         <header class="bs-head">
-          <h3>Boxscore — My ({kategorieLabel(zapas.nase_kategorie)})</h3>
-          <span class="bs-hint">{periodKlokPouzit ? 'Stopky aktivní' : 'Stopky nebyly použité — minuty se nepočítají'}</span>
+          <h3>Boxscore - My ({kategorieLabel(zapas.nase_kategorie)})</h3>
+          <span class="bs-hint">{periodKlokPouzit ? 'Stopky aktivní' : 'Stopky nebyly použité - minuty se nepočítají'}</span>
         </header>
         <div class="period-tabs">
           <button
@@ -1934,7 +1934,7 @@
                 <th title="Zisky / steals">STL</th>
                 <th title="Ztráty / turnovers">TO</th>
                 <th title="Bloky">BLK</th>
-                <th title="Osobní fauly — celkem za zápas (cesta k vyloučení = 5)">PF</th>
+                <th title="Osobní fauly - celkem za zápas (cesta k vyloučení = 5)">PF</th>
                 <th title="Plus/minus">+/-</th>
                 <th title="Efficiency = PTS + REB + AST + STL + BLK − miss − TO">EFF</th>
               </tr>
@@ -1950,7 +1950,7 @@
                     <span class="bs-name">{h.prijmeni} {h.jmeno}</span>
                     {#if fo}<span class="bs-tag-fo">FO</span>{/if}
                   </td>
-                  <td class="td-mono">{periodKlokPouzit ? formatMinSec(s.minuty_ms) : '—'}</td>
+                  <td class="td-mono">{periodKlokPouzit ? formatMinSec(s.minuty_ms) : '-'}</td>
                   <td class="td-mono td-pts">{s.body}</td>
                   <td class="td-mono">{s.dany_2}/{s.pokusy_2}</td>
                   <td class="td-mono">{s.dany_3}/{s.pokusy_3}</td>
@@ -1974,26 +1974,26 @@
               {#if periodTeamUnattributed.body > 0 || periodTeamUnattributed.ztraty > 0}
                 <tr class="row-bez-hrace">
                   <td colspan="2" class="td-name td-bezhrace">Bez hráče</td>
-                  <td class="td-mono">—</td>
+                  <td class="td-mono">-</td>
                   <td class="td-mono td-pts">{periodTeamUnattributed.body}</td>
                   <td class="td-mono" title="2-bodové koše bez hráče">{periodTeamUnattributed.body_2}</td>
                   <td class="td-mono" title="3-bodové koše bez hráče">{periodTeamUnattributed.body_3}</td>
                   <td class="td-mono" title="Trestné body bez hráče">{periodTeamUnattributed.body_th}</td>
-                  <td class="td-mono">—</td>
-                  <td class="td-mono">—</td>
-                  <td class="td-mono">—</td>
-                  <td class="td-mono">—</td>
-                  <td class="td-mono">—</td>
-                  <td class="td-mono" title="Týmové ztráty bez hráče">{periodTeamUnattributed.ztraty || '—'}</td>
-                  <td class="td-mono">—</td>
-                  <td class="td-mono">—</td>
-                  <td class="td-mono">—</td>
-                  <td class="td-mono">—</td>
+                  <td class="td-mono">-</td>
+                  <td class="td-mono">-</td>
+                  <td class="td-mono">-</td>
+                  <td class="td-mono">-</td>
+                  <td class="td-mono">-</td>
+                  <td class="td-mono" title="Týmové ztráty bez hráče">{periodTeamUnattributed.ztraty || '-'}</td>
+                  <td class="td-mono">-</td>
+                  <td class="td-mono">-</td>
+                  <td class="td-mono">-</td>
+                  <td class="td-mono">-</td>
                 </tr>
               {/if}
               <tr class="row-total">
                 <td colspan="2" class="td-name">TÝM</td>
-                <td class="td-mono">{periodKlokPouzit ? formatMinSec(periodTeamTotals.minuty_ms) : '—'}</td>
+                <td class="td-mono">{periodKlokPouzit ? formatMinSec(periodTeamTotals.minuty_ms) : '-'}</td>
                 <td class="td-mono td-pts">{periodTeamTotals.body + periodTeamUnattributed.body}</td>
                 <td class="td-mono">{periodTeamTotals.dany_2}/{periodTeamTotals.pokusy_2}</td>
                 <td class="td-mono">{periodTeamTotals.dany_3}/{periodTeamTotals.pokusy_3}</td>
@@ -2006,7 +2006,7 @@
                 <td class="td-mono">{periodTeamTotals.ztraty + periodTeamUnattributed.ztraty}</td>
                 <td class="td-mono">{periodTeamTotals.bloky}</td>
                 <td class="td-mono">{periodTeamTotals.fauly}</td>
-                <td class="td-mono">—</td>
+                <td class="td-mono">-</td>
                 <td class="td-mono td-eff">{periodTeamTotals.efficiency}</td>
               </tr>
             </tbody>
@@ -2054,7 +2054,7 @@
     {#snippet statsPanelBox()}
       <section class="stats-panel">
         <button class="stats-toggle" onclick={() => (statsPanelOpen = !statsPanelOpen)} title="Statistiky tohoto zápasu (box score po hráčích a týmu)">
-          📊 Statistiky zápasu — box score <span class="sp-arrow">{statsPanelOpen ? '▲' : '▼'}</span>
+          📊 Statistiky zápasu - box score <span class="sp-arrow">{statsPanelOpen ? '▲' : '▼'}</span>
         </button>
         {#if statsPanelOpen}
           {@render boxscorePanel()}
@@ -2300,9 +2300,9 @@
             <span>
               SOUPEŘ ({souper.nazev})
               {#if selectedOppCislo !== null}
-                — zapíše na #{selectedOppCislo}
+                - zapíše na #{selectedOppCislo}
               {:else if (souper.hraci_soupere?.length ?? 0) > 0}
-                — bez čísla (volitelně vyber)
+                - bez čísla (volitelně vyber)
               {/if}
             </span>
             <button class="opp-roster-edit" onclick={openOppRosterEdit} title="Upravit soupisku soupeře (přidat / opravit číslo)">✎ Soupiska</button>
@@ -2331,7 +2331,7 @@
             <button class="opp" onclick={() => recordOpponent('opp_pts_1')}>+1 trestný</button>
             <button class="opp" onclick={() => openOppFoul('personal')} title="Osobní faul soupeře. Když máš vybrané číslo hráče, přiřadí se mu; jinak se zapíše jako týmový faul bez čísla.">+1 faul</button>
             <button class="opp" onclick={() => openOppFoul('unsportsmanlike')} title="Nesportovní faul soupeře (přiřadí vybranému číslu, jinak bez čísla).">Nesport.</button>
-            <button class="opp" onclick={() => openOppFoul('technical')} title="Technická chyba (i trenér/lavička) — zapíše se bez čísla">Technická</button>
+            <button class="opp" onclick={() => openOppFoul('technical')} title="Technická chyba (i trenér/lavička) - zapíše se bez čísla">Technická</button>
             <button class="opp" onclick={() => recordOpponent('opp_reb_off')}>+ dosk útoč.</button>
             <button class="opp" onclick={() => recordOpponent('opp_reb_def')}>+ dosk obr.</button>
             <button class="opp" onclick={() => recordOpponent('opp_turnover')} title="Ztráta soupeře bez našeho zisku (kroky, aut, ofenzivní faul…)">Ztráta</button>
@@ -2365,7 +2365,7 @@
           {#if benchTechCount > 0}
             <div class="lt-chip" title="Technické chyby lavičky/trenéra"><span class="lt-l">T. lav.</span><span class="lt-v">{benchTechCount}</span></div>
           {/if}
-          <div class="lt-chip to-chip" title={`Oddechy MY — zbývá ${toMyZbyva}/${toPovoleno} v ${toObdobi}, celkem v zápase ${toMyCelkem}`}>
+          <div class="lt-chip to-chip" title={`Oddechy MY - zbývá ${toMyZbyva}/${toPovoleno} v ${toObdobi}, celkem v zápase ${toMyCelkem}`}>
             <span class="lt-l">⏱ TO</span>
             <span class="lt-v">{toMyZbyva}/{toPovoleno}</span>
           </div>
@@ -2384,7 +2384,7 @@
           {#if oppTotals.doskoky_neznamy > 0}
             <div class="lt-chip" title="Doskoky bez určení směru (z dřívějších verzí)"><span class="lt-l">REB?</span><span class="lt-v">{oppTotals.doskoky_neznamy}</span></div>
           {/if}
-          <div class="lt-chip to-chip" title={`Oddechy SOUPEŘ — zbývá ${toOppZbyva}/${toPovoleno} v ${toObdobi}, celkem v zápase ${toOppCelkem}`}>
+          <div class="lt-chip to-chip" title={`Oddechy SOUPEŘ - zbývá ${toOppZbyva}/${toPovoleno} v ${toObdobi}, celkem v zápase ${toOppCelkem}`}>
             <span class="lt-l">⏱ TO</span>
             <span class="lt-v">{toOppZbyva}/{toPovoleno}</span>
           </div>
@@ -2411,7 +2411,7 @@
       </section>
 
       <section class="timeouts">
-        <div class="to-info">Oddechy — aktuální období: <strong>{toObdobi}</strong> (max {toPovoleno})</div>
+        <div class="to-info">Oddechy - aktuální období: <strong>{toObdobi}</strong> (max {toPovoleno})</div>
         <div class="to-buttons">
           <button
             class="to-btn us"
@@ -2465,7 +2465,7 @@
         <h2>Konec {fmtQ(ctvrtiny[ctvrtiny.length - 1]?.cislo ?? pocetCtvrtin)}</h2>
         <div class="score-big">{skore.nase} : {skore.souper}</div>
         {#if skore.nase === skore.souper}
-          <p class="info">Stav je nerozhodný — můžeš pokračovat do prodloužení.</p>
+          <p class="info">Stav je nerozhodný - můžeš pokračovat do prodloužení.</p>
           <div class="prompt-buttons">
             <button class="primary big" onclick={pokracovatOT}>Pokračovat do {fmtQ(aktualniCtvrtinaCislo)}</button>
             <button class="big" onclick={ukoncitZapas}>Ukončit jako remízu</button>
@@ -2533,7 +2533,7 @@
 
       <section class="vyvoj-skore">
         <header class="vs-head">
-          <h3>Vývoj skóre {selectedPeriod === 'total' ? '— celý zápas' : `— ${fmtQ(selectedPeriod)}`}</h3>
+          <h3>Vývoj skóre {selectedPeriod === 'total' ? '- celý zápas' : `- ${fmtQ(selectedPeriod)}`}</h3>
         </header>
         <SkoreVyvojGraf udalosti={periodUdalosti} {pocetCtvrtin} />
       </section>
@@ -2545,7 +2545,7 @@
         {#if prirazovaniOpen}
           <div class="prirazeni-body">
             <p class="prirazeni-hint">
-              Uprav hráče u koše / trestného / ztráty. <strong>„— bez hráče —"</strong> = týmová (nepřičte se nikomu). Body se nemění, jen se přesunou ke správnému hráči.{selectedPeriod === 'total' ? '' : ' (Filtrováno na vybranou čtvrtinu.)'}
+              Uprav hráče u koše / trestného / ztráty. <strong>„- bez hráče -"</strong> = týmová (nepřičte se nikomu). Body se nemění, jen se přesunou ke správnému hráči.{selectedPeriod === 'total' ? '' : ' (Filtrováno na vybranou čtvrtinu.)'}
             </p>
             {#if prirazovatelne.length === 0}
               <p class="prirazeni-empty">Žádné koše ani ztráty k přiřazení.</p>
@@ -2560,7 +2560,7 @@
                       value={ev.hrac_id ?? ''}
                       onchange={(e) => reassignEvent(ev, e.currentTarget.value || null)}
                     >
-                      <option value="">— bez hráče —</option>
+                      <option value="">- bez hráče -</option>
                       {#each hraciSerazeni as h (h.id)}
                         <option value={h.id}>#{h.cislo_dresu ?? '?'} {h.prijmeni}</option>
                       {/each}
@@ -2574,7 +2574,7 @@
       </section>
 
       <section class="opp-summary">
-        <h3>Soupeř — {souper.nazev} {selectedPeriod === 'total' ? '' : `(${fmtQ(selectedPeriod as number)})`}</h3>
+        <h3>Soupeř - {souper.nazev} {selectedPeriod === 'total' ? '' : `(${fmtQ(selectedPeriod as number)})`}</h3>
         <div class="opp-grid">
           <div class="opp-item"><span class="opp-l">PTS</span><span class="opp-v">{periodOppTotals.body}</span></div>
           <div class="opp-item"><span class="opp-l">2P košů</span><span class="opp-v">{periodOppTotals.body_2}</span></div>
@@ -2625,7 +2625,7 @@
                 {/each}
                 {#if periodOppBezCisla.body + periodOppBezCisla.fauly + periodOppBezCisla.doskoky > 0}
                   <tr class="opp-bez-cisla">
-                    <td class="td-mono">—</td>
+                    <td class="td-mono">-</td>
                     <td><em>Bez čísla hráče</em></td>
                     <td class="td-mono"><strong>{periodOppBezCisla.body}</strong></td>
                     <td class="td-mono">{periodOppBezCisla.body_2}</td>
@@ -2675,7 +2675,7 @@
     {#if subModal}
       <div class="modal-bg" onclick={closeSub} role="presentation">
         <div class="modal sub-modal" onclick={(e) => e.stopPropagation()} role="presentation">
-          <h2>Střídání — {fmtQ(aktualniCtvrtinaCislo)}</h2>
+          <h2>Střídání - {fmtQ(aktualniCtvrtinaCislo)}</h2>
           <p class="sub-hint">Vyber stejný počet hráčů ven (z hřiště) a dovnitř (z lavičky). Sparování proběhne podle pořadí výběru.</p>
           <div class="sub-counters">
             <span class="sub-counter" class:ok={subOuts.length > 0 && subOuts.length === subIns.length}>
@@ -2757,7 +2757,7 @@
       <div class="modal-bg" onclick={() => setTimeModal = false} role="presentation">
         <div class="modal" onclick={(e) => e.stopPropagation()} role="presentation">
           <h2>Nastavit čas v {fmtQ(aktualniCtvrtinaCislo)}</h2>
-          <p class="warning-msg">Zadej aktuální čas ve formátu <strong>MM:SS</strong> (např. 4:23). Stopky se nastaví na tuto hodnotu a budou pozastaveny — pak je můžeš znovu spustit tlačítkem Start.</p>
+          <p class="warning-msg">Zadej aktuální čas ve formátu <strong>MM:SS</strong> (např. 4:23). Stopky se nastaví na tuto hodnotu a budou pozastaveny - pak je můžeš znovu spustit tlačítkem Start.</p>
           <!-- svelte-ignore a11y_autofocus -->
           <input
             class="settime-input"
@@ -2783,7 +2783,7 @@
           <p class="warning-msg">
             Aktuálně {fmtQ(aktualniCtvrtinaCislo)}. Zadej správné číslo čtvrtiny (např. <strong>2</strong> pro Q2, <strong>{pocetCtvrtin + 1}</strong> pro OT1).
             {#if udalosti.some((u) => u.ctvrtina_cislo === aktualniCtvrtinaCislo)}
-              <br /><strong>Pozor:</strong> v této Q už jsou zaznamenané akce — místo přejmenování se aktuální Q uzavře a od teď začne nová Q se stejnou pěticí. Minulé akce zůstanou v {fmtQ(aktualniCtvrtinaCislo)}.
+              <br /><strong>Pozor:</strong> v této Q už jsou zaznamenané akce - místo přejmenování se aktuální Q uzavře a od teď začne nová Q se stejnou pěticí. Minulé akce zůstanou v {fmtQ(aktualniCtvrtinaCislo)}.
             {:else}
               <br />V této Q ještě nejsou žádné akce, takže se jen přejmenuje.
             {/if}
@@ -2827,7 +2827,7 @@
       <div class="modal-bg" onclick={() => (editRosterOpen = false)} role="presentation">
         <div class="modal roster-modal" onclick={(e) => e.stopPropagation()} role="presentation">
           <div class="roster-header">
-            <h2>Upravit soupisku — {kategorieLabel(zapas.nase_kategorie)}</h2>
+            <h2>Upravit soupisku - {kategorieLabel(zapas.nase_kategorie)}</h2>
             <button class="small" onclick={() => (editRosterHracFormOpen = true)}>+ Nový hráč</button>
           </div>
           <p class="roster-hint">
@@ -2872,7 +2872,7 @@
       {@const fp = hraci.find((h) => h.id === foulSubtypePicker!.playerId)}
       <div class="modal-bg" onclick={() => (foulSubtypePicker = null)} role="presentation">
         <div class="modal foul-subtyp-modal" onclick={(e) => e.stopPropagation()} role="presentation">
-          <h2>Typ faulu — #{fp?.cislo_dresu ?? '?'} {fp?.prijmeni}</h2>
+          <h2>Typ faulu - #{fp?.cislo_dresu ?? '?'} {fp?.prijmeni}</h2>
           <div class="foul-subtyp-buttons">
             <button class="primary" onclick={() => recordFoul('personal')}>Osobní</button>
             <button onclick={() => recordFoul('unsportsmanlike')}>Nesportovní</button>
@@ -2889,7 +2889,7 @@
     {#if oppRosterEditOpen && souper}
       <div class="modal-bg" onclick={() => (oppRosterEditOpen = false)} role="presentation">
         <div class="modal" onclick={(e) => e.stopPropagation()} role="presentation">
-          <h2>Soupiska soupeře — {souper.nazev}</h2>
+          <h2>Soupiska soupeře - {souper.nazev}</h2>
           <p class="roster-hint">Přidat / upravit / smazat čísla a jména. Změny se uloží k soupeři a propíšou se i do budoucích zápasů.</p>
           <div class="opp-edit-actions">
             <button type="button" class="small" onclick={() => (oppRosterBulkOpen = !oppRosterBulkOpen)}>
@@ -2931,7 +2931,7 @@
 
     {#if toBeziDo !== null}
       <div class="to-countdown" class:done={toDobehl} role="status" aria-live="polite">
-        <div class="toc-label">{toTyp === 'oddech_my' ? '⏱ Oddech — MY' : '⏱ Oddech — SOUPEŘ'}</div>
+        <div class="toc-label">{toTyp === 'oddech_my' ? '⏱ Oddech - MY' : '⏱ Oddech - SOUPEŘ'}</div>
         <div class="toc-time">{toDobehl ? 'Oddech skončil' : formatCas(toZbyvaMs)}</div>
         <button class="toc-end" onclick={ukoncitOddech}>
           {toDobehl ? 'Zavřít' : '⏹ Konec oddechu'}
@@ -5401,7 +5401,7 @@
     .clock-btn { padding: 5px 7px; font-size: 10px; }
   }
 
-  /* === TELEFON (na výšku i na šířku) — způsob 2: hráč → akce jako primární ===
+  /* === TELEFON (na výšku i na šířku) - způsob 2: hráč → akce jako primární ===
      Cíleno na telefon v obou orientacích, ne na tablet:
      na výšku přes šířku, na šířku přes nízkou výšku (tablet má na šířku výšku 768+). */
   @media (max-width: 600px), (max-height: 500px) {

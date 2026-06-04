@@ -113,11 +113,11 @@
           </td>
           <td class="num">{h.cislo_dresu}</td>
           <td>{h.prijmeni} {h.jmeno}</td>
-          <td>{h.pozice ?? '—'}</td>
-          <td class="td-mono">{vek !== null ? vek : '—'}</td>
-          <td class="td-mono">{h.vyska_cm !== undefined ? `${h.vyska_cm} cm` : '—'}</td>
+          <td>{h.pozice ?? '-'}</td>
+          <td class="td-mono">{vek !== null ? vek : '-'}</td>
+          <td class="td-mono">{h.vyska_cm !== undefined ? `${h.vyska_cm} cm` : '-'}</td>
           <td>{kategorieLabel(h.domaci_kategorie)}</td>
-          <td>{h.aktivni ? '✓' : '—'}</td>
+          <td>{h.aktivni ? '✓' : '-'}</td>
           <td class="actions">
             <button onclick={() => upravit(h)}>Upravit</button>
             <button class="danger" onclick={() => smazat(h)}>Smazat</button>

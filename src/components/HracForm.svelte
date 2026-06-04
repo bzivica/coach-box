@@ -128,7 +128,7 @@
     if (cislo_dresu.trim() !== '') {
       const n = Number(cislo_dresu);
       if (!Number.isInteger(n) || n < 0 || n > 99) {
-        chyba = 'Číslo dresu musí být celé číslo 0–99 (nebo prázdné)';
+        chyba = 'Číslo dresu musí být celé číslo 0-99 (nebo prázdné)';
         return;
       }
       cisloParsed = n;
@@ -138,7 +138,7 @@
     if (vyska_cm.trim() !== '') {
       const n = Number(vyska_cm);
       if (!Number.isInteger(n) || n < VYSKA_MIN_CM || n > VYSKA_MAX_CM) {
-        chyba = `Výška musí být celé číslo ${VYSKA_MIN_CM}–${VYSKA_MAX_CM} cm (nebo prázdné)`;
+        chyba = `Výška musí být celé číslo ${VYSKA_MIN_CM}-${VYSKA_MAX_CM} cm (nebo prázdné)`;
         return;
       }
       vyskaParsed = n;
@@ -148,7 +148,7 @@
     if (rocnik_narozeni.trim() !== '') {
       const n = Number(rocnik_narozeni);
       if (!Number.isInteger(n) || n < ROCNIK_MIN || n > ROCNIK_MAX) {
-        chyba = `Ročník musí být ${ROCNIK_MIN}–${ROCNIK_MAX}`;
+        chyba = `Ročník musí být ${ROCNIK_MIN}-${ROCNIK_MAX}`;
         return;
       }
       rocnikParsed = n;
@@ -242,7 +242,7 @@
         <label>
           <span>Pozice</span>
           <select bind:value={pozice}>
-            <option value="">—</option>
+            <option value="">-</option>
             {#each POZICE_HODNOTY as p}
               <option value={p}>{p}</option>
             {/each}

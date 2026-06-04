@@ -91,7 +91,7 @@
         <label>
           <span>Region</span>
           <select bind:value={region}>
-            <option value="">—</option>
+            <option value="">-</option>
             {#each REGIONY as r}
               <option value={r}>{r}</option>
             {/each}
@@ -101,7 +101,7 @@
 
       <label class="checkbox">
         <input bind:checked={bezLimituMladeze} type="checkbox" />
-        <span>Neplatí limity mládeže (turnaje, CEYBL apod. — žádné varování na počet čtvrtin ani U14 Q1+Q2+Q3)</span>
+        <span>Neplatí limity mládeže (turnaje, CEYBL apod. - žádné varování na počet čtvrtin ani U14 Q1+Q2+Q3)</span>
       </label>
 
       <label class="checkbox">

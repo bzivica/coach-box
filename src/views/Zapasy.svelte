@@ -151,14 +151,14 @@
           <td>{formatDatum(z.datum)}</td>
           <td class="kat">{kategorieLabel(z.nase_kategorie)}</td>
           <td class="souper">
-            {souperi.get(z.souper_id)?.nazev ?? '— ?'}
+            {souperi.get(z.souper_id)?.nazev ?? '- ?'}
             <span class="strana">({z.nase_strana === 'home' ? 'D' : 'H'})</span>
           </td>
-          <td>{souteze.get(z.soutez_id)?.nazev ?? '— ?'}</td>
+          <td>{souteze.get(z.soutez_id)?.nazev ?? '- ?'}</td>
           <td>{z.sezona}</td>
           <td class="skore">
             {#if z.status === 'rozehrany' && z.skore_nase === 0 && z.skore_souper === 0}
-              —
+              -
             {:else}
               {z.skore_nase}:{z.skore_souper}
             {/if}
