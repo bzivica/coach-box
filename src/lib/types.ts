@@ -163,6 +163,9 @@ export interface Zapas {
   delka_ctvrtiny_min: number;
   pocet_ctvrtin?: number;
   status: ZapasStatus;
+  // Override hlídání limitu mládeže pro tento zápas.
+  // undefined = řídí se nastavením soutěže (bez_limitu_mladeze); true/false = explicitní volba trenéra.
+  hlidat_limit_mladeze?: boolean;
   skore_nase: number;
   skore_souper: number;
   skore_po_ctvrtinach: SkoreCtvrtina[];

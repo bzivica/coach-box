@@ -451,6 +451,72 @@ export function computeSkoreProgrese(udalosti: Udalost[]): SkoreBod[] {
   return body;
 }
 
+// Největší vedení každé strany v rámci předaných událostí (scope = celý zápas / poločas / čtvrtina).
+export function maxVedeni(udalosti: Udalost[]): { nase: number; souper: number } {
+  const progrese = computeSkoreProgrese(udalosti);
+  let nase = 0;
+  let souper = 0;
+  for (const b of progrese) {
+    const rozdil = b.nase - b.souper;
+    if (rozdil > nase) nase = rozdil;
+    if (-rozdil > souper) souper = -rozdil;
+  }
+  return { nase, souper };
+}
+
+// Týmový souhrn střelby NAŠEHO týmu přímo z událostí (bez minut) — pro přehledový panel.
+export interface TeamSummary {
+  body: number;
+  dany_2: number;
+  pokusy_2: number;
+  dany_3: number;
+  pokusy_3: number;
+  dany_th: number;
+  pokusy_th: number;
+  doskoky_off: number;
+  doskoky_def: number;
+  asistence: number;
+  zisky: number;
+  ztraty: number;
+  bloky: number;
+  fauly: number;
+}
+
+export function computeTeamSummary(udalosti: Udalost[]): TeamSummary {
+  const t: TeamSummary = {
+    body: 0, dany_2: 0, pokusy_2: 0, dany_3: 0, pokusy_3: 0, dany_th: 0, pokusy_th: 0,
+    doskoky_off: 0, doskoky_def: 0, asistence: 0, zisky: 0, ztraty: 0, bloky: 0, fauly: 0,
+  };
+  for (const u of udalosti) {
+    switch (u.typ) {
+      case 'shot_2_made': t.pokusy_2++; t.dany_2++; t.body += 2; break;
+      case 'shot_2_miss': t.pokusy_2++; break;
+      case 'shot_3_made': t.pokusy_3++; t.dany_3++; t.body += 3; break;
+      case 'shot_3_miss': t.pokusy_3++; break;
+      case 'ft_made': t.pokusy_th++; t.dany_th++; t.body += 1; break;
+      case 'ft_miss': t.pokusy_th++; break;
+      case 'team_pts_2': t.dany_2++; t.pokusy_2++; t.body += 2; break;
+      case 'team_pts_3': t.dany_3++; t.pokusy_3++; t.body += 3; break;
+      case 'team_pts_1': t.dany_th++; t.pokusy_th++; t.body += 1; break;
+      case 'reb_off': t.doskoky_off++; break;
+      case 'reb_def': t.doskoky_def++; break;
+      case 'assist': t.asistence++; break;
+      case 'steal': t.zisky++; break;
+      case 'turnover': case 'team_turnover': t.ztraty++; break;
+      case 'block': t.bloky++; break;
+      case 'foul': case 'foul_technical_bench': t.fauly++; break;
+      default: break;
+    }
+  }
+  return t;
+}
+
+// Procento úspěšnosti střelby; null když žádné pokusy (zobrazí se jako „—").
+export function strelbaProcento(dany: number, pokusy: number): number | null {
+  if (pokusy <= 0) return null;
+  return Math.round((dany / pokusy) * 100);
+}
+
 export interface Snura {
   kdo: 'nase' | 'souper';
   krokOd: number;

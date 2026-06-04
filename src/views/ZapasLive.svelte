@@ -30,6 +30,7 @@
     klokByPouzit,
     pristiPoradi,
     poruseniLimitu,
+    limitProKategorii,
     pocetFaulu,
     pocetBenchTech,
     oppFaulyPerCislo,
@@ -47,6 +48,7 @@
   import Avatar from '../components/Avatar.svelte';
   import HracForm from '../components/HracForm.svelte';
   import SkoreVyvojGraf from '../components/SkoreVyvojGraf.svelte';
+  import PrehledObdobi from '../components/PrehledObdobi.svelte';
 
   const COURT_AVATAR_SIZE = 76;
   const BENCH_AVATAR_SIZE = 48;
@@ -80,6 +82,11 @@
   let subIns = $state<string[]>([]);
 
   let warning = $state<{ msg: string; onConfirm?: () => void } | null>(null);
+
+  // TV-style přehled (celoobrazovkový) — zobrazí se po každé čtvrtině a na vyžádání v matchEnd.
+  let prehledVisible = $state(false);
+  let prehledInitPeriod = $state<string | undefined>(undefined);
+  let prehledCloseLabel = $state('Pokračovat');
 
   let toasts = $state<{ id: string; msg: string }[]>([]);
   const TOAST_MS = 1800;
@@ -405,10 +412,22 @@
   const awayScore = $derived(naseDoma ? skore.souper : skore.nase);
   const homeFaulyQ = $derived(naseDoma ? faulyQ.nase : faulyQ.souper);
   const awayFaulyQ = $derived(naseDoma ? faulyQ.souper : faulyQ.nase);
-  const homeFaulyQZobr = $derived(Math.min(homeFaulyQ, BONUS_FAULY_CTVRTINA));
-  const awayFaulyQZobr = $derived(Math.min(awayFaulyQ, BONUS_FAULY_CTVRTINA));
+  // Prahy pro tečky faulů shora dolů: [4,3,2,1,0]. Tečka „on" když faulů > práh → plní se zespoda.
+  const faulDotSloty = Array.from(
+    { length: BONUS_FAULY_CTVRTINA },
+    (_, i) => BONUS_FAULY_CTVRTINA - 1 - i,
+  );
   const homeBonus = $derived(naseDoma ? naseVBonusu : souperVBonusu);
   const awayBonus = $derived(naseDoma ? souperVBonusu : naseVBonusu);
+
+  // Má kategorie zápasu vůbec nějaký limit mládeže (U12/U13/U14)?
+  const kategorieMaLimit = $derived(
+    zapas ? limitProKategorii(zapas.nase_kategorie) !== null : false,
+  );
+  // Výchozí hlídání podle soutěže (přátelák/turnaje/mezinár. = nehlídat).
+  const hlidatLimitDefault = $derived(!soutez?.bez_limitu_mladeze);
+  // Efektivní hlídání: per-zápas override má přednost, jinak default soutěže.
+  const hlidatLimit = $derived(zapas?.hlidat_limit_mladeze ?? hlidatLimitDefault);
 
   const opponentRoster = $derived.by(() => {
     const all = souper?.hraci_soupere ?? [];
@@ -1101,7 +1120,7 @@
       return;
     }
 
-    const porusene = soutez?.bez_limitu_mladeze
+    const porusene = !hlidatLimit
       ? []
       : inHraci
           .map((h) => ({ h, porus: poruseniLimitu(h.id, aktualniCtvrtinaCislo, zapas!.nase_kategorie, udalosti, ctvrtiny) }))
@@ -1161,17 +1180,17 @@
     const aktualni = ctvrtiny.find((c) => c.cislo === aktualniCtvrtinaCislo);
     if (!aktualni) return;
     pauseKlok();
+    const ukoncenaQ = aktualni.cislo;
     await db.ctvrtiny.update(aktualni.id, { konec_at: Date.now() });
     ctvrtiny = ctvrtiny.map((c) => (c.id === aktualni.id ? { ...c, konec_at: Date.now() } : c));
 
-    if (aktualniCtvrtinaCislo >= 4) {
+    const regularniPocet = zapas.pocet_ctvrtin ?? DEFAULT_POCET_CTVRTIN;
+    if (ukoncenaQ >= regularniPocet) {
       const s = computeSkore(udalosti);
       if (s.nase === s.souper) {
         aktualniCtvrtinaCislo = aktualniCtvrtinaCislo + 1;
-        mode = 'quarterEndPrompt';
-      } else {
-        mode = 'quarterEndPrompt';
       }
+      mode = 'quarterEndPrompt';
     } else {
       aktualniCtvrtinaCislo = aktualniCtvrtinaCislo + 1;
       pickLineup = [];
@@ -1180,6 +1199,25 @@
       mode = 'pickLineup';
     }
     selectedPlayer = null;
+
+    // TV-style přehled po každé čtvrtině (Q1, Q2/poločas, Q3, i po poslední).
+    prehledInitPeriod = `q${ukoncenaQ}`;
+    prehledCloseLabel = mode === 'quarterEndPrompt' ? 'Pokračovat' : 'Pokračovat → sestava';
+    prehledVisible = true;
+  }
+
+  function otevriPrehled() {
+    prehledInitPeriod = 'total';
+    prehledCloseLabel = 'Zavřít';
+    prehledVisible = true;
+  }
+
+  async function toggleHlidatLimit() {
+    if (!zapas) return;
+    const nove = !hlidatLimit;
+    await db.zapasy.update(zapas.id, { hlidat_limit_mladeze: nove });
+    zapas = { ...zapas, hlidat_limit_mladeze: nove };
+    toast(nove ? 'Hlídání limitu mládeže zapnuto' : 'Hlídání limitu mládeže vypnuto');
   }
 
   async function otevriEditRoster() {
@@ -1797,25 +1835,42 @@
 
     <div class="score-bar">
       <div class="sb-cluster">
-        <span class="sb-role sb-role-l" class:us={naseDoma}>Domácí</span>
-        <span class="sb-q">{fmtQ(aktualniCtvrtinaCislo)}{jeOT(aktualniCtvrtinaCislo) ? ' • prodl.' : ''}</span>
-        <span class="sb-role sb-role-r" class:us={!naseDoma}>Hosté</span>
+        <div class="sb-roles">
+          <span class="sb-role" class:us={naseDoma}>Domácí</span>
+          <span class="sb-q">{fmtQ(aktualniCtvrtinaCislo)}{jeOT(aktualniCtvrtinaCislo) ? ' • prodl.' : ''}</span>
+          <span class="sb-role" class:us={!naseDoma}>Hosté</span>
+        </div>
 
-        <span class="sb-score sb-score-l" class:us={naseDoma}>{homeScore}</span>
-        <span class="sb-colon">:</span>
-        <span class="sb-score sb-score-r" class:us={!naseDoma}>{awayScore}</span>
+        <div class="sb-main">
+          {#if mode === 'inProgress'}
+            <div
+              class="sb-dots"
+              title={`Týmové fauly domácích v ${fmtQ(aktualniCtvrtinaCislo)}: ${homeFaulyQ}${homeBonus ? ' — BONUS (soupeř střílí trestné)' : ''}`}
+            >
+              {#each faulDotSloty as prah (prah)}
+                <span class="sb-dot" class:on={homeFaulyQ > prah} class:bonus={homeBonus}></span>
+              {/each}
+            </div>
+          {/if}
 
-        {#if mode === 'inProgress'}
-          <span
-            class="sb-fauly"
-            title={`Týmové fauly v ${fmtQ(aktualniCtvrtinaCislo)} (domácí:hosté)${homeBonus || awayBonus ? ' — 5+ = soupeř střílí trestné (bonus)' : ''}`}
-          >
-            <span class="sbf-num sbf-home" class:bonus={homeBonus}>{homeFaulyQZobr}</span>
-            <span class="sbf-colon">:</span>
-            <span class="sbf-num sbf-away" class:bonus={awayBonus}>{awayFaulyQZobr}</span>
-            <span class="sbf-label">Fauly</span>
-          </span>
-        {/if}
+          <div class="sb-box">
+            <span class="sb-score" class:us={naseDoma}>{homeScore}</span>
+            <span class="sb-colon">:</span>
+            <span class="sb-score" class:us={!naseDoma}>{awayScore}</span>
+          </div>
+
+          {#if mode === 'inProgress'}
+            <div
+              class="sb-dots"
+              title={`Týmové fauly hostů v ${fmtQ(aktualniCtvrtinaCislo)}: ${awayFaulyQ}${awayBonus ? ' — BONUS (my střílíme trestné)' : ''}`}
+            >
+              {#each faulDotSloty as prah (prah)}
+                <span class="sb-dot" class:on={awayFaulyQ > prah} class:bonus={awayBonus}></span>
+              {/each}
+            </div>
+          {/if}
+        </div>
+
       </div>
     </div>
 
@@ -1827,6 +1882,18 @@
             <span class="qs-score">{qs.nase}:{qs.souper}</span>
           </div>
         {/each}
+      </div>
+    {/if}
+
+    {#if kategorieMaLimit && (mode === 'inProgress' || mode === 'pickLineup')}
+      <div class="limit-toggle">
+        <span class="lt-label">
+          Hlídání limitu mládeže ({kategorieLabel(zapas.nase_kategorie)}):
+          <strong class:on={hlidatLimit} class:off={!hlidatLimit}>{hlidatLimit ? 'ZAPNUTO' : 'VYPNUTO'}</strong>
+        </span>
+        <button class="lt-btn" type="button" onclick={toggleHlidatLimit}>
+          {hlidatLimit ? '🔕 Vypnout hlídání' : '🔔 Zapnout hlídání'}
+        </button>
       </div>
     {/if}
 
@@ -2580,8 +2647,23 @@
       </section>
 
       <section class="me-actions">
+        <button class="big" onclick={otevriPrehled}>📺 Přehled zápasu</button>
         <button class="primary big" onclick={onBack}>Zpět na seznam zápasů</button>
       </section>
+    {/if}
+
+    {#if prehledVisible}
+      <PrehledObdobi
+        {udalosti}
+        {ctvrtiny}
+        {naseDoma}
+        {pocetCtvrtin}
+        nasNazev="Jižní Supi"
+        souperNazev={souper.nazev}
+        initialPeriod={prehledInitPeriod}
+        closeLabel={prehledCloseLabel}
+        onClose={() => (prehledVisible = false)}
+      />
     {/if}
 
     <div class="toasts">
@@ -2995,20 +3077,21 @@
     box-shadow: var(--shadow);
   }
   .sb-cluster {
-    display: inline-grid;
-    grid-template-columns: 1fr auto 1fr;
-    justify-items: center;
+    display: flex;
+    flex-direction: column;
     align-items: center;
-    column-gap: 10px;
-    row-gap: 2px;
+    row-gap: 4px;
     min-width: 220px;
   }
-  .sb-cluster .sb-role-l,
-  .sb-cluster .sb-score-l,
-  .sb-cluster .sbf-home { justify-self: end; }
-  .sb-cluster .sb-role-r,
-  .sb-cluster .sb-score-r,
-  .sb-cluster .sbf-away { justify-self: start; }
+  .sb-roles {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    column-gap: 10px;
+    width: 100%;
+  }
+  .sb-roles .sb-role:first-child { justify-self: end; }
+  .sb-roles .sb-role:last-child { justify-self: start; }
   .score-bar .sb-role {
     font-size: 11px;
     font-weight: 700;
@@ -3025,51 +3108,89 @@
     padding: 3px 10px;
     border-radius: 999px;
   }
+  .sb-main {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    column-gap: 12px;
+  }
+  .sb-box {
+    display: inline-flex;
+    align-items: center;
+    column-gap: 8px;
+    padding: 6px 16px;
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    background: var(--bg, var(--surface));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
   .score-bar .sb-score {
     font-size: 34px;
     font-weight: 800;
     font-family: "Consolas", monospace;
     line-height: 1;
     color: var(--them-color);
+    min-width: 1.4ch;
+    text-align: center;
   }
   .score-bar .sb-score.us { color: var(--us-color); }
   .score-bar .sb-colon { font-size: 26px; font-weight: 800; color: var(--text-muted); }
-  .score-bar .sb-fauly { display: contents; color: var(--text-muted); }
-  .score-bar .sbf-num {
-    grid-row: 3;
-    margin-top: 3px;
-    font-family: "Consolas", monospace;
-    font-size: 24px;
-    font-weight: 800;
-    color: var(--text);
+  .sb-dots {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    row-gap: 4px;
   }
-  .score-bar .sbf-home { grid-column: 1; }
-  .score-bar .sbf-away { grid-column: 3; }
-  .score-bar .sbf-colon {
-    grid-row: 3;
-    grid-column: 2;
-    margin-top: 3px;
-    font-size: 20px;
-    font-weight: 800;
-    color: var(--text-muted);
+  .sb-dot {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border);
+    background: transparent;
+    transition: background-color 0.12s, border-color 0.12s;
   }
-  .score-bar .sbf-label {
-    grid-row: 4;
-    grid-column: 1 / -1;
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    color: var(--text-muted);
+  .sb-dot.on {
+    background: var(--success, #22c55e);
+    border-color: var(--success, #22c55e);
   }
-  .score-bar .sbf-num.bonus { color: var(--danger); }
+  .sb-dot.on.bonus {
+    background: var(--danger, #ef4444);
+    border-color: var(--danger, #ef4444);
+  }
   @media (max-width: 700px) {
     .score-bar { padding: 5px 12px; margin: 6px 0; }
-    .sb-cluster { column-gap: 8px; }
+    .sb-main { column-gap: 9px; }
     .score-bar .sb-score { font-size: 26px; }
-    .score-bar .sbf-num { font-size: 19px; }
+    .sb-box { padding: 4px 12px; }
+    .sb-dot { width: 9px; height: 9px; }
     .score-bar .sb-q { font-size: 12px; padding: 2px 8px; }
   }
+
+  .limit-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0 0 8px;
+    padding: 6px 12px;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .limit-toggle .lt-label strong { margin-left: 4px; }
+  .limit-toggle .lt-label strong.on { color: var(--success); }
+  .limit-toggle .lt-label strong.off { color: var(--text-muted); }
+  .limit-toggle .lt-btn {
+    padding: 4px 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .limit-toggle .lt-btn:hover { background: var(--selected-bg); }
 
   .undo-hint {
     flex-basis: 100%;
