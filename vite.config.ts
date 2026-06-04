@@ -16,7 +16,7 @@ export default defineConfig({
       manifest: {
         name: 'Coach Box (Jižní Supi)',
         short_name: 'Coach Box',
-        description: 'Live zápis a analýza basketbalových zápasů — Jižní Supi',
+        description: 'Live zápis a analýza basketbalových zápasů - Jižní Supi',
         theme_color: '#1e3a8a',
         background_color: '#1e3a8a',
         display: 'standalone',
