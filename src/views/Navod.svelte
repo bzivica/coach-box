@@ -161,12 +161,13 @@
 
       <section class="step">
         <h4>5. Konec čtvrtiny</h4>
-        <p>Klikni <strong>Konec Q1</strong> → stopky se automaticky zapauzují → vyber 5 hráčů pro Q2 → <strong>Začít Q2</strong>. Při přechodu se stopky resetují na 0:00.</p>
+        <p>Klikni <strong>Konec Q1</strong> → stopky se automaticky zapauzují → <strong>naskočí celoobrazovkový přehled</strong> (TV styl) → <strong>Pokračovat → sestava</strong> → vyber 5 hráčů pro Q2 → <strong>Začít Q2</strong>. Při přechodu se stopky resetují na 0:00.</p>
+        <p><strong>Přehled po čtvrtině / poločase:</strong> po každé Q (i o poločase a po posledí čtvrtině) se ukáže přehled přes celou obrazovku: skóre po čtvrtinách (domácí vlevo), srovnání týmů — u nás <strong>2P / 3P / TH ve formátu dané/pokusy + %</strong>, u soupeře jen počet košů (pokusy soupeře se neevidují), a <strong>největší vedení</strong>. Nahoře přepínáš <strong>Q1…Qn / poločas / celý zápas</strong>. Tlačítkem dole přehled zavřeš a pokračuješ.</p>
       </section>
 
       <section class="step">
         <h4>6. Konec zápasu</h4>
-        <p>Po Q4 (nebo OT) klikni <strong>Ukončit zápas</strong> → potvrď. Pokud Q4 končí remízou, můžeš jít do prodloužení. Po ukončení uvidíš kompletní boxscore.</p>
+        <p>Po Q4 (nebo OT) klikni <strong>Ukončit zápas</strong> → potvrď. Pokud Q4 končí remízou, můžeš jít do prodloužení. Po ukončení uvidíš kompletní boxscore. Tlačítkem <strong>📺 Přehled zápasu</strong> kdykoli otevřeš celoobrazovkový TV přehled (skóre po čtvrtinách, srovnání týmů, největší vedení, přepínač Q / poločas / celý zápas).</p>
         <p><strong>Oprava / přiřazení akcí po zápase:</strong> v boxscore je rozbalovací sekce <strong>„✏️ Opravit / přiřadit akce"</strong>. U každého koše / trestného / ztráty je rozbalovátko hráče — můžeš:</p>
         <ul>
           <li>přiřadit <em>„bez hráče"</em> koš/ztrátu konkrétnímu hráči (když po zápase zjistíš od koho to bylo),</li>
@@ -184,8 +185,9 @@
           <li><strong>Stopky se resetovaly nechtěně:</strong> klikni ✏️ Čas, zadej zbývající čas MM:SS (např. <code>4:23</code>), Enter. Stopky budou pozastavené — pak ▶ Start.</li>
           <li><strong>Špatné číslo Q (zápas ještě bez akcí):</strong> klikni ✏️ Q a zadej správné číslo. Pokud v aktuální Q nejsou žádné akce, jen se přejmenuje.</li>
           <li><strong>Prošvihl jsi konec Q (akce už máš zapsané):</strong> klikni ✏️ Q a zadej číslo nové Q. Aktuální Q se uzavře s dosavadními akcemi, vznikne nová Q se stejnou pěticí a stopkami od 0:00 — od teď zapisuješ do ní. Vrátit přes <strong>↶ Vrátit poslední akci</strong> (jen pokud nová Q ještě nemá akce).</li>
-          <li><strong>U14 pravidlo (Q1+Q2+Q3 v řadě zakázáno):</strong> appka varuje při střídání, lze pokračovat (= vědomé porušení).</li>
+          <li><strong>U14 pravidlo (Q1+Q2+Q3 v řadě zakázáno):</strong> appka varuje při střídání, lze pokračovat (= vědomé porušení). Hlídá se jen u soutěží s limity mládeže — viz dál.</li>
           <li><strong>Limit čtvrtin (U12/U13: 2, U14: 3):</strong> varování při překročení.</li>
+          <li><strong>Hlídání limitu zapnout/vypnout v zápase:</strong> u kategorií s limitem (U12/U13/U14) je pod skóre tlačítko <strong>🔕 Vypnout / 🔔 Zapnout hlídání</strong> — přepíše nastavení soutěže jen pro tento zápas (užitečné u přáteláku nebo když limit hlídat nechceš).</li>
           <li><strong>Hostujeme (Naše strana = H):</strong> dresy hráčů se zobrazí v tmavé variantě (modré tělo, bílé číslo) automaticky podle nastavení zápasu.</li>
         </ul>
       </section>
@@ -259,7 +261,7 @@
       <section class="step">
         <h4>2.4 Soutěže</h4>
         <p><strong>Soutěže</strong> — předdefinováno: Liga, Extraliga, Nadregionální liga, Pražský přebor, ČEYBL, MČR, Easter Cup, Mezinárodní turnaj, Přátelák. Můžeš přidat / upravit / deaktivovat.</p>
-        <p>U každé soutěže je přepínač <strong>„Neplatí limity mládeže"</strong> — když je zapnutý, na zápasech té soutěže se nehlídají limity počtu čtvrtin ani U14 pravidlo Q1+Q2+Q3. CEYBL, Easter Cup a turnaje to mají zapnuté automaticky.</p>
+        <p>U každé soutěže je přepínač <strong>„Neplatí limity mládeže"</strong> — když je zapnutý, na zápasech té soutěže se nehlídají limity počtu čtvrtin ani U14 pravidlo Q1+Q2+Q3. <strong>Přátelák, ČEYBL, Easter Cup a turnaje</strong> to mají zapnuté automaticky (na přáteláku ani mezinárodních turnajích limity neplatí). V samotném zápase jde hlídání navíc přepnout tlačítkem pod skóre (jen pro daný zápas).</p>
       </section>
 
       <section class="step">
@@ -340,7 +342,7 @@
         <ul>
           <li><strong>Stopky a minuty:</strong> pokud asistent stopky nepustil, sloupec <strong>Min</strong> ukáže <code>—</code>. Ostatní staty jsou v pořádku.</li>
           <li><strong>Stopky se ukládají:</strong> stav stopek se průběžně ukládá do čtvrtiny — odskok na Statistiky (i obnovení appky) a návrat do zápasu klok zachová. Kdyby přesto neseděl, dorovnej ✏️ <strong>Čas</strong>.</li>
-          <li><strong>Statistiky za běhu:</strong> Statistiky (horní menu) jdou prohlížet i během rozehraného zápasu — třeba o poločase. Rozehraný zápas tam má štítek <em>BĚŽÍ / POLOČAS</em>. (O poločase jsi na obrazovce výběru pětice pro další Q, ne v live totals — průběžné staty najdeš právě ve Statistikách.)</li>
+          <li><strong>Statistiky za běhu:</strong> Statistiky (horní menu) jdou prohlížet i během rozehraného zápasu — třeba o poločase. Rozehraný zápas tam má štítek <em>BĚŽÍ / POLOČAS</em>. (O poločase i po každé Q se navíc ukáže celoobrazovkový <strong>přehled</strong> přímo v zápase — viz krok 5; podrobné per-hráč staty najdeš ve Statistikách.)</li>
           <li><strong>Stopky odpočítávají dolů</strong> (od délky Q → 0:00). Celkový čas v zápase pod nimi naopak roste od 0 k <code>počet_Q × délka_Q</code>.</li>
           <li><strong>Overtime:</strong> po poslední Q (Q4 nebo Q3 v přáteláku) nabízí appka prodloužení pokud je remíza, nebo ukončení.</li>
           <li><strong>Pravidla mládeže:</strong>
@@ -349,9 +351,10 @@
               <li>U14: max. 3 čtvrtiny / hráč</li>
               <li>U12, U13: max. 2 čtvrtiny / hráč</li>
               <li>Appka varuje při porušení (lze pokračovat = vědomé porušení).</li>
-              <li><strong>Výjimka:</strong> u soutěží s přepínačem <em>„Neplatí limity mládeže"</em> (CEYBL, Easter Cup, turnaje) se tato pravidla <strong>nehlídají</strong> — žádné varování. Nastavíš v <strong>Soutěže → upravit soutěž</strong>; CEYBL a turnaje to mají zapnuté automaticky.</li>
+              <li><strong>Výjimka:</strong> u soutěží s přepínačem <em>„Neplatí limity mládeže"</em> (Přátelák, CEYBL, Easter Cup, turnaje) se tato pravidla <strong>nehlídají</strong> — žádné varování. Nastavíš v <strong>Soutěže → upravit soutěž</strong>; přátelák, ČEYBL a turnaje to mají zapnuté automaticky. V zápase jde hlídání přepnout i tlačítkem <strong>🔕 / 🔔</strong> pod skóre (jen pro daný zápas).</li>
             </ul>
           </li>
+          <li><strong>Horní lišta skóre:</strong> skóre je v <strong>boxu</strong>, domácí vlevo. Po stranách boxu je <strong>5 teček týmových faulů</strong> dané čtvrtiny (domácí vlevo, hosté vpravo) — plní se zespoda, <strong>zelené</strong> dokud je faulů pod 5, <strong>červené</strong> jakmile je tým v <em>bonusu</em> (5. týmový faul → soupeř střílí trestné). Fauly se resetují každou čtvrtinu.</li>
           <li><strong>Foul-out:</strong> 5 faulů (všechny subtypy se počítají) → hráč musí být vystřídán, blokující modal.</li>
           <li><strong>Náš faul:</strong> tlačítko <strong>Faul</strong> i gesto/radial = rovnou <em>osobní</em> (bez okna). Nesportovní/technickou zapíšeš tlačítkem <strong>Nesportovní / technická…</strong>. Faul trenéra/lavičky = <strong>Tech. lavička</strong> (bez hráče, nepočítá se k nikomu).</li>
           <li><strong>Soupeř — fauly:</strong> osobní (<code>+1 faul…</code>, s/bez čísla), nesportovní (<code>Nesport.…</code>), technická (<code>Technická</code> — hned bez čísla, i trenér/lavička). Všechny jdou do faulů soupeře.</li>
