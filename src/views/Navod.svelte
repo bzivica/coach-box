@@ -8,15 +8,15 @@
   <div class="navod-toolbar">
     <h2>Nápověda</h2>
     <div class="sekce-switcher">
-      <button class:active={aktivni === 'asistent'} onclick={() => aktivni = 'asistent'}>Asistent — rychlý start</button>
-      <button class:active={aktivni === 'trener'} onclick={() => aktivni = 'trener'}>Trenér — úplný průvodce</button>
+      <button class:active={aktivni === 'asistent'} onclick={() => aktivni = 'asistent'}>Asistent - rychlý start</button>
+      <button class:active={aktivni === 'trener'} onclick={() => aktivni = 'trener'}>Trenér - úplný průvodce</button>
       <button class:active={aktivni === 'limity'} onclick={() => aktivni = 'limity'}>Limity & glosář</button>
     </div>
   </div>
 
   {#if aktivni === 'asistent'}
     <article class="content">
-      <h3>Asistent — Rychlý start (live zápis zápasu)</h3>
+      <h3>Asistent - Rychlý start (live zápis zápasu)</h3>
 
       <section class="step">
         <h4>1. Před výhozím tipoffem</h4>
@@ -27,7 +27,7 @@
         <h4>2. Začátek čtvrtiny</h4>
         <ol>
           <li>Klikni na 5 <strong>našich</strong> hráčů na hřišti (karty se podbarví modře).</li>
-          <li>Volitelně vyber 5 čísel <strong>soupeře</strong> v sekci pod sestavou (pokud má rozepsanou soupisku v Soupeři). Pokud ne, zápis se zapíše bez per-hráč evidence soupeře. <em>Tahle pětice slouží jen pro úvodní orientaci — v live zápise uvidíš plnou soupisku soupeře.</em></li>
+          <li>Volitelně vyber 5 čísel <strong>soupeře</strong> v sekci pod sestavou (pokud má rozepsanou soupisku v Soupeři). Pokud ne, zápis se zapíše bez per-hráč evidence soupeře. <em>Tahle pětice slouží jen pro úvodní orientaci - v live zápise uvidíš plnou soupisku soupeře.</em></li>
           <li>Klik <strong>Začít Q1</strong>.</li>
           <li>Volitelně klikni <strong>▶ Start</strong> stopek. Stopky odpočítávají od délky Q (např. 10:00 → 0:00). Pokud nestihneš pouštět, akce se zapíší stejně, jen minuty se nepočítají.</li>
         </ol>
@@ -37,13 +37,13 @@
         <h4>3. Layout live obrazovky</h4>
         <p>Obrazovka je rozdělená na 3 sloupce vedle sebe:</p>
         <ul>
-          <li><strong>Vlevo — MY AKCE:</strong> akce sgrupované (ÚTOK ✓/✗ ve dvou řadách, DOSKOK, POZITIVNÍ, NEGATIVNÍ), dole <em>Rychlý zápis bez hráče</em> a <em>Tech. lavička</em>.</li>
-          <li><strong>Uprostřed — HRÁČI:</strong> 5 svislých karet našich hráčů na hřišti, dole modré tlačítko <strong>⇄ Střídání</strong>.</li>
-          <li><strong>Vpravo — SOUPEŘ:</strong> plná soupiska soupeře jako chips (#číslo + příjmení), dole opp akce v 2-col gridu.</li>
+          <li><strong>Vlevo - MY AKCE:</strong> akce sgrupované (ÚTOK ✓/✗ ve dvou řadách, DOSKOK, POZITIVNÍ, NEGATIVNÍ), dole <em>Rychlý zápis bez hráče</em> a <em>Tech. lavička</em>.</li>
+          <li><strong>Uprostřed - HRÁČI:</strong> 5 svislých karet našich hráčů na hřišti, dole modré tlačítko <strong>⇄ Střídání</strong>.</li>
+          <li><strong>Vpravo - SOUPEŘ:</strong> plná soupiska soupeře jako chips (#číslo + příjmení), dole opp akce v 2-col gridu.</li>
         </ul>
         <p>Pod hlavními sloupci: <strong>Live totals</strong> (MY/SOUPEŘ chipy), <strong>Timeouts</strong>, <strong>Šatna strip</strong> (kompaktní řádek bench hráčů), footer s Konec Q / Ukončit zápas.</p>
         <p>Nahoře <strong>clock-bar</strong>: stopky, Start/Pauza, ✏️ Čas, ✏️ Q, ↺ Reset, a <strong>↶ Vrátit poslední</strong> (undo posledních akcí).</p>
-        <p><strong>Skóre</strong> je nad tím ve vlastním <strong>přilepeném (sticky) proužku uprostřed</strong> (<code>Qx · MY : SOUPEŘ</code>) — zůstane viditelné, i když odscrolluješ dolů za hráči (užitečné na fullscreenu).</p>
+        <p><strong>Skóre</strong> je nad tím ve vlastním <strong>přilepeném (sticky) proužku uprostřed</strong> (<code>Qx · MY : SOUPEŘ</code>) - zůstane viditelné, i když odscrolluješ dolů za hráči (užitečné na fullscreenu).</p>
       </section>
 
       <section class="step">
@@ -55,11 +55,11 @@
           <tbody>
             <tr>
               <td>Náš hráč skóroval / fauloval / cokoli</td>
-              <td>Klik na <strong>hráče uprostřed</strong> (karta zmodrá) → klik na akci vlevo. ÚTOK: horní řada zelená "✓ dal", spodní červená "✗ nedal" (2P / 3P / Trestný). Ostatní skupiny: DOSKOK (off/def), POZITIVNÍ (AST/STL/BLK), NEGATIVNÍ (Faul/Ztráta). <strong>Tip:</strong> všech 13 akcí jde zapsat jediným gestem (na hráči i na akčním tlačítku) — viz krok <em>4b. Rychlé zapisování gesty</em>.</td>
+              <td>Klik na <strong>hráče uprostřed</strong> (karta zmodrá) → klik na akci vlevo. ÚTOK: horní řada zelená "✓ dal", spodní červená "✗ nedal" (2P / 3P / Trestný). Ostatní skupiny: DOSKOK (off/def), POZITIVNÍ (AST/STL/BLK), NEGATIVNÍ (Faul/Ztráta). <strong>Tip:</strong> všech 13 akcí jde zapsat jediným gestem (na hráči i na akčním tlačítku) - viz krok <em>4b. Rychlé zapisování gesty</em>.</td>
             </tr>
             <tr>
               <td>Faul našeho hráče</td>
-              <td>Tlačítko <strong>Faul</strong> (nebo gesto / radial) zapíše rovnou <strong>osobní</strong> faul — bez okna (99 % případů). Pro <strong>nesportovní / technickou</strong> klikni samostatné tlačítko <strong>Nesportovní / technická…</strong> a vyber subtyp. <strong>Tech. lavička</strong> (faul trenéra/lavičky bez hráče) je zvlášť dole.</td>
+              <td>Tlačítko <strong>Faul</strong> (nebo gesto / radial) zapíše rovnou <strong>osobní</strong> faul - bez okna (99 % případů). Pro <strong>nesportovní / technickou</strong> klikni samostatné tlačítko <strong>Nesportovní / technická…</strong> a vyber subtyp. <strong>Tech. lavička</strong> (faul trenéra/lavičky bez hráče) je zvlášť dole.</td>
             </tr>
             <tr>
               <td>Faul soupeře</td>
@@ -67,14 +67,14 @@
             </tr>
             <tr>
               <td>Náš tým skóroval, ale nevím kdo</td>
-              <td>Sekce <strong>RYCHLÝ ZÁPIS BEZ HRÁČE</strong> vlevo dole: <code>+2 tým</code> / <code>+3 tým</code> / <code>+1 tým</code> a <code>Ztráta tým</code> (týmová ztráta bez hráče — shot-clock, aut, nejasné). Bez výběru hráče, sedí semafor, ale nezapočítá se k žádnému hráči (v matchEnd řádek <em>Bez hráče</em>). <strong>Po zápase to jde doklikat ke správnému hráči</strong> — viz krok 6.</td>
+              <td>Sekce <strong>RYCHLÝ ZÁPIS BEZ HRÁČE</strong> vlevo dole: <code>+2 tým</code> / <code>+3 tým</code> / <code>+1 tým</code> a <code>Ztráta tým</code> (týmová ztráta bez hráče - shot-clock, aut, nejasné). Bez výběru hráče, sedí semafor, ale nezapočítá se k žádnému hráči (v matchEnd řádek <em>Bez hráče</em>). <strong>Po zápase to jde doklikat ke správnému hráči</strong> - viz krok 6.</td>
             </tr>
             <tr>
-              <td>Soupeř skóroval — víme kdo</td>
+              <td>Soupeř skóroval - víme kdo</td>
               <td>Klik na chip s číslem v opp panelu vpravo (zvýrazní se) → klik na akci (+2 / +3 / +1 / Faul / doskok). Po akci se výběr automaticky resetuje. Nebo klik <strong>✕ bez hráče</strong> pro zrušení výběru.</td>
             </tr>
             <tr>
-              <td>Soupeř skóroval — nevíme kdo</td>
+              <td>Soupeř skóroval - nevíme kdo</td>
               <td>Nechej chip nevybraný → klik přímo na akci. Zapíše obecně bez čísla (v matchEnd jako <em>Bez čísla hráče</em>).</td>
             </tr>
             <tr>
@@ -83,7 +83,7 @@
             </tr>
             <tr>
               <td>Omyl (jakákoli akce)</td>
-              <td>Klikni <strong>↶ Vrátit poslední</strong> v clock-baru nahoře — vrátí poslední událost, změnu Q čísla i ruční nastavení času. Pod clock-barem je <strong>řádek „↶ Vrátíš:"</strong> s poslední (a předposlední) akcí, takže dopředu vidíš, co smažeš.</td>
+              <td>Klikni <strong>↶ Vrátit poslední</strong> v clock-baru nahoře - vrátí poslední událost, změnu Q čísla i ruční nastavení času. Pod clock-barem je <strong>řádek „↶ Vrátíš:"</strong> s poslední (a předposlední) akcí, takže dopředu vidíš, co smažeš.</td>
             </tr>
             <tr>
               <td>Stopky čas</td>
@@ -116,17 +116,17 @@
             <tr>
               <td><strong>Krátké švihnutí ↑</strong></td>
               <td>+2 body daný</td>
-              <td rowspan="4">Při tažení se kolem karty objeví 4 popisky (↑✓2, ↓✗2, →FAUL, ←REB-D) — aktivní směr se modře zvýrazní. Pust až za hranicí karty, jinak se akce nezapíše. Nejrychlejší cesta pro 4 nejčastější situace.</td>
+              <td rowspan="4">Při tažení se kolem karty objeví 4 popisky (↑✓2, ↓✗2, →FAUL, ←REB-D) - aktivní směr se modře zvýrazní. Pust až za hranicí karty, jinak se akce nezapíše. Nejrychlejší cesta pro 4 nejčastější situace.</td>
             </tr>
             <tr><td><strong>Krátké švihnutí ↓</strong></td><td>2 body NEdaný</td></tr>
             <tr><td><strong>Krátké švihnutí →</strong></td><td>Faul (rovnou osobní)</td></tr>
             <tr><td><strong>Krátké švihnutí ←</strong></td><td>Doskok obranný (REB-D)</td></tr>
             <tr>
               <td><strong>Podržení prstu (~¼ s) + tažení</strong></td>
-              <td>Radial menu — dvě soustředné vrstvy s 13 akcemi</td>
+              <td>Radial menu - dvě soustředné vrstvy s 13 akcemi</td>
               <td>
                 <strong>Vnitřní kruh (8):</strong> dané koše nahoře (↖✓FT, ↑✓2, ↗✓3), nedané dole (↙✗3, ↓✗2, ↘✗FT), doskoky po stranách (←REB-D, →REB-O). Protějšky jsou proti sobě.<br/>
-                <strong>Vnější kruh (5):</strong> AST, STL, BLK, TO, FAUL — dál od středu.<br/>
+                <strong>Vnější kruh (5):</strong> AST, STL, BLK, TO, FAUL - dál od středu.<br/>
                 Táhneš prstem na výseč a pustíš = zápis. <strong>Uprostřed se ukáže, co zapíšeš</strong> (např. „2 body daný"). Vnitřní/vnější se rozlišuje vzdáleností (vnější ≥ 122 px). Ve středu (× zrušit) = cancel. Faul = rovnou osobní.
               </td>
             </tr>
@@ -154,25 +154,25 @@
         </table>
 
         <p class="muted-note">
-          <strong>V radialu drží logika:</strong> dané koše nahoře, nedané dole, doskoky po stranách — každá akce má svůj protějšek přímo proti sobě, takže si na směry rychle zvykneš.<br/>
-          Tap na hráče (= výběr) + tap na tlačítko (= zápis) funguje pořád úplně stejně jako bez gest — gesta jsou jen rychlejší alternativa pro toho kdo si zvykne.
+          <strong>V radialu drží logika:</strong> dané koše nahoře, nedané dole, doskoky po stranách - každá akce má svůj protějšek přímo proti sobě, takže si na směry rychle zvykneš.<br/>
+          Tap na hráče (= výběr) + tap na tlačítko (= zápis) funguje pořád úplně stejně jako bez gest - gesta jsou jen rychlejší alternativa pro toho kdo si zvykne.
         </p>
       </section>
 
       <section class="step">
         <h4>5. Konec čtvrtiny</h4>
         <p>Klikni <strong>Konec Q1</strong> → stopky se automaticky zapauzují → <strong>naskočí celoobrazovkový přehled</strong> (TV styl) → <strong>Pokračovat → sestava</strong> → vyber 5 hráčů pro Q2 → <strong>Začít Q2</strong>. Při přechodu se stopky resetují na 0:00.</p>
-        <p><strong>Přehled po čtvrtině / poločase:</strong> po každé Q (i o poločase a po posledí čtvrtině) se ukáže přehled přes celou obrazovku: skóre po čtvrtinách (domácí vlevo), srovnání týmů — u nás <strong>2P / 3P / TH ve formátu dané/pokusy + %</strong>, u soupeře jen počet košů (pokusy soupeře se neevidují), a <strong>největší vedení</strong>. Nahoře přepínáš <strong>Q1…Qn / poločas / celý zápas</strong>. Tlačítkem dole přehled zavřeš a pokračuješ.</p>
+        <p><strong>Přehled po čtvrtině / poločase:</strong> po každé Q (i o poločase a po posledí čtvrtině) se ukáže přehled přes celou obrazovku: skóre po čtvrtinách (domácí vlevo), srovnání týmů - u nás <strong>2P / 3P / TH ve formátu dané/pokusy + %</strong>, u soupeře jen počet košů (pokusy soupeře se neevidují), a <strong>největší vedení</strong>. Nahoře přepínáš <strong>Q1…Qn / poločas / celý zápas</strong>. Tlačítkem dole přehled zavřeš a pokračuješ.</p>
       </section>
 
       <section class="step">
         <h4>6. Konec zápasu</h4>
         <p>Po Q4 (nebo OT) klikni <strong>Ukončit zápas</strong> → potvrď. Pokud Q4 končí remízou, můžeš jít do prodloužení. Po ukončení uvidíš kompletní boxscore. Tlačítkem <strong>📺 Přehled zápasu</strong> kdykoli otevřeš celoobrazovkový TV přehled (skóre po čtvrtinách, srovnání týmů, největší vedení, přepínač Q / poločas / celý zápas).</p>
-        <p><strong>Oprava / přiřazení akcí po zápase:</strong> v boxscore je rozbalovací sekce <strong>„✏️ Opravit / přiřadit akce"</strong>. U každého koše / trestného / ztráty je rozbalovátko hráče — můžeš:</p>
+        <p><strong>Oprava / přiřazení akcí po zápase:</strong> v boxscore je rozbalovací sekce <strong>„✏️ Opravit / přiřadit akce"</strong>. U každého koše / trestného / ztráty je rozbalovátko hráče - můžeš:</p>
         <ul>
           <li>přiřadit <em>„bez hráče"</em> koš/ztrátu konkrétnímu hráči (když po zápase zjistíš od koho to bylo),</li>
           <li>opravit <strong>špatně přiřazenou</strong> akci (přehodit z hráče A na hráče B),</li>
-          <li>nebo naopak dát akci zpět na <em>„— bez hráče —"</em> (týmová).</li>
+          <li>nebo naopak dát akci zpět na <em>„- bez hráče -"</em> (týmová).</li>
         </ul>
         <p>Body se nemění (skóre zůstává), jen se přesunou ke správnému hráči. Funguje i u dávno ukončených zápasů (Statistiky → klik na zápas).</p>
         <p><strong>Vývoj skóre (graf):</strong> pod boxscorem je graf průběhu skóre. Přepínač <strong>Čáry</strong> ukazuje dvě křivky (MY a soupeř), <strong>Náskok</strong> ukazuje rozdíl (nad nulou vedeme my, pod nulou soupeř). Šňůry (6+ bodů v řadě bez odpovědi) jsou zvýrazněné pruhem a popiskem (např. 11-0). Graf respektuje přepínač Celkem / Q1..Q4 nahoře, takže ho vidíš pro celý zápas i pro jednotlivou čtvrtinu. Stejný graf je i v rozehraném zápase ve sbalovacím panelu „📈 Vývoj skóre".</p>
@@ -182,41 +182,41 @@
         <h4>Časté situace</h4>
         <ul>
           <li><strong>Hráč má 5 faulů (vyloučen):</strong> appka automaticky vyvolá modal pro vystřídání.</li>
-          <li><strong>Stopky se resetovaly nechtěně:</strong> klikni ✏️ Čas, zadej zbývající čas MM:SS (např. <code>4:23</code>), Enter. Stopky budou pozastavené — pak ▶ Start.</li>
+          <li><strong>Stopky se resetovaly nechtěně:</strong> klikni ✏️ Čas, zadej zbývající čas MM:SS (např. <code>4:23</code>), Enter. Stopky budou pozastavené - pak ▶ Start.</li>
           <li><strong>Špatné číslo Q (zápas ještě bez akcí):</strong> klikni ✏️ Q a zadej správné číslo. Pokud v aktuální Q nejsou žádné akce, jen se přejmenuje.</li>
-          <li><strong>Prošvihl jsi konec Q (akce už máš zapsané):</strong> klikni ✏️ Q a zadej číslo nové Q. Aktuální Q se uzavře s dosavadními akcemi, vznikne nová Q se stejnou pěticí a stopkami od 0:00 — od teď zapisuješ do ní. Vrátit přes <strong>↶ Vrátit poslední akci</strong> (jen pokud nová Q ještě nemá akce).</li>
-          <li><strong>U14 pravidlo (Q1+Q2+Q3 v řadě zakázáno):</strong> appka varuje při střídání, lze pokračovat (= vědomé porušení). Hlídá se jen u soutěží s limity mládeže — viz dál.</li>
+          <li><strong>Prošvihl jsi konec Q (akce už máš zapsané):</strong> klikni ✏️ Q a zadej číslo nové Q. Aktuální Q se uzavře s dosavadními akcemi, vznikne nová Q se stejnou pěticí a stopkami od 0:00 - od teď zapisuješ do ní. Vrátit přes <strong>↶ Vrátit poslední akci</strong> (jen pokud nová Q ještě nemá akce).</li>
+          <li><strong>U14 pravidlo (Q1+Q2+Q3 v řadě zakázáno):</strong> appka varuje při střídání, lze pokračovat (= vědomé porušení). Hlídá se jen u soutěží s limity mládeže - viz dál.</li>
           <li><strong>Limit čtvrtin (U12/U13: 2, U14: 3):</strong> varování při překročení.</li>
-          <li><strong>Hlídání limitu zapnout/vypnout v zápase:</strong> u kategorií s limitem (U12/U13/U14) je pod skóre tlačítko <strong>🔕 Vypnout / 🔔 Zapnout hlídání</strong> — přepíše nastavení soutěže jen pro tento zápas (užitečné u přáteláku nebo když limit hlídat nechceš).</li>
+          <li><strong>Hlídání limitu zapnout/vypnout v zápase:</strong> u kategorií s limitem (U12/U13/U14) je pod skóre tlačítko <strong>🔕 Vypnout / 🔔 Zapnout hlídání</strong> - přepíše nastavení soutěže jen pro tento zápas (užitečné u přáteláku nebo když limit hlídat nechceš).</li>
           <li><strong>Hostujeme (Naše strana = H):</strong> dresy hráčů se zobrazí v tmavé variantě (modré tělo, bílé číslo) automaticky podle nastavení zápasu.</li>
         </ul>
       </section>
     </article>
   {:else if aktivni === 'trener'}
     <article class="content">
-      <h3>Trenér — Úplný průvodce</h3>
+      <h3>Trenér - Úplný průvodce</h3>
 
       <section class="step">
         <h4>2.0 Instalace aplikace (přidat na plochu)</h4>
         <p>Coach Box se <strong>neinstaluje z obchodu</strong> - otevřeš odkaz v prohlížeči a „přidáš na plochu". Pak funguje jako normální appka <strong>i bez internetu</strong>.</p>
         <p>Odkaz: <code>https://bzivica.github.io/coach-box/</code></p>
-        <h5>Android (telefon/tablet) nebo počítač — Chrome / Edge</h5>
+        <h5>Android (telefon/tablet) nebo počítač - Chrome / Edge</h5>
         <ol>
           <li>Otevři odkaz v <strong>Chrome</strong> (nebo Edge).</li>
           <li>Klikni <strong>„Instalovat aplikaci"</strong> (ikonka v adresním řádku), nebo menu <strong>⋮</strong> → <strong>„Přidat na plochu" / „Instalovat aplikaci"</strong>.</li>
           <li>Potvrď <strong>Instalovat</strong> → na ploše se objeví ikona Coach Box (logo Supů).</li>
           <li>Spouštěj appku už jen přes tu ikonu (otevře se na celou obrazovku).</li>
         </ol>
-        <h5>iPhone / iPad — musí to být v Safari</h5>
+        <h5>iPhone / iPad - musí to být v Safari</h5>
         <ol>
           <li>Otevři odkaz v <strong>Safari</strong> (na iOS to Chrome neumí).</li>
           <li>Ťukni na <strong>Sdílet</strong> (čtvereček se šipkou ↑).</li>
           <li>Sjeď dolů → <strong>„Přidat na plochu"</strong> → <strong>Přidat</strong>.</li>
         </ol>
         <ul>
-          <li><strong>Funguje offline</strong> — v hale internet nepotřebuješ (jen jednou na instalaci).</li>
-          <li><strong>Data jsou jen v tvém zařízení</strong> — nikam se neposílají.</li>
-          <li><strong>Aktualizace:</strong> když jsi online a appku otevřeš, sama nabídne „Nová verze — Aktualizovat".</li>
+          <li><strong>Funguje offline</strong> - v hale internet nepotřebuješ (jen jednou na instalaci).</li>
+          <li><strong>Data jsou jen v tvém zařízení</strong> - nikam se neposílají.</li>
+          <li><strong>Aktualizace:</strong> když jsi online a appku otevřeš, sama nabídne „Nová verze - Aktualizovat".</li>
           <li><strong>Sdílení s asistentem:</strong> přes <strong>Domů → Export / Import</strong> (JSON).</li>
         </ul>
       </section>
@@ -226,19 +226,19 @@
         <p><strong>Hráči → + Nový hráč</strong>. Pole:</p>
         <ul>
           <li><strong>Jméno + Příjmení</strong> (povinné)</li>
-          <li><strong>Číslo dresu</strong> (0–99)</li>
+          <li><strong>Číslo dresu</strong> (0-99)</li>
           <li><strong>Pozice</strong> (PG/SG/SF/PF/C, volitelné)</li>
-          <li><strong>Výška</strong> v cm (volitelné, 100–230)</li>
-          <li><strong>Datum narození</strong> (volitelné — pokud zadáno, ročník se vyplní automaticky)</li>
-          <li><strong>Ročník narození</strong> (čtyřciferný — slouží pro výpočet věku, ten se ukáže jako modrý štítek)</li>
-          <li><strong>Domácí kategorie</strong> (povinná — kde hráč hlavně trénuje a hraje)</li>
+          <li><strong>Výška</strong> v cm (volitelné, 100-230)</li>
+          <li><strong>Datum narození</strong> (volitelné - pokud zadáno, ročník se vyplní automaticky)</li>
+          <li><strong>Ročník narození</strong> (čtyřciferný - slouží pro výpočet věku, ten se ukáže jako modrý štítek)</li>
+          <li><strong>Domácí kategorie</strong> (povinná - kde hráč hlavně trénuje a hraje)</li>
           <li><strong>Foto</strong> (volitelné, zmenší se na 240×240 JPEG; bez fotky se ukazuje stylizovaný dres s číslem)</li>
           <li><strong>Aktivní</strong> = v soupisce klubu</li>
         </ul>
       </section>
 
       <section class="step">
-        <h4>2.2 Eligibility — kdo smí hrát kterou kategorii</h4>
+        <h4>2.2 Eligibility - kdo smí hrát kterou kategorii</h4>
         <p>Pravidlo: <strong>hráč hraje svou domácí kategorii + všechny starší v obou liniích A i B</strong>.</p>
         <div class="kategorie-poradi">
           Přípravka → U10 MIX → U11 → U12 → U13 → U14 → <strong>U15 B</strong> → U15 → <strong>U17 B</strong> → U17 → <strong>U19 B</strong> → U19 → Muži B → Muži A
@@ -253,28 +253,28 @@
         <p>Rozepsaná soupiska se používá v live zápase pro per-hráč evidenci (klik na číslo soupeře před akcí). Rychlé doplnění:</p>
         <ul>
           <li><strong>⎘ Hromadně vložit</strong> → textarea s formátem <code>číslo jméno [příjmení]</code> na řádek (samotná čísla bez jmen OK). Přepíše stávající seznam.</li>
-          <li><strong>↻ Z posledního zápasu</strong> (jen při úpravě existujícího soupeře) — naskenuje události posledního zápasu s tímto týmem a doplní čísla, která jste atribuoval přes chip select. Užitečné když si nepamatujete přesně koho jste zapisoval.</li>
+          <li><strong>↻ Z posledního zápasu</strong> (jen při úpravě existujícího soupeře) - naskenuje události posledního zápasu s tímto týmem a doplní čísla, která jste atribuoval přes chip select. Užitečné když si nepamatujete přesně koho jste zapisoval.</li>
         </ul>
-        <p><strong>Pozor:</strong> v přátelácích se mohou objevit dvě hráčské karty se stejným číslem (např. hráč z mladší kat. + hráč ze starší). U <em>soupeře</em> aplikace deduplikuje podle čísla a v stat zápise se vše agreguje pod jedno číslo. U <em>našich hráčů</em> deduplikace nehrozí, klíčujeme přes interní ID — můžete mít klidně 2× <code>#7</code>.</p>
+        <p><strong>Pozor:</strong> v přátelácích se mohou objevit dvě hráčské karty se stejným číslem (např. hráč z mladší kat. + hráč ze starší). U <em>soupeře</em> aplikace deduplikuje podle čísla a v stat zápise se vše agreguje pod jedno číslo. U <em>našich hráčů</em> deduplikace nehrozí, klíčujeme přes interní ID - můžete mít klidně 2× <code>#7</code>.</p>
       </section>
 
       <section class="step">
         <h4>2.4 Soutěže</h4>
-        <p><strong>Soutěže</strong> — předdefinováno: Liga, Extraliga, Nadregionální liga, Pražský přebor, ČEYBL, MČR, Easter Cup, Mezinárodní turnaj, Přátelák. Můžeš přidat / upravit / deaktivovat.</p>
-        <p>U každé soutěže je přepínač <strong>„Neplatí limity mládeže"</strong> — když je zapnutý, na zápasech té soutěže se nehlídají limity počtu čtvrtin ani U14 pravidlo Q1+Q2+Q3. <strong>Přátelák, ČEYBL, Easter Cup a turnaje</strong> to mají zapnuté automaticky (na přáteláku ani mezinárodních turnajích limity neplatí). V samotném zápase jde hlídání navíc přepnout tlačítkem pod skóre (jen pro daný zápas).</p>
+        <p><strong>Soutěže</strong> - předdefinováno: Liga, Extraliga, Nadregionální liga, Pražský přebor, ČEYBL, MČR, Easter Cup, Mezinárodní turnaj, Přátelák. Můžeš přidat / upravit / deaktivovat.</p>
+        <p>U každé soutěže je přepínač <strong>„Neplatí limity mládeže"</strong> - když je zapnutý, na zápasech té soutěže se nehlídají limity počtu čtvrtin ani U14 pravidlo Q1+Q2+Q3. <strong>Přátelák, ČEYBL, Easter Cup a turnaje</strong> to mají zapnuté automaticky (na přáteláku ani mezinárodních turnajích limity neplatí). V samotném zápase jde hlídání navíc přepnout tlačítkem pod skóre (jen pro daný zápas).</p>
       </section>
 
       <section class="step">
         <h4>2.5 Založení zápasu</h4>
         <p><strong>Zápasy → + Nový zápas</strong>:</p>
         <ul>
-          <li><strong>Datum, Naše kategorie</strong> (úroveň zápasu, ne věkový průměr), <strong>Naše strana</strong> (D/H — určuje světlou/tmavou variantu dresů v live)</li>
+          <li><strong>Datum, Naše kategorie</strong> (úroveň zápasu, ne věkový průměr), <strong>Naše strana</strong> (D/H - určuje světlou/tmavou variantu dresů v live)</li>
           <li><strong>Soupeř</strong> (filtruje se podle shodné kategorie)</li>
           <li><strong>Soutěž, Sezona</strong> (např. <code>2025/26</code>)</li>
-          <li><strong>Délka čtvrtiny</strong> — default 10 min, mladší kategorie 8 nebo 6 (rozsah 4–15)</li>
-          <li><strong>Počet čtvrtin</strong> — viditelné jen u typu <em>Přátelák</em>, volitelně 3 nebo 4 (pro ligy/poháry/turnaje pevně 4)</li>
-          <li><strong>Soupeř = náš tým</strong> (jen u Přáteláku) — interní přátelák mezi našimi týmy. Zaškrtni „Soupeř je náš tým" a vyber kategorii. Nabízí se naše kategorie <strong>do +2 věkové skupiny výš</strong> (B i A se počítají jako jedna skupina): U12 → U12/U13/U14, U13 → U13/U14/U15B/U15, U14 → +U17B/U17 atd. Soupiska soupeře se naplní z našich hráčů té kategorie (čísla + jména) — sleduje se po číslech (body/fauly/doskoky/ztráty), upravitelná v zápase přes „✎ Soupiska".</li>
-          <li><strong>Nasazení hráči</strong> — alespoň 5</li>
+          <li><strong>Délka čtvrtiny</strong> - default 10 min, mladší kategorie 8 nebo 6 (rozsah 4-15)</li>
+          <li><strong>Počet čtvrtin</strong> - viditelné jen u typu <em>Přátelák</em>, volitelně 3 nebo 4 (pro ligy/poháry/turnaje pevně 4)</li>
+          <li><strong>Soupeř = náš tým</strong> (jen u Přáteláku) - interní přátelák mezi našimi týmy. Zaškrtni „Soupeř je náš tým" a vyber kategorii. Nabízí se naše kategorie <strong>do +2 věkové skupiny výš</strong> (B i A se počítají jako jedna skupina): U12 → U12/U13/U14, U13 → U13/U14/U15B/U15, U14 → +U17B/U17 atd. Soupiska soupeře se naplní z našich hráčů té kategorie (čísla + jména) - sleduje se po číslech (body/fauly/doskoky/ztráty), upravitelná v zápase přes „✎ Soupiska".</li>
+          <li><strong>Nasazení hráči</strong> - alespoň 5</li>
         </ul>
         <p>Pod sestavou je <strong>breakdown</strong> (chipy podle ročníku + kategorie). Modrý = hlavní skupina; červený + ⚠ = vedlejší skupina s <code>&gt; 4</code> hráči (varování federačního limitu, neblokuje uložení).</p>
       </section>
@@ -284,9 +284,9 @@
         <p>Záložka <strong>Statistiky</strong> agreguje napříč ukončenými zápasy.</p>
         <ul>
           <li><strong>Filtry</strong> (chipy v záhlaví): Sezona, Soutěž, Kategorie, Hráči (jen v tabu Hráči). Prázdný výběr = vše.</li>
-          <li><strong>Per game toggle</strong> vpravo nahoře — přepne hodnoty mezi total a Ø na zápas.</li>
-          <li><strong>Tab Hráči</strong> — boxscore: GP, Min, PTS, 2P, 3P, FT, OFF, DEF, <strong>REB</strong>, AST, STL, TO, BLK, PF, +/-, EFF. REB = OFF + DEF.</li>
-          <li><strong>Tab Tým</strong> — 3 KPI karty (bilance, Ø body dáno, Ø body dostáno) + týmová tabulka stejných sloupců jako Hráči (kromě +/- a EFF) + seznam zápasů s V/P/R.</li>
+          <li><strong>Per game toggle</strong> vpravo nahoře - přepne hodnoty mezi total a Ø na zápas.</li>
+          <li><strong>Tab Hráči</strong> - boxscore: GP, Min, PTS, 2P, 3P, FT, OFF, DEF, <strong>REB</strong>, AST, STL, TO, BLK, PF, +/-, EFF. REB = OFF + DEF.</li>
+          <li><strong>Tab Tým</strong> - 3 KPI karty (bilance, Ø body dáno, Ø body dostáno) + týmová tabulka stejných sloupců jako Hráči (kromě +/- a EFF) + seznam zápasů s V/P/R.</li>
           <li><strong>Klik na řádek zápasu</strong> v Tým tabu otevře <em>matchEnd</em> view s plným per-Q boxscore a per-hráč staty soupeře. Zpět tlačítkem v levém horním rohu.</li>
         </ul>
       </section>
@@ -307,7 +307,7 @@
         <h4>2.8 Zálohování dat</h4>
         <p><strong>Domů → Záloha / přenos dat</strong>:</p>
         <ul>
-          <li><strong>Export</strong> → stáhne <code>basket-data-YYYY-MM-DD.json</code> s <strong>celou databází</strong> — včetně <strong>rozehraných (neukončených) zápasů</strong> a všech jejich akcí, čtvrtin i stavu stopek. Rozehraný zápas tak jde přenést na jiné zařízení a tam dohrát.</li>
+          <li><strong>Export</strong> → stáhne <code>basket-data-YYYY-MM-DD.json</code> s <strong>celou databází</strong> - včetně <strong>rozehraných (neukončených) zápasů</strong> a všech jejich akcí, čtvrtin i stavu stopek. Rozehraný zápas tak jde přenést na jiné zařízení a tam dohrát.</li>
           <li><strong>Import (přepsat)</strong> → přepíše VŠECHNA data v této instanci. <strong>Sloučit z JSON</strong> → přidá jen nové (nepřepíše, nezdvojí).</li>
         </ul>
         <p><strong>Workflow přenos trenér ↔ asistent:</strong></p>
@@ -340,9 +340,9 @@
 
       <section class="step warn">
         <ul>
-          <li><strong>Stopky a minuty:</strong> pokud asistent stopky nepustil, sloupec <strong>Min</strong> ukáže <code>—</code>. Ostatní staty jsou v pořádku.</li>
-          <li><strong>Stopky se ukládají:</strong> stav stopek se průběžně ukládá do čtvrtiny — odskok na Statistiky (i obnovení appky) a návrat do zápasu klok zachová. Kdyby přesto neseděl, dorovnej ✏️ <strong>Čas</strong>.</li>
-          <li><strong>Statistiky za běhu:</strong> Statistiky (horní menu) jdou prohlížet i během rozehraného zápasu — třeba o poločase. Rozehraný zápas tam má štítek <em>BĚŽÍ / POLOČAS</em>. (O poločase i po každé Q se navíc ukáže celoobrazovkový <strong>přehled</strong> přímo v zápase — viz krok 5; podrobné per-hráč staty najdeš ve Statistikách.)</li>
+          <li><strong>Stopky a minuty:</strong> pokud asistent stopky nepustil, sloupec <strong>Min</strong> ukáže <code>-</code>. Ostatní staty jsou v pořádku.</li>
+          <li><strong>Stopky se ukládají:</strong> stav stopek se průběžně ukládá do čtvrtiny - odskok na Statistiky (i obnovení appky) a návrat do zápasu klok zachová. Kdyby přesto neseděl, dorovnej ✏️ <strong>Čas</strong>.</li>
+          <li><strong>Statistiky za běhu:</strong> Statistiky (horní menu) jdou prohlížet i během rozehraného zápasu - třeba o poločase. Rozehraný zápas tam má štítek <em>BĚŽÍ / POLOČAS</em>. (O poločase i po každé Q se navíc ukáže celoobrazovkový <strong>přehled</strong> přímo v zápase - viz krok 5; podrobné per-hráč staty najdeš ve Statistikách.)</li>
           <li><strong>Stopky odpočítávají dolů</strong> (od délky Q → 0:00). Celkový čas v zápase pod nimi naopak roste od 0 k <code>počet_Q × délka_Q</code>.</li>
           <li><strong>Overtime:</strong> po poslední Q (Q4 nebo Q3 v přáteláku) nabízí appka prodloužení pokud je remíza, nebo ukončení.</li>
           <li><strong>Pravidla mládeže:</strong>
@@ -351,17 +351,17 @@
               <li>U14: max. 3 čtvrtiny / hráč</li>
               <li>U12, U13: max. 2 čtvrtiny / hráč</li>
               <li>Appka varuje při porušení (lze pokračovat = vědomé porušení).</li>
-              <li><strong>Výjimka:</strong> u soutěží s přepínačem <em>„Neplatí limity mládeže"</em> (Přátelák, CEYBL, Easter Cup, turnaje) se tato pravidla <strong>nehlídají</strong> — žádné varování. Nastavíš v <strong>Soutěže → upravit soutěž</strong>; přátelák, ČEYBL a turnaje to mají zapnuté automaticky. V zápase jde hlídání přepnout i tlačítkem <strong>🔕 / 🔔</strong> pod skóre (jen pro daný zápas).</li>
+              <li><strong>Výjimka:</strong> u soutěží s přepínačem <em>„Neplatí limity mládeže"</em> (Přátelák, CEYBL, Easter Cup, turnaje) se tato pravidla <strong>nehlídají</strong> - žádné varování. Nastavíš v <strong>Soutěže → upravit soutěž</strong>; přátelák, ČEYBL a turnaje to mají zapnuté automaticky. V zápase jde hlídání přepnout i tlačítkem <strong>🔕 / 🔔</strong> pod skóre (jen pro daný zápas).</li>
             </ul>
           </li>
-          <li><strong>Horní lišta skóre:</strong> skóre je v <strong>boxu</strong>, domácí vlevo. Po stranách boxu je <strong>5 teček týmových faulů</strong> dané čtvrtiny (domácí vlevo, hosté vpravo) — plní se zespoda, <strong>zelené</strong> dokud je faulů pod 5, <strong>červené</strong> jakmile je tým v <em>bonusu</em> (5. týmový faul → soupeř střílí trestné). Fauly se resetují každou čtvrtinu.</li>
+          <li><strong>Horní lišta skóre:</strong> skóre je v <strong>boxu</strong>, domácí vlevo. Po stranách boxu je <strong>5 teček týmových faulů</strong> dané čtvrtiny (domácí vlevo, hosté vpravo) - plní se zespoda, <strong>zelené</strong> dokud je faulů pod 5, <strong>červené</strong> jakmile je tým v <em>bonusu</em> (5. týmový faul → soupeř střílí trestné). Fauly se resetují každou čtvrtinu.</li>
           <li><strong>Foul-out:</strong> 5 faulů (všechny subtypy se počítají) → hráč musí být vystřídán, blokující modal.</li>
           <li><strong>Náš faul:</strong> tlačítko <strong>Faul</strong> i gesto/radial = rovnou <em>osobní</em> (bez okna). Nesportovní/technickou zapíšeš tlačítkem <strong>Nesportovní / technická…</strong>. Faul trenéra/lavičky = <strong>Tech. lavička</strong> (bez hráče, nepočítá se k nikomu).</li>
-          <li><strong>Soupeř — fauly:</strong> osobní (<code>+1 faul…</code>, s/bez čísla), nesportovní (<code>Nesport.…</code>), technická (<code>Technická</code> — hned bez čísla, i trenér/lavička). Všechny jdou do faulů soupeře.</li>
-          <li><strong>Soupeř — ztráty:</strong> tlačítko <strong>Ztráta</strong> v opp panelu zapíše ztrátu soupeře (kroky, aut, ofenzivní faul…). Sleduje se <strong>týmově</strong> — nemusí odpovídat našim ziskům (STL), protože soupeř může ztratit míč i bez našeho zisku. V live totals i matchEnd jako <strong>TO</strong> u soupeře.</li>
-          <li><strong>Soupeř — per hráč:</strong> sledují se body, fauly a doskoky per jersey (pokud klikneš na číslo soupeře před akcí). AST/STL/BLK a ztráty pro soupeřovy hráče se nesledují individuálně.</li>
-          <li><strong>Soupeř — bez čísla:</strong> klik na opp akci bez vybrané jersey → zapíše obecně do týmového totálu (v matchEnd jako řádek <em>Bez čísla hráče</em>).</li>
-          <li><strong>Soupeř — full roster zobrazený</strong>: V live zápase vidíš všechny opp hráče jako chips (řazené dle čísla), ne jen 5 na hřišti. Soupeřovo střídání nesledujeme (přesah by byl příliš velký) — útoč po číslech které víš.</li>
+          <li><strong>Soupeř - fauly:</strong> osobní (<code>+1 faul…</code>, s/bez čísla), nesportovní (<code>Nesport.…</code>), technická (<code>Technická</code> - hned bez čísla, i trenér/lavička). Všechny jdou do faulů soupeře.</li>
+          <li><strong>Soupeř - ztráty:</strong> tlačítko <strong>Ztráta</strong> v opp panelu zapíše ztrátu soupeře (kroky, aut, ofenzivní faul…). Sleduje se <strong>týmově</strong> - nemusí odpovídat našim ziskům (STL), protože soupeř může ztratit míč i bez našeho zisku. V live totals i matchEnd jako <strong>TO</strong> u soupeře.</li>
+          <li><strong>Soupeř - per hráč:</strong> sledují se body, fauly a doskoky per jersey (pokud klikneš na číslo soupeře před akcí). AST/STL/BLK a ztráty pro soupeřovy hráče se nesledují individuálně.</li>
+          <li><strong>Soupeř - bez čísla:</strong> klik na opp akci bez vybrané jersey → zapíše obecně do týmového totálu (v matchEnd jako řádek <em>Bez čísla hráče</em>).</li>
+          <li><strong>Soupeř - full roster zobrazený</strong>: V live zápase vidíš všechny opp hráče jako chips (řazené dle čísla), ne jen 5 na hřišti. Soupeřovo střídání nesledujeme (přesah by byl příliš velký) - útoč po číslech které víš.</li>
           <li><strong>Náš tým bez hráče (rychlý zápis):</strong> tlačítka <code>+2 tým</code> / <code>+3 tým</code> / <code>+1 tým</code> v sekci dole vlevo. Body jdou do skóre (sedí semafor), ale ne k žádnému hráči. V matchEnd zvláštní řádek <em>Bez hráče</em> nad TÝM totalem.</li>
           <li><strong>Tmavá sada dresů:</strong> automaticky u zápasů kde <em>Naše strana = H</em> (hosté).</li>
           <li><strong>Undo:</strong> tlačítko <strong>↶ Vrátit poslední</strong> v clock-baru nahoře. Pod ním je řádek <strong>„↶ Vrátíš:"</strong> ukazující poslední a předposlední akci (víš dopředu, co se smaže). Vrátí zaznamenanou událost (koš, faul, střídání, oddech), ruční změnu Q čísla nebo času. Stack se vyčistí na začátku nové Q.</li>
@@ -373,22 +373,22 @@
         <h4>Zkratky a glosář</h4>
         <table>
           <tbody>
-            <tr><th>GP</th><td>Games Played — počet odehraných zápasů (kde hráč byl v soupisce)</td></tr>
-            <tr><th>PTS</th><td>Points — body</td></tr>
-            <tr><th>2P / 3P / FT</th><td>2-body / 3-body / Free Throw — formát <code>daný/pokus</code></td></tr>
+            <tr><th>GP</th><td>Games Played - počet odehraných zápasů (kde hráč byl v soupisce)</td></tr>
+            <tr><th>PTS</th><td>Points - body</td></tr>
+            <tr><th>2P / 3P / FT</th><td>2-body / 3-body / Free Throw - formát <code>daný/pokus</code></td></tr>
             <tr><th>OFF / DEF</th><td>Offensive / Defensive rebound (doskok útočný / obranný)</td></tr>
-            <tr><th>REB</th><td>Total Rebounds — celkem doskoků (OFF + DEF)</td></tr>
-            <tr><th>AST</th><td>Assist — asistence (přihrávka na koš)</td></tr>
-            <tr><th>STL</th><td>Steal — zisk (ukradl míč soupeři)</td></tr>
-            <tr><th>TO</th><td>Turnover — ztráta (ztratil míč)</td></tr>
-            <tr><th>BLK</th><td>Block — blok (zablokoval střelu soupeře)</td></tr>
-            <tr><th>PF</th><td>Personal Foul — osobní faul</td></tr>
-            <tr><th>+/-</th><td>Plus/minus — rozdíl skóre když byl hráč na hřišti</td></tr>
-            <tr><th>EFF</th><td>Efficiency — celkový přínos hráče</td></tr>
+            <tr><th>REB</th><td>Total Rebounds - celkem doskoků (OFF + DEF)</td></tr>
+            <tr><th>AST</th><td>Assist - asistence (přihrávka na koš)</td></tr>
+            <tr><th>STL</th><td>Steal - zisk (ukradl míč soupeři)</td></tr>
+            <tr><th>TO</th><td>Turnover - ztráta (ztratil míč)</td></tr>
+            <tr><th>BLK</th><td>Block - blok (zablokoval střelu soupeře)</td></tr>
+            <tr><th>PF</th><td>Personal Foul - osobní faul</td></tr>
+            <tr><th>+/-</th><td>Plus/minus - rozdíl skóre když byl hráč na hřišti</td></tr>
+            <tr><th>EFF</th><td>Efficiency - celkový přínos hráče</td></tr>
             <tr><th>MPG / PPG / RPG</th><td>Minutes / Points / Rebounds per game (Ø na zápas)</td></tr>
             <tr><th>DNP</th><td>Did Not Play (= GP započítáno, ale Min 0:00)</td></tr>
-            <tr><th>FO</th><td>Fouled Out — vyloučen po 5 osobních faulech</td></tr>
-            <tr><th>OT</th><td>Overtime — prodloužení</td></tr>
+            <tr><th>FO</th><td>Fouled Out - vyloučen po 5 osobních faulech</td></tr>
+            <tr><th>OT</th><td>Overtime - prodloužení</td></tr>
           </tbody>
         </table>
       </section>
