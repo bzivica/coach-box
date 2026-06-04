@@ -113,7 +113,11 @@
       { label: '2 body', nas: fmtStrelbaNas(n.dany_2, n.pokusy_2), opp: kose(o.body_2) },
       { label: '3 body', nas: fmtStrelbaNas(n.dany_3, n.pokusy_3), opp: kose(o.body_3) },
       { label: 'Trestné', nas: fmtStrelbaNas(n.dany_th, n.pokusy_th), opp: kose(o.body_th) },
-      { label: 'Doskoky', nas: String(n.doskoky_off + n.doskoky_def), opp: String(o.doskoky_off + o.doskoky_def + o.doskoky_neznamy) },
+      { label: 'Doskoky úto.', nas: String(n.doskoky_off), opp: String(o.doskoky_off) },
+      { label: 'Doskoky obr.', nas: String(n.doskoky_def), opp: String(o.doskoky_def) },
+      ...(o.doskoky_neznamy > 0
+        ? [{ label: 'Doskoky ?', nas: '-', opp: String(o.doskoky_neznamy) }]
+        : []),
       { label: 'Asistence', nas: String(n.asistence), opp: '-' },
       { label: 'Zisky', nas: String(n.zisky), opp: '-' },
       { label: 'Ztráty', nas: String(n.ztraty), opp: String(o.ztraty) },
