@@ -90,6 +90,13 @@
     return `${dany}/${pokusy}${p !== null ? ` (${p}%)` : ''}`;
   }
 
+  // Počet košů soupeře se správným skloňováním (body_2/3/th = počty proměněných košů).
+  function kose(n: number): string {
+    if (n === 1) return '1 koš';
+    if (n >= 2 && n <= 4) return `${n} koše`;
+    return `${n} košů`;
+  }
+
   // Řádky srovnání. Pro NAŠI stranu plná střelba m/a (%), pro SOUPEŘE jen koše (pokusy neevidujeme).
   interface Radek {
     label: string;
@@ -103,9 +110,9 @@
     const n = nasSouhrn;
     return [
       { label: 'Body', nas: String(n.body), opp: String(o.body), hlavni: true },
-      { label: '2 body', nas: fmtStrelbaNas(n.dany_2, n.pokusy_2), opp: `${o.body_2 / 2} košů` },
-      { label: '3 body', nas: fmtStrelbaNas(n.dany_3, n.pokusy_3), opp: `${o.body_3 / 3} košů` },
-      { label: 'Trestné', nas: fmtStrelbaNas(n.dany_th, n.pokusy_th), opp: `${o.body_th} košů` },
+      { label: '2 body', nas: fmtStrelbaNas(n.dany_2, n.pokusy_2), opp: kose(o.body_2) },
+      { label: '3 body', nas: fmtStrelbaNas(n.dany_3, n.pokusy_3), opp: kose(o.body_3) },
+      { label: 'Trestné', nas: fmtStrelbaNas(n.dany_th, n.pokusy_th), opp: kose(o.body_th) },
       { label: 'Doskoky', nas: String(n.doskoky_off + n.doskoky_def), opp: String(o.doskoky_off + o.doskoky_def + o.doskoky_neznamy) },
       { label: 'Asistence', nas: String(n.asistence), opp: '-' },
       { label: 'Zisky', nas: String(n.zisky), opp: '-' },
@@ -135,9 +142,9 @@
         <span class="ph-team-tag">Domácí</span>
       </div>
       <div class="ph-score">
-        <span class="ph-score-num">{homeScore}</span>
+        <span class="ph-score-num" class:us={homeJsmeMy} class:them={!homeJsmeMy}>{homeScore}</span>
         <span class="ph-score-colon">:</span>
-        <span class="ph-score-num">{awayScore}</span>
+        <span class="ph-score-num" class:us={!homeJsmeMy} class:them={homeJsmeMy}>{awayScore}</span>
       </div>
       <div class="ph-team ph-away" class:us={!homeJsmeMy}>
         <span class="ph-team-name">{awayNazev}</span>
@@ -192,9 +199,9 @@
         <tbody>
           {#each radky as r (r.label)}
             <tr class:hlavni={r.hlavni}>
-              <td class="ph-val ph-val-home">{homeVal(r)}</td>
+              <td class="ph-val ph-val-home" class:us={homeJsmeMy} class:them={!homeJsmeMy}>{homeVal(r)}</td>
               <td class="ph-stat-label">{r.label}</td>
-              <td class="ph-val ph-val-away">{awayVal(r)}</td>
+              <td class="ph-val ph-val-away" class:us={!homeJsmeMy} class:them={homeJsmeMy}>{awayVal(r)}</td>
             </tr>
           {/each}
           <tr class="ph-vedeni">
@@ -216,7 +223,9 @@
     position: fixed;
     inset: 0;
     z-index: 200;
-    background: var(--bg);
+    background:
+      radial-gradient(120% 80% at 50% -10%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 60%),
+      var(--bg);
     display: flex;
     justify-content: center;
     align-items: flex-start;
@@ -261,34 +270,43 @@
   .ph-score {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 18px;
-    border: 2px solid var(--border);
-    border-radius: 14px;
-    background: var(--surface);
+    gap: 10px;
+    padding: 10px 22px;
+    border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+    border-radius: 16px;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--surface) 92%, #fff) 0%, var(--surface) 55%, var(--surface-2) 100%);
+    box-shadow:
+      0 10px 24px -8px rgba(15, 23, 42, 0.35),
+      0 2px 4px rgba(15, 23, 42, 0.12),
+      inset 0 1px 0 rgba(255, 255, 255, 0.5),
+      inset 0 -2px 4px rgba(15, 23, 42, 0.08);
   }
   .ph-score-num {
     font-family: "Consolas", monospace;
-    font-size: 42px;
+    font-size: 46px;
     font-weight: 800;
     line-height: 1;
     color: var(--text);
     min-width: 1.4ch;
     text-align: center;
+    text-shadow: 0 1px 1px rgba(15, 23, 42, 0.18);
   }
-  .ph-score-colon { font-size: 30px; font-weight: 800; color: var(--text-muted); }
+  .ph-score-num.us { color: var(--us-color); }
+  .ph-score-num.them { color: var(--them-color); }
+  .ph-score-colon { font-size: 30px; font-weight: 800; color: var(--text-dim); }
 
   .ph-qstrip {
     display: grid;
     grid-auto-flow: column;
     grid-template-rows: repeat(3, auto);
     grid-auto-columns: 1fr;
-    gap: 2px;
+    gap: 1px;
     background: var(--border);
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: 12px;
     overflow: hidden;
     font-family: "Consolas", monospace;
+    box-shadow: 0 6px 16px -8px rgba(15, 23, 42, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.4);
   }
   .ph-qcell {
     background: var(--surface);
@@ -318,7 +336,7 @@
     white-space: nowrap;
   }
   .ph-qlabel.us { color: var(--us-color); }
-  .ph-qtot { background: var(--selected-bg); font-weight: 800; }
+  .ph-qtot { background: var(--selected-bg); font-weight: 800; color: var(--selected-fg); }
 
   .ph-tabs {
     display: flex;
@@ -327,26 +345,31 @@
     justify-content: center;
   }
   .ph-tab {
-    padding: 6px 14px;
+    padding: 7px 16px;
     border: 1px solid var(--border);
     border-radius: 999px;
-    background: var(--surface);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--surface) 92%, #fff), var(--surface));
     color: var(--text-muted);
     font-size: 13px;
     font-weight: 700;
     cursor: pointer;
+    box-shadow: 0 2px 4px rgba(15, 23, 42, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+    transition: transform 0.08s, box-shadow 0.12s;
   }
+  .ph-tab:hover { transform: translateY(-1px); }
   .ph-tab.active {
-    background: var(--accent);
+    background: linear-gradient(180deg, var(--accent-soft), var(--accent));
     border-color: var(--accent);
     color: #fff;
+    box-shadow: 0 6px 14px -4px color-mix(in srgb, var(--accent) 60%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.3);
   }
 
   .ph-stats {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 12px 14px;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--surface) 94%, #fff), var(--surface));
+    border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+    border-radius: 14px;
+    padding: 14px 16px;
+    box-shadow: 0 12px 28px -10px rgba(15, 23, 42, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.5);
   }
   .ph-stats-title {
     font-size: 13px;
@@ -362,16 +385,23 @@
     font-size: 13px;
     font-weight: 800;
     color: var(--them-color);
-    padding-bottom: 6px;
+    padding-bottom: 8px;
   }
   .ph-table th.us { color: var(--us-color); }
   .ph-th-home { text-align: left; }
   .ph-th-away { text-align: right; }
-  .ph-table td { padding: 6px 4px; border-top: 1px solid var(--border); }
+  .ph-table td {
+    padding: 7px 8px;
+    border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+  }
+  /* zebra pro čitelnost zarovnání */
+  .ph-table tbody tr:nth-child(even) td { background: color-mix(in srgb, var(--text) 4%, transparent); }
+  .ph-table tbody tr td:first-child { border-top-left-radius: 6px; border-bottom-left-radius: 6px; }
+  .ph-table tbody tr td:last-child { border-top-right-radius: 6px; border-bottom-right-radius: 6px; }
   .ph-stat-label {
     text-align: center;
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 700;
     color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -379,14 +409,25 @@
   }
   .ph-val {
     font-family: "Consolas", monospace;
-    font-size: 17px;
+    font-size: 18px;
     font-weight: 700;
     color: var(--text);
+    width: 40%;
   }
+  .ph-val.us { color: var(--us-color); }
+  .ph-val.them { color: var(--them-color); }
   .ph-val-home { text-align: left; }
   .ph-val-away { text-align: right; }
-  .ph-table tr.hlavni .ph-val { font-size: 22px; font-weight: 800; }
-  .ph-vedeni .ph-val { color: var(--accent); }
+  .ph-table tr.hlavni td { border-top: none; }
+  .ph-table tr.hlavni .ph-val { font-size: 26px; font-weight: 800; text-shadow: 0 1px 1px rgba(15, 23, 42, 0.15); }
+  .ph-table tr.hlavni .ph-stat-label { font-size: 13px; color: var(--text); }
+  .ph-vedeni td { border-top: 2px solid var(--border); }
+  .ph-vedeni .ph-val {
+    color: var(--accent);
+    font-size: 20px;
+    font-weight: 800;
+  }
+  .ph-vedeni .ph-stat-label { color: var(--accent); font-weight: 800; }
   .ph-note {
     margin: 8px 0 0;
     font-size: 11px;
@@ -396,16 +437,19 @@
 
   .ph-close {
     margin-top: 4px;
-    padding: 14px;
+    padding: 15px;
     border: none;
-    border-radius: 12px;
-    background: var(--accent);
+    border-radius: 14px;
+    background: linear-gradient(180deg, var(--accent-soft), var(--accent));
     color: #fff;
     font-size: 16px;
     font-weight: 800;
     cursor: pointer;
+    box-shadow: 0 8px 18px -6px color-mix(in srgb, var(--accent) 65%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    transition: transform 0.08s, box-shadow 0.12s, filter 0.12s;
   }
-  .ph-close:hover { filter: brightness(1.08); }
+  .ph-close:hover { filter: brightness(1.08); transform: translateY(-1px); }
+  .ph-close:active { transform: translateY(1px); box-shadow: 0 3px 8px -4px color-mix(in srgb, var(--accent) 60%, transparent); }
 
   @media (max-width: 480px) {
     .ph-team-name { font-size: 15px; }
