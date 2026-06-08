@@ -1,0 +1,29 @@
+Session 2026-06-04 - Logo Jiznich Supu v prehledu po ctvrtine
+================================================================
+
+Co se delalo:
+- Pridano logo Jiznich Supu (public/logo-jizni-supi.png, 18x18 / 30x30) do
+  prehledu po ctvrtine (src/components/PrehledObdobi.svelte) - JEN u naseho tymu,
+  ostatni tymy zatim logo nemaji.
+
+Dve mista, kde se logo zobrazuje:
+  1. Horni hlavicka prehledu (velke jmeno + skore) - logo 30x30 vedle jmena Supu.
+  2. Zahlavi tabulky statistik ("Statistiky - ...") - logo 18x18 vedle jmena Supu.
+  (Pruh skore po Q zamerne BEZ loga - user ho nevybral.)
+
+- Logo navazano na homeJeSupi / awayJeSupi (= homeJsmeMy), takze skace tam, kde
+  zrovna jsme: hrajeme-li doma -> vlevo, venku -> vpravo.
+
+Potvrzena orientace prehledu:
+- Domaci tym je VZDY vlevo, hoste vpravo (skore i statistiky).
+  Viz PrehledObdobi.svelte:81-86 (komentar "Orientace: domaci vlevo").
+- Nas tym tedy meni stranu podle home/away (neni natvrdo vlevo).
+- OTEVRENA OTAZKA pro priste: chce user nechat orientaci podle domaci/hoste,
+  nebo prepnout na "nas tym vzdy vlevo"? (zatim ponechano podle domaci/hoste)
+
+Verze + git:
+- Bump verze v src/App.svelte: v0.0.43 -> v0.0.44
+- package.json verze se neudrzuje (0.0.0), zobrazovana verze je v App.svelte.
+- Build OK, dotaz na dlouhe pomlcky cisty.
+- Commit 92f8675, pushnuto na origin/main (2998c67..92f8675).
+- GitHub Pages se prebuilduje sam z main -> bzivica.github.io/coach-box.

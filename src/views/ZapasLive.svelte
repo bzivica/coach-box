@@ -417,6 +417,9 @@
     { length: BONUS_FAULY_CTVRTINA },
     (_, i) => BONUS_FAULY_CTVRTINA - 1 - i,
   );
+  // Zrcadlené pořadí pro pravý (soupeřův) cluster v mobilní liště,
+  // aby se tečky plnily směrem ke skóre (zevnitř ven jako vlevo).
+  const faulDotSlotyRev = [...faulDotSloty].reverse();
   const homeBonus = $derived(naseDoma ? naseVBonusu : souperVBonusu);
   const awayBonus = $derived(naseDoma ? souperVBonusu : naseVBonusu);
 
@@ -2279,10 +2282,30 @@
           <span class="clock-total-val">{formatCas(casVZapaseMs)}</span>
           <span class="clock-total-meta">/ {formatCas(pocetCtvrtin * delkaQMs)}</span>
         </div>
-        <div class="clock-score" aria-hidden="true">
+        <div class="clock-score">
+          {#if mode === 'inProgress'}
+            <span
+              class="cs-fouls"
+              title={`Týmové fauly - My v ${fmtQ(aktualniCtvrtinaCislo)}: ${faulyQ.nase}${naseVBonusu ? ' - BONUS (soupeř střílí trestné)' : ''}`}
+            >
+              {#each faulDotSloty as prah (prah)}
+                <span class="cs-dot" class:on={faulyQ.nase > prah} class:bonus={naseVBonusu}></span>
+              {/each}
+            </span>
+          {/if}
           <span class="cs-val">{skore.nase}</span>
           <span class="cs-sep">:</span>
           <span class="cs-val">{skore.souper}</span>
+          {#if mode === 'inProgress'}
+            <span
+              class="cs-fouls"
+              title={`Týmové fauly - Soupeř v ${fmtQ(aktualniCtvrtinaCislo)}: ${faulyQ.souper}${souperVBonusu ? ' - BONUS (my střílíme trestné)' : ''}`}
+            >
+              {#each faulDotSlotyRev as prah (prah)}
+                <span class="cs-dot" class:on={faulyQ.souper > prah} class:bonus={souperVBonusu}></span>
+              {/each}
+            </span>
+          {/if}
         </div>
         <div class="clock-buttons">
           {#if klokBezi}
@@ -4270,6 +4293,29 @@
   }
   .clock-score .cs-val { font-size: 22px; color: var(--text); }
   .clock-score .cs-sep { color: var(--text-muted); }
+  .cs-fouls {
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 3px;
+    align-self: center;
+  }
+  .cs-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border);
+    background: transparent;
+    transition: background-color 0.12s, border-color 0.12s;
+  }
+  .cs-dot.on {
+    background: var(--success, #22c55e);
+    border-color: var(--success, #22c55e);
+  }
+  .cs-dot.on.bonus {
+    background: var(--danger, #ef4444);
+    border-color: var(--danger, #ef4444);
+  }
   .clock-cislo {
     display: flex;
     align-items: baseline;
