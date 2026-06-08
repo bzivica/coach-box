@@ -533,6 +533,68 @@
   let vyvojGrafLiveOpen = $state(false);
   let statsPanelOpen = $state(true);
 
+  // --- Mobilní stránkování živé obrazovky: Akce / Střídání / Statistiky ---
+  // Na úzké obrazovce se dlouhý scroll rozdělí na 3 stránky se spodní lištou.
+  // Na PC/tabletu zůstává původní dlouhý scroll (isPaged = false).
+  type LivePage = 'akce' | 'strid' | 'stats';
+  const LIVE_PAGES: readonly LivePage[] = ['akce', 'strid', 'stats'];
+  let livePage = $state<LivePage>('akce');
+  let isMobilePager = $state(false);
+
+  $effect(() => {
+    const mq = window.matchMedia('(max-width: 600px), (max-height: 500px)');
+    const update = () => { isMobilePager = mq.matches; };
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  });
+
+  // Stránkujeme jen v průběhu zápasu (ne při výběru pětice, konci čtvrtiny apod.).
+  const isPaged = $derived(isMobilePager && mode === 'inProgress');
+
+  // Sekce schovaná, když stránkujeme a nejsme na její stránce.
+  function pgHidden(p: LivePage): boolean {
+    return isPaged && livePage !== p;
+  }
+  function goLivePage(p: LivePage) {
+    livePage = p;
+  }
+  function prevLivePage() {
+    const i = LIVE_PAGES.indexOf(livePage);
+    if (i > 0) livePage = LIVE_PAGES[i - 1];
+  }
+  function nextLivePage() {
+    const i = LIVE_PAGES.indexOf(livePage);
+    if (i < LIVE_PAGES.length - 1) livePage = LIVE_PAGES[i + 1];
+  }
+
+  // Swipe jen od levého/pravého okraje obrazovky, aby se to nepralo
+  // s gesty na kartách hráčů (swipe = rychlá akce, podržení = radiál).
+  const EDGE_ZONE_PX = 28;
+  const SWIPE_MIN_PX = 50;
+  let edgeSwipe: { x: number; y: number } | null = null;
+
+  function pagerTouchStart(e: TouchEvent) {
+    if (!isPaged || e.touches.length !== 1) { edgeSwipe = null; return; }
+    const t = e.touches[0];
+    const w = window.innerWidth;
+    if (t.clientX <= EDGE_ZONE_PX || t.clientX >= w - EDGE_ZONE_PX) {
+      edgeSwipe = { x: t.clientX, y: t.clientY };
+    } else {
+      edgeSwipe = null;
+    }
+  }
+  function pagerTouchEnd(e: TouchEvent) {
+    if (!edgeSwipe) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - edgeSwipe.x;
+    const dy = t.clientY - edgeSwipe.y;
+    edgeSwipe = null;
+    if (Math.abs(dx) < SWIPE_MIN_PX || Math.abs(dx) < Math.abs(dy)) return;
+    if (dx < 0) nextLivePage();
+    else prevLivePage();
+  }
+
   const REASSIGN_TYPY: readonly UdalostTyp[] = [
     'shot_2_made', 'shot_3_made', 'ft_made',
     'team_pts_2', 'team_pts_3', 'team_pts_1',
@@ -1086,6 +1148,8 @@
   function openSub() {
     subOuts = [];
     subIns = [];
+    // Na mobilu je střídání samostatná stránka, ne modál.
+    if (isPaged) { livePage = 'strid'; return; }
     subModal = true;
   }
 
@@ -1162,6 +1226,8 @@
       closeSub();
       toast(`Střídání: ${popis}`);
       foulOutPrompt = null;
+      // Po dokončení střídání zpět na hlavní obrazovku (mobil).
+      if (isPaged) livePage = 'akce';
     };
 
     if (porusene.length > 0) {
@@ -1292,6 +1358,7 @@
     selectedOppCislo = null;
     undoStack = [];
     resetKlok();
+    livePage = 'akce';
     mode = 'inProgress';
   }
 
@@ -1408,8 +1475,10 @@
   async function foulOutSub(playerId: string) {
     subOuts = [playerId];
     subIns = [];
-    subModal = true;
     foulOutPrompt = null;
+    // Na mobilu střídání jako stránka, jinak modál.
+    if (isPaged) { livePage = 'strid'; return; }
+    subModal = true;
   }
 
   function pocetFauluZobr(id: string): number {
@@ -1817,7 +1886,15 @@
 {#if mode === 'loading' || !zapas || !souper}
   <div class="loading">Načítání…</div>
 {:else}
-  <div class="live-app">
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <!-- Swipe od kraje je jen doplněk; přístupná navigace je přes tlačítka spodní lišty. -->
+  <div
+    class="live-app"
+    class:paged={isPaged}
+    data-live-page={livePage}
+    ontouchstart={pagerTouchStart}
+    ontouchend={pagerTouchEnd}
+  >
     <header class="head">
       <button class="back" onclick={onBack}>← Zpět</button>
       <div class="teams">
@@ -1833,7 +1910,7 @@
       </div>
     </header>
 
-    <div class="score-bar">
+    <div class="score-bar" class:lp-hidden={pgHidden('akce')}>
       <div class="sb-cluster">
         <div class="sb-roles">
           <span class="sb-role" class:us={naseDoma}>Domácí</span>
@@ -1875,7 +1952,7 @@
     </div>
 
     {#if skorePoCtvrtinach.length > 0}
-      <div class="quarter-scores">
+      <div class="quarter-scores" class:lp-hidden={pgHidden('stats')}>
         {#each skorePoCtvrtinach as qs}
           <div class="qs">
             <span class="qs-label">{fmtQ(qs.q)}</span>
@@ -1886,7 +1963,7 @@
     {/if}
 
     {#if kategorieMaLimit && (mode === 'inProgress' || mode === 'pickLineup')}
-      <div class="limit-toggle">
+      <div class="limit-toggle" class:lp-hidden={pgHidden('akce')}>
         <span class="lt-label">
           Hlídání limitu mládeže ({kategorieLabel(zapas.nase_kategorie)}):
           <strong class:on={hlidatLimit} class:off={!hlidatLimit}>{hlidatLimit ? 'ZAPNUTO' : 'VYPNUTO'}</strong>
@@ -2062,6 +2139,67 @@
       </section>
     {/snippet}
 
+    {#snippet subPickerBody(showCancel: boolean)}
+      <p class="sub-hint">Vyber stejný počet hráčů ven (z hřiště) a dovnitř (z lavičky). Sparování proběhne podle pořadí výběru.</p>
+      <div class="sub-counters">
+        <span class="sub-counter" class:ok={subOuts.length > 0 && subOuts.length === subIns.length}>
+          Ven: <strong>{subOuts.length}</strong>
+        </span>
+        <span class="sub-counter" class:ok={subIns.length > 0 && subOuts.length === subIns.length}>
+          Dovnitř: <strong>{subIns.length}</strong>
+        </span>
+        {#if subOuts.length !== subIns.length}
+          <span class="sub-warn">⚠ Počty se musí rovnat</span>
+        {/if}
+      </div>
+      <div class="sub-grid">
+        <div>
+          <h3>Ven (z hřiště)</h3>
+          <div class="sub-list">
+            {#each naHristi as h (h.id)}
+              {@const idx = subOuts.indexOf(h.id)}
+              {@const fauly = pocetFauluZobr(h.id)}
+              <button class="sub-card" class:selected={idx >= 0} onclick={() => toggleSubOut(h.id)}>
+                <Avatar foto={h.foto} cislo={h.cislo_dresu} size={SUB_AVATAR_SIZE} alt={`${h.jmeno} ${h.prijmeni}`} tmavy={zapas?.nase_strana === 'away'} />
+                <span class="name">#{h.cislo_dresu ?? '?'} {h.prijmeni}</span>
+                <span class="sub-fauly" class:fauly-high={fauly >= MAX_FAULU - 1}>{fauly}F</span>
+                {#if idx >= 0}<span class="sub-order">{idx + 1}</span>{/if}
+              </button>
+            {/each}
+          </div>
+        </div>
+        <div>
+          <h3>Dovnitř (z lavičky)</h3>
+          <div class="sub-list">
+            {#each lavicka as h (h.id)}
+              {@const fouledOut = jeFouledOut(udalosti, h.id)}
+              {@const idx = subIns.indexOf(h.id)}
+              {@const fauly = pocetFauluZobr(h.id)}
+              <button
+                class="sub-card"
+                class:selected={idx >= 0}
+                class:disabled={fouledOut}
+                disabled={fouledOut}
+                onclick={() => toggleSubIn(h.id)}
+              >
+                <Avatar foto={h.foto} cislo={h.cislo_dresu} size={SUB_AVATAR_SIZE} alt={`${h.jmeno} ${h.prijmeni}`} tmavy={zapas?.nase_strana === 'away'} />
+                <span class="name">#{h.cislo_dresu ?? '?'} {h.prijmeni}</span>
+                {#if !fouledOut}<span class="sub-fauly" class:fauly-high={fauly >= MAX_FAULU - 1}>{fauly}F</span>{/if}
+                {#if idx >= 0}<span class="sub-order">{idx + 1}</span>{/if}
+                {#if fouledOut}<span class="fouled-tag">VYLOUČEN</span>{/if}
+              </button>
+            {/each}
+          </div>
+        </div>
+      </div>
+      <div class="modal-buttons">
+        {#if showCancel}<button onclick={closeSub}>Zrušit</button>{/if}
+        <button class="primary" disabled={subOuts.length === 0 || subOuts.length !== subIns.length} onclick={confirmSub}>
+          {#if subOuts.length > 1}Provést {subOuts.length} střídání{:else}Provést střídání{/if}
+        </button>
+      </div>
+    {/snippet}
+
     {#if mode !== 'loading' && mode !== 'inProgress'}
       {@render statsPanelBox()}
     {/if}
@@ -2130,7 +2268,7 @@
       </section>
 
     {:else if mode === 'inProgress'}
-      <section class="clock-bar" class:running={klokBezi}>
+      <section class="clock-bar" class:running={klokBezi} class:lp-hidden={pgHidden('akce')}>
         <div class="clock-cislo">
           <span class="clock-q">{fmtQ(aktualniCtvrtinaCislo)}</span>
           <span class="clock-display">{formatCas(Math.max(0, delkaQMs - casVQMs))}</span>
@@ -2168,7 +2306,7 @@
         {/if}
       </section>
 
-      <section class="live">
+      <section class="live" class:lp-hidden={pgHidden('akce')}>
         <div class="actions" class:disabled={!selectedPlayer}>
           <div class="actions-label">
             {#if selectedPlayer}
@@ -2339,7 +2477,7 @@
         </section>
       </section>
 
-      <section class="live-totals">
+      <section class="live-totals" class:lp-hidden={pgHidden('stats')}>
         <div class="lt-row">
           <div class="lt-label us">MY</div>
           {#if klokPouzitVZapase}
@@ -2399,7 +2537,7 @@
         {/if}
       </section>
 
-      <section class="vyvoj-skore-live">
+      <section class="vyvoj-skore-live" class:lp-hidden={pgHidden('stats')}>
         <button class="vsl-toggle" onclick={() => (vyvojGrafLiveOpen = !vyvojGrafLiveOpen)}>
           📈 Vývoj skóre <span class="vsl-arrow">{vyvojGrafLiveOpen ? '▲' : '▼'}</span>
         </button>
@@ -2410,7 +2548,7 @@
         {/if}
       </section>
 
-      <section class="timeouts">
+      <section class="timeouts" class:lp-hidden={pgHidden('akce')}>
         <div class="to-info">Oddechy - aktuální období: <strong>{toObdobi}</strong> (max {toPovoleno})</div>
         <div class="to-buttons">
           <button
@@ -2436,8 +2574,15 @@
         </div>
       </section>
 
+      {#if isPaged}
+        <section class="strid-page" class:lp-hidden={livePage !== 'strid'}>
+          <h2 class="strid-title">⇄ Střídání - {fmtQ(aktualniCtvrtinaCislo)}</h2>
+          {@render subPickerBody(false)}
+        </section>
+      {/if}
+
       {#if lavicka.length > 0}
-        <section class="bench-strip">
+        <section class="bench-strip" class:lp-hidden={pgHidden('strid')}>
           <span class="bs-label">ŠATNA</span>
           <span class="bs-list">
             {#each lavicka as h, i (h.id)}
@@ -2452,13 +2597,43 @@
         </section>
       {/if}
 
-      {@render statsPanelBox()}
+      <div class="sp-wrap" class:lp-hidden={pgHidden('stats')}>
+        {@render statsPanelBox()}
+      </div>
 
-      <footer class="foot">
+      <footer class="foot" class:lp-hidden={pgHidden('akce')}>
         <button class="primary" onclick={endQuarter}>Konec {fmtQ(aktualniCtvrtinaCislo)}</button>
         <div class="spacer"></div>
         <button class="danger" onclick={ukoncitZapas}>Ukončit zápas</button>
       </footer>
+
+      {#if isPaged}
+        <nav class="live-tabs" aria-label="Přepínání obrazovek">
+          <button
+            class="lt-arrow"
+            onclick={prevLivePage}
+            disabled={livePage === LIVE_PAGES[0]}
+            aria-label="Předchozí obrazovka"
+            title="Předchozí (lze i swipe od levého kraje)"
+          >◀</button>
+          <button class="live-tab" class:active={livePage === 'akce'} onclick={() => goLivePage('akce')}>
+            <span class="lt-ico">🏀</span><span class="lt-text">Akce</span>
+          </button>
+          <button class="live-tab" class:active={livePage === 'strid'} onclick={() => goLivePage('strid')}>
+            <span class="lt-ico">⇄</span><span class="lt-text">Střídání</span>
+          </button>
+          <button class="live-tab" class:active={livePage === 'stats'} onclick={() => goLivePage('stats')}>
+            <span class="lt-ico">📊</span><span class="lt-text">Statistiky</span>
+          </button>
+          <button
+            class="lt-arrow"
+            onclick={nextLivePage}
+            disabled={livePage === LIVE_PAGES[LIVE_PAGES.length - 1]}
+            aria-label="Další obrazovka"
+            title="Další (lze i swipe od pravého kraje)"
+          >▶</button>
+        </nav>
+      {/if}
 
     {:else if mode === 'quarterEndPrompt'}
       <section class="prompt">
@@ -2676,64 +2851,7 @@
       <div class="modal-bg" onclick={closeSub} role="presentation">
         <div class="modal sub-modal" onclick={(e) => e.stopPropagation()} role="presentation">
           <h2>Střídání - {fmtQ(aktualniCtvrtinaCislo)}</h2>
-          <p class="sub-hint">Vyber stejný počet hráčů ven (z hřiště) a dovnitř (z lavičky). Sparování proběhne podle pořadí výběru.</p>
-          <div class="sub-counters">
-            <span class="sub-counter" class:ok={subOuts.length > 0 && subOuts.length === subIns.length}>
-              Ven: <strong>{subOuts.length}</strong>
-            </span>
-            <span class="sub-counter" class:ok={subIns.length > 0 && subOuts.length === subIns.length}>
-              Dovnitř: <strong>{subIns.length}</strong>
-            </span>
-            {#if subOuts.length !== subIns.length}
-              <span class="sub-warn">⚠ Počty se musí rovnat</span>
-            {/if}
-          </div>
-          <div class="sub-grid">
-            <div>
-              <h3>Ven (z hřiště)</h3>
-              <div class="sub-list">
-                {#each naHristi as h (h.id)}
-                  {@const idx = subOuts.indexOf(h.id)}
-                  {@const fauly = pocetFauluZobr(h.id)}
-                  <button class="sub-card" class:selected={idx >= 0} onclick={() => toggleSubOut(h.id)}>
-                    <Avatar foto={h.foto} cislo={h.cislo_dresu} size={SUB_AVATAR_SIZE} alt={`${h.jmeno} ${h.prijmeni}`} tmavy={zapas?.nase_strana === 'away'} />
-                    <span class="name">#{h.cislo_dresu ?? '?'} {h.prijmeni}</span>
-                    <span class="sub-fauly" class:fauly-high={fauly >= MAX_FAULU - 1}>{fauly}F</span>
-                    {#if idx >= 0}<span class="sub-order">{idx + 1}</span>{/if}
-                  </button>
-                {/each}
-              </div>
-            </div>
-            <div>
-              <h3>Dovnitř (z lavičky)</h3>
-              <div class="sub-list">
-                {#each lavicka as h (h.id)}
-                  {@const fouledOut = jeFouledOut(udalosti, h.id)}
-                  {@const idx = subIns.indexOf(h.id)}
-                  {@const fauly = pocetFauluZobr(h.id)}
-                  <button
-                    class="sub-card"
-                    class:selected={idx >= 0}
-                    class:disabled={fouledOut}
-                    disabled={fouledOut}
-                    onclick={() => toggleSubIn(h.id)}
-                  >
-                    <Avatar foto={h.foto} cislo={h.cislo_dresu} size={SUB_AVATAR_SIZE} alt={`${h.jmeno} ${h.prijmeni}`} tmavy={zapas?.nase_strana === 'away'} />
-                    <span class="name">#{h.cislo_dresu ?? '?'} {h.prijmeni}</span>
-                    {#if !fouledOut}<span class="sub-fauly" class:fauly-high={fauly >= MAX_FAULU - 1}>{fauly}F</span>{/if}
-                    {#if idx >= 0}<span class="sub-order">{idx + 1}</span>{/if}
-                    {#if fouledOut}<span class="fouled-tag">VYLOUČEN</span>{/if}
-                  </button>
-                {/each}
-              </div>
-            </div>
-          </div>
-          <div class="modal-buttons">
-            <button onclick={closeSub}>Zrušit</button>
-            <button class="primary" disabled={subOuts.length === 0 || subOuts.length !== subIns.length} onclick={confirmSub}>
-              {#if subOuts.length > 1}Provést {subOuts.length} střídání{:else}Provést střídání{/if}
-            </button>
-          </div>
+          {@render subPickerBody(true)}
         </div>
       </div>
     {/if}
@@ -5464,5 +5582,81 @@
       gap: 6px;
     }
     .pc-card { padding: 7px 9px; gap: 8px; }
+  }
+
+  /* ===== Mobilní stránkování živé obrazovky (Akce / Střídání / Statistiky) ===== */
+  /* Sekce mimo svou stránku se schová. Třída se přidává jen když stránkujeme (mobil). */
+  .lp-hidden { display: none !important; }
+
+  @media (max-width: 600px), (max-height: 500px) {
+    /* Místo dole pro trvalou lištu, ať obsah nezmizí pod ní */
+    .live-app.paged { padding-bottom: 80px; }
+
+    /* Na stránce Statistiky zase ukázat sekce, které kompaktní mobil jinak skrývá */
+    .live-app.paged[data-live-page="stats"] .quarter-scores { display: flex; }
+    .live-app.paged[data-live-page="stats"] .live-totals { display: flex; }
+    .live-app.paged[data-live-page="stats"] .vyvoj-skore-live { display: block; }
+
+    /* Stránka Střídání (inline verze okna střídání) */
+    .strid-page {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      box-shadow: var(--shadow);
+      padding: 12px 12px 14px;
+    }
+    .strid-title { font-size: 16px; margin-bottom: 8px; color: var(--accent); }
+    .strid-page .sub-hint { display: none; }
+    .strid-page .modal-buttons { margin-top: 10px; display: flex; gap: 8px; }
+    .strid-page .modal-buttons button { flex: 1; padding: 12px; font-size: 14px; font-weight: 700; }
+
+    /* Trvalá spodní lišta = nápověda, kam se dá přepnout (ťuknutím i swipem od kraje) */
+    .live-tabs {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 100;
+      display: flex;
+      align-items: stretch;
+      gap: 2px;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      box-shadow: 0 -3px 12px rgba(0, 0, 0, 0.18);
+      padding: 5px 5px calc(5px + env(safe-area-inset-bottom));
+    }
+    .live-tab {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      background: transparent;
+      border: none;
+      border-radius: 9px;
+      color: var(--text-muted);
+      font-family: inherit;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 7px 4px;
+      cursor: pointer;
+      transition: background 0.12s ease, color 0.12s ease;
+    }
+    .live-tab .lt-ico { font-size: 19px; line-height: 1; }
+    .live-tab.active { background: var(--selected-bg); color: var(--selected-fg); }
+    .lt-arrow {
+      flex: 0 0 auto;
+      width: 34px;
+      background: transparent;
+      border: none;
+      color: var(--text-dim);
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      border-radius: 9px;
+    }
+    .lt-arrow:disabled { opacity: 0.25; cursor: default; }
+    .lt-arrow:not(:disabled):active { background: var(--surface-hover); }
   }
 </style>
