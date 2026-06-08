@@ -1955,7 +1955,7 @@
               title={`Týmové fauly domácích v ${fmtQ(aktualniCtvrtinaCislo)}: ${homeFaulyQ}${homeBonus ? ' - BONUS (soupeř střílí trestné)' : ''}`}
             >
               {#each faulDotSloty as prah (prah)}
-                <span class="sb-dot" class:on={homeFaulyQ > prah} class:danger={prah >= FAUL_CERVENY_OD_PRAHU}></span>
+                <span class="sb-dot" class:on={homeFaulyQ > prah} class:danger={homeBonus || prah >= FAUL_CERVENY_OD_PRAHU}></span>
               {/each}
             </div>
           {/if}
@@ -1972,7 +1972,7 @@
               title={`Týmové fauly hostů v ${fmtQ(aktualniCtvrtinaCislo)}: ${awayFaulyQ}${awayBonus ? ' - BONUS (my střílíme trestné)' : ''}`}
             >
               {#each faulDotSloty as prah (prah)}
-                <span class="sb-dot" class:on={awayFaulyQ > prah} class:danger={prah >= FAUL_CERVENY_OD_PRAHU}></span>
+                <span class="sb-dot" class:on={awayFaulyQ > prah} class:danger={awayBonus || prah >= FAUL_CERVENY_OD_PRAHU}></span>
               {/each}
             </div>
           {/if}
@@ -2316,7 +2316,7 @@
               title={`Týmové fauly - My v ${fmtQ(aktualniCtvrtinaCislo)}: ${faulyQ.nase}${naseVBonusu ? ' - BONUS (soupeř střílí trestné)' : ''}`}
             >
               {#each faulDotSloty as prah (prah)}
-                <span class="cs-dot" class:on={faulyQ.nase > prah} class:danger={prah >= FAUL_CERVENY_OD_PRAHU}></span>
+                <span class="cs-dot" class:on={faulyQ.nase > prah} class:danger={naseVBonusu || prah >= FAUL_CERVENY_OD_PRAHU}></span>
               {/each}
             </span>
           {/if}
@@ -2329,7 +2329,7 @@
               title={`Týmové fauly - Soupeř v ${fmtQ(aktualniCtvrtinaCislo)}: ${faulyQ.souper}${souperVBonusu ? ' - BONUS (my střílíme trestné)' : ''}`}
             >
               {#each faulDotSlotyRev as prah (prah)}
-                <span class="cs-dot" class:on={faulyQ.souper > prah} class:danger={prah >= FAUL_CERVENY_OD_PRAHU}></span>
+                <span class="cs-dot" class:on={faulyQ.souper > prah} class:danger={souperVBonusu || prah >= FAUL_CERVENY_OD_PRAHU}></span>
               {/each}
             </span>
           {/if}
