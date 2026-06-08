@@ -20,7 +20,9 @@ export default defineConfig({
         theme_color: '#1e3a8a',
         background_color: '#1e3a8a',
         display: 'standalone',
-        orientation: 'landscape',
+        // 'any' = mobil se točí volně (portrait i landscape); v portrait appka
+        // nabídne hlášku 'otoč na šířku'. Na desktopu orientation nic nezamyká.
+        orientation: 'any',
         scope: base,
         start_url: base,
         icons: [
