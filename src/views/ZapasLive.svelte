@@ -1790,8 +1790,8 @@
 
   const actionRadialActiveIdx = $derived.by<number | null>(() => {
     if (!actionGesture || actionGesture.mode !== 'radial') return null;
-    const dx = actionGesture.curX - actionGesture.btnCx;
-    const dy = actionGesture.curY - actionGesture.btnCy;
+    const dx = (actionGesture.curX - actionGesture.btnCx) / radialScale;
+    const dy = (actionGesture.curY - actionGesture.btnCy) / radialScale;
     return actionRadialSegmentIndex(dx, dy, radialPlayers.length);
   });
 
@@ -1870,8 +1870,8 @@
       handleActionTap(g.typ);
       return;
     }
-    const dx = g.curX - g.btnCx;
-    const dy = g.curY - g.btnCy;
+    const dx = (g.curX - g.btnCx) / radialScale;
+    const dy = (g.curY - g.btnCy) / radialScale;
     const idx = actionRadialSegmentIndex(dx, dy, radialPlayers.length);
     if (idx === null) return;
     const player = radialPlayers[idx];
@@ -3140,7 +3140,7 @@
     {/if}
 
     {#if actionGesture && actionGesture.mode === 'radial'}
-      <div class="radial-overlay action-radial" class:has-active={actionRadialActiveIdx !== null} style="left: {actionGesture.btnCx}px; top: {actionGesture.btnCy}px;" aria-hidden="true">
+      <div class="radial-overlay action-radial" class:has-active={actionRadialActiveIdx !== null} style="left: {actionGesture.btnCx}px; top: {actionGesture.btnCy}px; --rs: {radialScale};" aria-hidden="true">
         <div class="radial-hint">táhni na hráče · pusť pro zápis</div>
         {#if radialPlayers.length === 0}
           <div class="radial-empty">žádní hráči na hřišti</div>
@@ -3290,9 +3290,10 @@
     background: transparent;
     transition: background-color 0.12s, border-color 0.12s;
   }
+  /* Týmové fauly pod limitem = žlutá; při dosažení bonusu (5.) = červená. */
   .sb-dot.on {
-    background: var(--success, #22c55e);
-    border-color: var(--success, #22c55e);
+    background: var(--warn, #f59e0b);
+    border-color: var(--warn, #f59e0b);
   }
   .sb-dot.on.bonus {
     background: var(--danger, #ef4444);
@@ -3493,7 +3494,10 @@
     align-items: center;
     gap: 10px;
     text-align: left;
-    touch-action: pan-y;
+    /* none (ne pan-y): swipe/long-press musí chytit i svislý pohyb, jinak ho
+       prohlížeč vezme jako scroll a vystřelí pointercancel → gesto/radiál zmizí.
+       touch-action se fixuje při touchstart, takže reaktivní přepnutí nestačí. */
+    touch-action: none;
     user-select: none;
     -webkit-user-select: none;
     -webkit-tap-highlight-color: transparent;
@@ -3677,7 +3681,9 @@
     font-weight: 600;
     text-align: left;
     transition: all 0.1s ease;
-    touch-action: pan-y;
+    /* none (ne pan-y): long-press → radiál hráčů potřebuje i svislý pohyb;
+       s pan-y prohlížeč tah vyhodnotí jako scroll a radiál zmizí. */
+    touch-action: none;
     user-select: none;
     -webkit-user-select: none;
     -webkit-tap-highlight-color: transparent;
@@ -3693,7 +3699,6 @@
     box-shadow: 0 0 0 3px var(--accent);
     opacity: 1 !important;
     cursor: grabbing;
-    touch-action: none;
   }
   .action.made {
     background: var(--success);
@@ -4309,8 +4314,8 @@
     transition: background-color 0.12s, border-color 0.12s;
   }
   .cs-dot.on {
-    background: var(--success, #22c55e);
-    border-color: var(--success, #22c55e);
+    background: var(--warn, #f59e0b);
+    border-color: var(--warn, #f59e0b);
   }
   .cs-dot.on.bonus {
     background: var(--danger, #ef4444);
