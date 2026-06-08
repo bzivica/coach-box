@@ -420,6 +420,9 @@
   // Zrcadlené pořadí pro pravý (soupeřův) cluster v mobilní liště,
   // aby se tečky plnily směrem ke skóre (zevnitř ven jako vlevo).
   const faulDotSlotyRev = [...faulDotSloty].reverse();
+  // Tečky 4. a 5. faulu = červené (bonus na spadnutí / bonus), 1.-3. žluté.
+  // prah = (pořadí faulu - 1), takže 4. faul má prah 3.
+  const FAUL_CERVENY_OD_PRAHU = BONUS_FAULY_CTVRTINA - 2;
   const homeBonus = $derived(naseDoma ? naseVBonusu : souperVBonusu);
   const awayBonus = $derived(naseDoma ? souperVBonusu : naseVBonusu);
 
@@ -551,6 +554,22 @@
     mq.addEventListener('change', update);
     return () => mq.removeEventListener('change', update);
   });
+
+  // Doporučení otočit na šířku: landscape má víc místa (hráči v mřížce).
+  // Web nevynutí orientaci (iOS), takže jen nenásilná odklikávací hláška v portrait.
+  let isPortrait = $state(false);
+  let rotateHintDismissed = $state(false);
+  $effect(() => {
+    const mq = window.matchMedia('(orientation: portrait)');
+    const update = () => { isPortrait = mq.matches; };
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  });
+  const showRotateHint = $derived(
+    isMobilePager && isPortrait && !rotateHintDismissed
+      && (mode === 'inProgress' || mode === 'pickLineup'),
+  );
 
   // Stránkujeme jen v průběhu zápasu (ne při výběru pětice, konci čtvrtiny apod.).
   const isPaged = $derived(isMobilePager && mode === 'inProgress');
@@ -1913,6 +1932,14 @@
       </div>
     </header>
 
+    {#if showRotateHint}
+      <div class="rotate-hint" role="status">
+        <span class="rh-ico" aria-hidden="true">🔄</span>
+        <span class="rh-text">Otoč telefon na šířku - víc místa pro hráče i akce.</span>
+        <button class="rh-close" type="button" onclick={() => (rotateHintDismissed = true)} aria-label="Skrýt">✕</button>
+      </div>
+    {/if}
+
     <div class="score-bar" class:lp-hidden={pgHidden('akce')}>
       <div class="sb-cluster">
         <div class="sb-roles">
@@ -1928,7 +1955,7 @@
               title={`Týmové fauly domácích v ${fmtQ(aktualniCtvrtinaCislo)}: ${homeFaulyQ}${homeBonus ? ' - BONUS (soupeř střílí trestné)' : ''}`}
             >
               {#each faulDotSloty as prah (prah)}
-                <span class="sb-dot" class:on={homeFaulyQ > prah} class:bonus={homeBonus}></span>
+                <span class="sb-dot" class:on={homeFaulyQ > prah} class:danger={prah >= FAUL_CERVENY_OD_PRAHU}></span>
               {/each}
             </div>
           {/if}
@@ -1945,7 +1972,7 @@
               title={`Týmové fauly hostů v ${fmtQ(aktualniCtvrtinaCislo)}: ${awayFaulyQ}${awayBonus ? ' - BONUS (my střílíme trestné)' : ''}`}
             >
               {#each faulDotSloty as prah (prah)}
-                <span class="sb-dot" class:on={awayFaulyQ > prah} class:bonus={awayBonus}></span>
+                <span class="sb-dot" class:on={awayFaulyQ > prah} class:danger={prah >= FAUL_CERVENY_OD_PRAHU}></span>
               {/each}
             </div>
           {/if}
@@ -2289,7 +2316,7 @@
               title={`Týmové fauly - My v ${fmtQ(aktualniCtvrtinaCislo)}: ${faulyQ.nase}${naseVBonusu ? ' - BONUS (soupeř střílí trestné)' : ''}`}
             >
               {#each faulDotSloty as prah (prah)}
-                <span class="cs-dot" class:on={faulyQ.nase > prah} class:bonus={naseVBonusu}></span>
+                <span class="cs-dot" class:on={faulyQ.nase > prah} class:danger={prah >= FAUL_CERVENY_OD_PRAHU}></span>
               {/each}
             </span>
           {/if}
@@ -2302,7 +2329,7 @@
               title={`Týmové fauly - Soupeř v ${fmtQ(aktualniCtvrtinaCislo)}: ${faulyQ.souper}${souperVBonusu ? ' - BONUS (my střílíme trestné)' : ''}`}
             >
               {#each faulDotSlotyRev as prah (prah)}
-                <span class="cs-dot" class:on={faulyQ.souper > prah} class:bonus={souperVBonusu}></span>
+                <span class="cs-dot" class:on={faulyQ.souper > prah} class:danger={prah >= FAUL_CERVENY_OD_PRAHU}></span>
               {/each}
             </span>
           {/if}
@@ -3188,6 +3215,31 @@
     padding: 12px 18px;
     box-shadow: var(--shadow);
   }
+  .rotate-hint {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: color-mix(in srgb, var(--accent) 14%, var(--surface));
+    border: 1px solid var(--accent-soft, var(--border));
+    border-radius: 8px;
+    padding: 7px 10px;
+    font-size: 13px;
+    color: var(--text);
+  }
+  .rotate-hint .rh-ico { font-size: 16px; line-height: 1; }
+  .rotate-hint .rh-text { flex: 1; }
+  .rotate-hint .rh-close {
+    flex: 0 0 auto;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 15px;
+    font-family: inherit;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 6px;
+  }
+  .rotate-hint .rh-close:active { background: var(--surface-hover); }
   .back {
     background: var(--surface-hover);
     border: none;
@@ -3290,12 +3342,12 @@
     background: transparent;
     transition: background-color 0.12s, border-color 0.12s;
   }
-  /* Týmové fauly pod limitem = žlutá; při dosažení bonusu (5.) = červená. */
+  /* Fauly 1.-3. = žlutá; 4. a 5. (bonus) = červená. */
   .sb-dot.on {
     background: var(--warn, #f59e0b);
     border-color: var(--warn, #f59e0b);
   }
-  .sb-dot.on.bonus {
+  .sb-dot.on.danger {
     background: var(--danger, #ef4444);
     border-color: var(--danger, #ef4444);
   }
@@ -4317,7 +4369,7 @@
     background: var(--warn, #f59e0b);
     border-color: var(--warn, #f59e0b);
   }
-  .cs-dot.on.bonus {
+  .cs-dot.on.danger {
     background: var(--danger, #ef4444);
     border-color: var(--danger, #ef4444);
   }
