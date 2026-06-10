@@ -311,14 +311,18 @@ export interface MergeResult {
   udalosti: MergeStat;
   nastaveni: MergeStat;
   zapasy_with_changes: number;
+  hraci_duplikaty_smazany: number;
 }
 
 function emptyStat(): MergeStat {
   return { added: 0, updated: 0, skipped: 0 };
 }
 
+// Identita hrace = jmeno + prijmeni + rocnik (cislo dresu se mezi sezonami/tymy meni, do klice nepatri).
+// Normalizace (trim + mala pismena) aby "Marek" a "marek " splynuly a netvorily duplikat.
 function hracKey(h: Hrac): string {
-  return `${h.jmeno}|${h.prijmeni}|${h.cislo_dresu ?? ''}|${h.rocnik_narozeni ?? ''}`;
+  const norm = (s: string) => s.trim().toLocaleLowerCase('cs');
+  return `${norm(h.jmeno)}|${norm(h.prijmeni)}|${h.rocnik_narozeni ?? ''}`;
 }
 
 function souperKey(s: Souper): string {
@@ -355,6 +359,69 @@ const STATUS_PRIORITA: Record<Zapas['status'], number> = {
   ukonceny: 2,
 };
 
+// Slouci duplicitni hrace (stejny hracKey = jmeno+prijmeni+rocnik) do jednoho zaznamu.
+// Ponecha nejstarsi (vytvoreno_at), zbytek smaze a vsechny odkazy (udalosti, sestavy ctvrtin,
+// nasazeni v zapasech) prepoji na nej. Musi bezet uvnitr rw transakce nad vsemi tabulkami.
+// Vraci pocet smazanych a id zapasu, kterych se prepojeni dotklo (pro prepocet skore).
+async function dedupeHraci(): Promise<{ removed: number; affectedZapasy: Set<string> }> {
+  const all = await db.hraci.toArray();
+  const skupiny = new Map<string, Hrac[]>();
+  for (const h of all) {
+    const k = hracKey(h);
+    const g = skupiny.get(k);
+    if (g) g.push(h);
+    else skupiny.set(k, [h]);
+  }
+
+  const remap = new Map<string, string>(); // dupId -> keeperId
+  const toDelete: string[] = [];
+  for (const g of skupiny.values()) {
+    if (g.length < 2) continue;
+    g.sort((a, b) => a.vytvoreno_at - b.vytvoreno_at);
+    const keeper = g[0];
+    for (const d of g.slice(1)) {
+      remap.set(d.id, keeper.id);
+      toDelete.push(d.id);
+    }
+  }
+
+  const affectedZapasy = new Set<string>();
+  if (toDelete.length === 0) return { removed: 0, affectedZapasy };
+
+  const udalosti = await db.udalosti.toArray();
+  for (const u of udalosti) {
+    const patch: Partial<Udalost> = {};
+    if (u.hrac_id && remap.has(u.hrac_id)) patch.hrac_id = remap.get(u.hrac_id)!;
+    if (u.sub_in_id && remap.has(u.sub_in_id)) patch.sub_in_id = remap.get(u.sub_in_id)!;
+    if (u.sub_out_id && remap.has(u.sub_out_id)) patch.sub_out_id = remap.get(u.sub_out_id)!;
+    if (Object.keys(patch).length > 0) {
+      await db.udalosti.update(u.id, patch);
+      affectedZapasy.add(u.zapas_id);
+    }
+  }
+
+  const ctvrtiny = await db.ctvrtiny.toArray();
+  for (const c of ctvrtiny) {
+    if (c.petice_start.some((id) => remap.has(id))) {
+      const novy = Array.from(new Set(c.petice_start.map((id) => remap.get(id) ?? id)));
+      await db.ctvrtiny.update(c.id, { petice_start: novy });
+      affectedZapasy.add(c.zapas_id);
+    }
+  }
+
+  const zapasy = await db.zapasy.toArray();
+  for (const z of zapasy) {
+    if (z.nasazeni_hraci.some((id) => remap.has(id))) {
+      const novy = Array.from(new Set(z.nasazeni_hraci.map((id) => remap.get(id) ?? id)));
+      await db.zapasy.update(z.id, { nasazeni_hraci: novy });
+      affectedZapasy.add(z.id);
+    }
+  }
+
+  await db.hraci.bulkDelete(toDelete);
+  return { removed: toDelete.length, affectedZapasy };
+}
+
 export async function importMerge(payload: ExportData): Promise<MergeResult> {
   if (payload.format_version !== EXPORT_FORMAT_VERSION) {
     throw new Error(`Nepodporovaná verze exportu: ${payload.format_version}. Očekáváno: ${EXPORT_FORMAT_VERSION}`);
@@ -369,6 +436,7 @@ export async function importMerge(payload: ExportData): Promise<MergeResult> {
     udalosti: emptyStat(),
     nastaveni: emptyStat(),
     zapasy_with_changes: 0,
+    hraci_duplikaty_smazany: 0,
   };
 
   const incoming = payload.data as {
@@ -424,8 +492,12 @@ export async function importMerge(payload: ExportData): Promise<MergeResult> {
           hracIdMap.set(h.id, existing.id);
           if (h.updated_at > existing.updated_at) {
             await db.hraci.update(existing.id, {
+              jmeno: h.jmeno,
+              prijmeni: h.prijmeni,
+              cislo_dresu: h.cislo_dresu ?? existing.cislo_dresu,
               pozice: h.pozice ?? existing.pozice,
               datum_narozeni: h.datum_narozeni ?? existing.datum_narozeni,
+              rocnik_narozeni: h.rocnik_narozeni ?? existing.rocnik_narozeni,
               vyska_cm: h.vyska_cm ?? existing.vyska_cm,
               domaci_kategorie: h.domaci_kategorie,
               foto: h.foto ?? existing.foto,
@@ -549,6 +621,10 @@ export async function importMerge(payload: ExportData): Promise<MergeResult> {
           result.nastaveni.added++;
         }
       }
+
+      const dedup = await dedupeHraci();
+      result.hraci_duplikaty_smazany = dedup.removed;
+      for (const zid of dedup.affectedZapasy) zapasyDotcene.add(zid);
 
       for (const zid of zapasyDotcene) {
         const zUdalosti = await db.udalosti.where('zapas_id').equals(zid).toArray();

@@ -100,6 +100,7 @@
     pridej('Zápasy', r.zapasy);
     if (r.ctvrtiny.added) lines.push(`Čtvrtiny: +${r.ctvrtiny.added} nových`);
     if (r.udalosti.added) lines.push(`Události: +${r.udalosti.added} nových`);
+    if (r.hraci_duplikaty_smazany) lines.push(`Sloučeno ${r.hraci_duplikaty_smazany} duplicitních hráčů`);
     if (r.zapasy_with_changes) lines.push(`Přepočítáno skóre ${r.zapasy_with_changes} zápasů`);
     return lines.length ? lines.join('; ') : 'Žádné nové změny - všechno už máš.';
   }
