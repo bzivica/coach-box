@@ -52,6 +52,29 @@ export function kategorieLabel(k: Kategorie): string {
   return KATEGORIE_LABEL[k] ?? k;
 }
 
+// Sezona zacina v zari. springYear = kalendarni rok, kdy sezona konci (= rok pro vekovou kategorii).
+// Cerven 2026 -> sezona 2025/26 -> springYear 2026. Zari 2026 -> sezona 2026/27 -> springYear 2027.
+export function aktualniSezonaSpringYear(ref: Date = new Date()): number {
+  const m = ref.getMonth(); // 0-11; zari = 8
+  const y = ref.getFullYear();
+  return m >= 8 ? y + 1 : y;
+}
+
+// Vekova kategorie z roku narozeni pro danou sezonu. V zari se vsem sama posune o stupen vys.
+// Musi odpovidat gen.mjs v coach-box-soupiska.
+export function kategorieZRocniku(rocnik: number, ref: Date = new Date()): Kategorie {
+  const vek = aktualniSezonaSpringYear(ref) - rocnik;
+  if (vek <= 10) return 'U10MIX';
+  if (vek === 11) return 'U11';
+  if (vek === 12) return 'U12';
+  if (vek === 13) return 'U13';
+  if (vek === 14) return 'U14';
+  if (vek === 15) return 'U15';
+  if (vek <= 17) return 'U17';
+  if (vek <= 19) return 'U19';
+  return 'MuziA';
+}
+
 export type Pozice = 'PG' | 'SG' | 'SF' | 'PF' | 'C';
 
 export type SoutezTyp = 'liga' | 'pohar' | 'turnaj' | 'pratelak' | 'jiny';

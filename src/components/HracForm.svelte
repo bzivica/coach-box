@@ -1,7 +1,7 @@
 <script lang="ts">
   import { untrack } from 'svelte';
   import { db, newId } from '../lib/db';
-  import { KATEGORIE_PORADI, kategorieLabel, vypoctiVek, type Hrac, type Kategorie, type Pozice } from '../lib/types';
+  import { KATEGORIE_PORADI, kategorieLabel, kategorieZRocniku, vypoctiVek, type Hrac, type Kategorie, type Pozice } from '../lib/types';
   import Avatar from './Avatar.svelte';
 
   const POZICE_HODNOTY: Pozice[] = ['PG', 'SG', 'SF', 'PF', 'C'];
@@ -56,6 +56,22 @@
     const r = Number(rocnik_narozeni);
     if (!Number.isInteger(r) || r < ROCNIK_MIN || r > ROCNIK_MAX) return null;
     return vypoctiVek(r);
+  });
+
+  // Kategorie se odvozuje z rocniku (od zari se posune o stupen vys). Rucni vyber zustava mozny (napr. A/B).
+  const autoKategorie = $derived.by(() => {
+    const r = Number(rocnik_narozeni);
+    if (!Number.isInteger(r) || r < ROCNIK_MIN || r > ROCNIK_MAX) return null;
+    return kategorieZRocniku(r);
+  });
+
+  let lastAuto: Kategorie | null = untrack(() => autoKategorie);
+  $effect(() => {
+    const a = autoKategorie;
+    if (a && a !== lastAuto) {
+      lastAuto = a;
+      domaci_kategorie = a;
+    }
   });
   let foto = $state<string>(initial.foto);
   let aktivni = $state(initial.aktivni);
@@ -264,7 +280,7 @@
           <input bind:value={rocnik_narozeni} type="number" min={ROCNIK_MIN} max={ROCNIK_MAX} placeholder="např. 2012" />
         </label>
         <label>
-          <span>Domácí kategorie *</span>
+          <span>Domácí kategorie * {#if autoKategorie !== null}<small class="vek-info">z ročníku, mění se v září</small>{/if}</span>
           <select bind:value={domaci_kategorie}>
             {#each KATEGORIE_PORADI as k}
               <option value={k}>{kategorieLabel(k)}</option>

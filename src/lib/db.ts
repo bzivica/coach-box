@@ -1,7 +1,9 @@
 import Dexie, { type EntityTable } from 'dexie';
 import {
   DEFAULT_DELKA_CTVRTINY_MIN,
+  kategorieZRocniku,
   type Hrac,
+  type Kategorie,
   type Soutez,
   type Souper,
   type SouperHrac,
@@ -193,12 +195,38 @@ async function migrateSoutezLimity(): Promise<void> {
   }
 }
 
+// B-varianty (sila tymu, ne vek) podle vekove skupiny zakladni kategorie.
+const B_VARIANTA: Partial<Record<Kategorie, Kategorie>> = {
+  U15: 'U15B',
+  U17: 'U17B',
+  U19: 'U19B',
+  MuziA: 'MuziB',
+};
+const B_KATEGORIE = new Set<Kategorie>(['U15B', 'U17B', 'U19B', 'MuziB']);
+
+// Prepocita domaci_kategorie z roku narozeni pro aktualni sezonu (od zari se vsem posune o stupen vys).
+// Hraci bez rocniku zustavaji na rucne zvolene kategorii. Rucne zvolena B-varianta se zachova.
+async function recomputeKategorieZRocniku(): Promise<void> {
+  const hraci = await db.hraci.toArray();
+  for (const h of hraci) {
+    if (h.rocnik_narozeni === undefined) continue;
+    let cil = kategorieZRocniku(h.rocnik_narozeni);
+    if (B_KATEGORIE.has(h.domaci_kategorie) && B_VARIANTA[cil]) {
+      cil = B_VARIANTA[cil] as Kategorie;
+    }
+    if (cil !== h.domaci_kategorie) {
+      await db.hraci.update(h.id, { domaci_kategorie: cil, updated_at: Date.now() });
+    }
+  }
+}
+
 export async function seedAll(): Promise<void> {
   await migrateLegacyKategorie();
   await removeStaleSeedPlaceholders();
   await seedSouteze();
   await migrateSoutezLimity();
   await seedHraci();
+  await recomputeKategorieZRocniku();
 }
 
 const EXPORT_FORMAT_VERSION = 'v1';
