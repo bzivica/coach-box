@@ -128,6 +128,7 @@
     position: fixed; inset: 0;
     background: var(--modal-bg);
     display: flex; align-items: center; justify-content: center;
+    overflow-y: auto;
     z-index: 100;
   }
   .modal {
@@ -136,6 +137,7 @@
     border-radius: 10px;
     padding: 24px;
     width: 500px; max-width: 92vw;
+    max-height: 90dvh; overflow-y: auto;
     box-shadow: var(--shadow-strong);
   }
   .modal h2 { font-size: 20px; margin-bottom: 20px; color: var(--accent); }
@@ -178,4 +180,20 @@
   button.primary { background: var(--accent); color: var(--accent-fg); }
   button.primary:hover:not(:disabled) { background: var(--accent-hover); color: var(--accent-fg); }
   button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  @media (max-width: 600px) {
+    .modal-bg { align-items: flex-start; }
+    .modal {
+      width: 100%;
+      max-width: 100%;
+      min-height: 100dvh;
+      max-height: none;
+      border: none;
+      border-radius: 0;
+      padding: 16px;
+      padding-bottom: calc(20px + env(safe-area-inset-bottom));
+    }
+    .row { grid-template-columns: 1fr; }
+    .buttons button { flex: 1; padding: 12px; }
+  }
 </style>

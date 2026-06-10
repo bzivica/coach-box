@@ -236,6 +236,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    overflow-y: auto;
     z-index: 100;
   }
   .modal {
@@ -245,7 +246,7 @@
     padding: 24px;
     width: 600px;
     max-width: 92vw;
-    max-height: 90vh;
+    max-height: 90dvh;
     overflow-y: auto;
     box-shadow: var(--shadow-strong);
   }
@@ -367,4 +368,21 @@
   button.danger { background: var(--danger); color: var(--accent-fg); }
   button.danger:hover:not(:disabled) { background: var(--danger-hover); color: var(--accent-fg); }
   button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  @media (max-width: 600px) {
+    .modal-bg { align-items: flex-start; }
+    .modal {
+      width: 100%;
+      max-width: 100%;
+      min-height: 100dvh;
+      max-height: none;
+      border: none;
+      border-radius: 0;
+      padding: 16px;
+      padding-bottom: calc(20px + env(safe-area-inset-bottom));
+    }
+    .row { grid-template-columns: 1fr; }
+    .player-row { grid-template-columns: 48px 1fr 1fr auto; gap: 6px; }
+    .buttons button:not(.small) { flex: 1; padding: 12px; }
+  }
 </style>
