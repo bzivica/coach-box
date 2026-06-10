@@ -428,7 +428,7 @@
   const homeBonus = $derived(naseDoma ? naseVBonusu : souperVBonusu);
   const awayBonus = $derived(naseDoma ? souperVBonusu : naseVBonusu);
 
-  // Má kategorie zápasu vůbec nějaký limit mládeže (U12/U13/U14)?
+  // Má kategorie zápasu vůbec nějaký limit mládeže (U11/U12/U13/U14)?
   const kategorieMaLimit = $derived(
     zapas ? limitProKategorii(zapas.nase_kategorie) !== null : false,
   );

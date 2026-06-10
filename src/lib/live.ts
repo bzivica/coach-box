@@ -570,6 +570,7 @@ export function ctvrtinyOdehrane(
 }
 
 const YOUTH_LIMITS: Partial<Record<Kategorie, number>> = {
+  U11: 2,
   U12: 2,
   U13: 2,
   U14: 3,
