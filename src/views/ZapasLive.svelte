@@ -40,6 +40,8 @@
     timeoutyPouzite,
     timeoutyCelkem,
     jeFouledOut,
+    duvodVylouceni,
+    pocetFauluPodleSubtypu,
     MAX_FAULU,
     BONUS_FAULY_CTVRTINA,
     tymoveFaulyVCtvrtine,
@@ -723,7 +725,7 @@
     const label = popisAkce(typ);
     toast(`#${hrac.cislo_dresu ?? '?'} ${hrac.prijmeni} - ${label}`);
 
-    if (typ === 'foul' && pocetFaulu(udalosti, hrac.id) >= MAX_FAULU) {
+    if (typ === 'foul' && jeFouledOut(udalosti, hrac.id)) {
       foulOutPrompt = { playerId: hrac.id };
     }
 
@@ -858,7 +860,7 @@
     udalosti = [...udalosti, ev];
     pushUndo({ kind: 'event', eventId: ev.id });
     toast(`#${hrac.cislo_dresu ?? '?'} ${hrac.prijmeni} - Faul (${foulSubtypLabel(subtyp)})`);
-    if (pocetFaulu(udalosti, hrac.id) >= MAX_FAULU) {
+    if (jeFouledOut(udalosti, hrac.id)) {
       foulOutPrompt = { playerId: hrac.id };
     }
     selectedPlayer = null;
@@ -1201,7 +1203,7 @@
     const vyloucenyIn = inHraci.find((h) => jeFouledOut(udalosti, h.id));
     if (vyloucenyIn) {
       warning = {
-        msg: `#${vyloucenyIn.cislo_dresu ?? '?'} ${vyloucenyIn.prijmeni} je vyloučen (5 osobních faulů). Nemůže nastoupit.`,
+        msg: `#${vyloucenyIn.cislo_dresu ?? '?'} ${vyloucenyIn.prijmeni} je vyloučen (${vylouceniText(vyloucenyIn.id)}). Nemůže nastoupit.`,
       };
       return;
     }
@@ -1505,6 +1507,27 @@
 
   function pocetFauluZobr(id: string): number {
     return pocetFaulu(udalosti, id);
+  }
+
+  // Vrati true, kdyz by nasazeni hrace do PRAVE probihajici ctvrtiny porusilo limit mladeze
+  // (napr. U12/U13 uz odehral 2 Q, nebo U14 by mel Q1+Q2+Q3 v rade). Slouzi k oznaceni na stridacce.
+  function nesmiDoCtvrtiny(id: string): boolean {
+    if (!zapas || !hlidatLimit) return false;
+    return poruseniLimitu(id, aktualniCtvrtinaCislo, zapas.nase_kategorie, udalosti, ctvrtiny).kind !== null;
+  }
+
+  // Citelny text duvodu vyloučení (DQ) pro hlasky a stridacku.
+  function vylouceniText(id: string): string {
+    const d = duvodVylouceni(udalosti, id);
+    if (d === 'fauly') return '5 osobních faulů';
+    if (d === 'technicke') {
+      const f = pocetFauluPodleSubtypu(udalosti, id);
+      const casti: string[] = [];
+      if (f.technical) casti.push(`${f.technical}× technická`);
+      if (f.unsportsmanlike) casti.push(`${f.unsportsmanlike}× nesportovní`);
+      return casti.join(' + ');
+    }
+    return '';
   }
 
   function ctvrtinyOdehraneCount(id: string): number {
@@ -2205,10 +2228,12 @@
               {@const fouledOut = jeFouledOut(udalosti, h.id)}
               {@const idx = subIns.indexOf(h.id)}
               {@const fauly = pocetFauluZobr(h.id)}
+              {@const limitQ = !fouledOut && nesmiDoCtvrtiny(h.id)}
               <button
                 class="sub-card"
                 class:selected={idx >= 0}
                 class:disabled={fouledOut}
+                class:limit-q={limitQ}
                 disabled={fouledOut}
                 onclick={() => toggleSubIn(h.id)}
               >
@@ -2216,7 +2241,7 @@
                 <span class="name">#{h.cislo_dresu ?? '?'} {h.prijmeni}</span>
                 {#if !fouledOut}<span class="sub-fauly" class:fauly-high={fauly >= MAX_FAULU - 1}>{fauly}F</span>{/if}
                 {#if idx >= 0}<span class="sub-order">{idx + 1}</span>{/if}
-                {#if fouledOut}<span class="fouled-tag">VYLOUČEN</span>{/if}
+                {#if fouledOut}<span class="fouled-tag">VYLOUČEN</span>{:else if limitQ}<span class="limit-tag" title={`Limit mládeže - nesmí do ${fmtQ(aktualniCtvrtinaCislo)}`}>LIMIT {fmtQ(aktualniCtvrtinaCislo)}</span>{/if}
               </button>
             {/each}
           </div>
@@ -2249,10 +2274,12 @@
             {@const fouledOut = jeFouledOut(udalosti, h.id)}
             {@const fauly = pocetFauluZobr(h.id)}
             {@const odehrano = ctvrtinyOdehraneCount(h.id)}
+            {@const limitQ = !fouledOut && nesmiDoCtvrtiny(h.id)}
             <button
               class="player-card"
               class:selected={pickLineup.includes(h.id)}
               class:disabled={fouledOut}
+              class:limit-q={limitQ}
               disabled={fouledOut}
               onclick={() => togglePick(h.id)}
             >
@@ -2263,7 +2290,7 @@
                 {#if fauly > 0} · F{fauly}{/if}
                 {#if odehrano > 0} · {odehrano}Q{/if}
               </div>
-              {#if fouledOut}<div class="fouled">VYLOUČEN</div>{/if}
+              {#if fouledOut}<div class="fouled">VYLOUČEN</div>{:else if limitQ}<div class="limit-badge" title={`Limit mládeže - nesmí do ${fmtQ(aktualniCtvrtinaCislo)}`}>LIMIT</div>{/if}
             </button>
           {/each}
         </div>
@@ -2638,9 +2665,15 @@
             {#each lavicka as h, i (h.id)}
               {@const fouledOut = jeFouledOut(udalosti, h.id)}
               {@const fauly = pocetFauluZobr(h.id)}
+              {@const limitQ = !fouledOut && nesmiDoCtvrtiny(h.id)}
               {#if i > 0}<span class="bs-sep">·</span>{/if}
-              <span class="bs-item" class:fouled-out={fouledOut} title={`${h.jmeno} ${h.prijmeni}${fouledOut ? ' (vyloučen)' : ''}`}>
-                #{h.cislo_dresu ?? '?'} {h.prijmeni}{#if fauly > 0}<span class="bs-f">{fouledOut ? ' DQ' : ` ${fauly}F`}</span>{/if}
+              <span
+                class="bs-item"
+                class:fouled-out={fouledOut}
+                class:limit-q={limitQ}
+                title={`${h.jmeno} ${h.prijmeni}${fouledOut ? ` - VYLOUČEN (${vylouceniText(h.id)})` : limitQ ? ` - nesmí do ${fmtQ(aktualniCtvrtinaCislo)} (limit mládeže)` : ''}`}
+              >
+                {#if fouledOut}<span class="bs-stop">⛔</span>{:else if limitQ}<span class="bs-lock">🔒</span>{/if}#{h.cislo_dresu ?? '?'} {h.prijmeni}{#if fouledOut}<span class="bs-f"> DQ</span>{:else if fauly > 0}<span class="bs-f"> {fauly}F</span>{/if}
               </span>
             {/each}
           </span>
@@ -2977,11 +3010,12 @@
 
     {#if foulOutPrompt}
       {@const fp = hraci.find(h => h.id === foulOutPrompt!.playerId)}
+      {@const fpDuvod = duvodVylouceni(udalosti, foulOutPrompt!.playerId)}
       <div class="modal-bg" role="presentation">
         <div class="modal warning" role="presentation">
-          <h2>🟥 Foul-out (5 osobních faulů)</h2>
+          <h2>🟥 Vyloučení ({fpDuvod === 'technicke' ? '2 technické/nesportovní' : '5 osobních faulů'})</h2>
           <p class="warning-msg">
-            #{fp?.cislo_dresu ?? '?'} {fp?.prijmeni} dosáhl 5 osobních faulů a musí být vystřídán.
+            #{fp?.cislo_dresu ?? '?'} {fp?.prijmeni} je vyloučen ({vylouceniText(foulOutPrompt!.playerId)}) a musí být vystřídán.
             Nemůže pokračovat v zápase.
           </p>
           <div class="modal-buttons">
@@ -3623,8 +3657,12 @@
   }
   .bs-list { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
   .bs-item { color: var(--text); font-weight: 600; font-family: "Consolas", monospace; font-size: 12px; }
-  .bs-item.fouled-out { color: var(--danger); opacity: 0.75; text-decoration: line-through; }
+  .bs-item.fouled-out { color: var(--danger); font-weight: 800; text-decoration: line-through; }
+  .bs-item.limit-q { color: var(--warn); font-weight: 800; }
+  .bs-stop { margin-right: 2px; }
+  .bs-lock { margin-right: 2px; font-size: 11px; }
   .bs-f { color: var(--warn); font-weight: 700; margin-left: 2px; }
+  .bs-item.fouled-out .bs-f { color: var(--danger); }
   .bs-sep { color: var(--text-muted); opacity: 0.5; }
   .player-card {
     background: var(--surface);
@@ -3659,6 +3697,18 @@
     top: 4px;
     right: 4px;
     background: var(--danger);
+    color: var(--accent-fg);
+    font-size: 10px;
+    padding: 1px 4px;
+    border-radius: 2px;
+    font-weight: 700;
+  }
+  .player-card.limit-q { border-color: var(--warn); }
+  .player-card .limit-badge {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    background: var(--warn);
     color: var(--accent-fg);
     font-size: 10px;
     padding: 1px 4px;
@@ -4291,10 +4341,18 @@
     color: var(--selected-fg);
   }
   .sub-card.disabled { opacity: 0.4; cursor: not-allowed; }
+  .sub-card.limit-q { border-color: var(--warn); }
+  .sub-card.limit-q:not(.selected) { background: var(--warn-bg, var(--surface-hover)); }
   .sub-card .fouled-tag {
     font-size: 9px;
     color: var(--danger);
     font-weight: 700;
+  }
+  .sub-card .limit-tag {
+    font-size: 9px;
+    color: var(--warn);
+    font-weight: 800;
+    letter-spacing: 0.3px;
   }
   .sub-card .sub-fauly {
     font-family: "Consolas", monospace;

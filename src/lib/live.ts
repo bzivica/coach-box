@@ -732,8 +732,38 @@ export function pocetFaulu(udalosti: Udalost[], hracId: string): number {
   return n;
 }
 
+export interface FaulyPodleSubtypu {
+  personal: number;
+  unsportsmanlike: number;
+  technical: number;
+  celkem: number;
+}
+
+export function pocetFauluPodleSubtypu(udalosti: Udalost[], hracId: string): FaulyPodleSubtypu {
+  const f: FaulyPodleSubtypu = { personal: 0, unsportsmanlike: 0, technical: 0, celkem: 0 };
+  for (const u of udalosti) {
+    if (u.typ !== 'foul' || u.hrac_id !== hracId) continue;
+    f.celkem++;
+    if (u.foul_subtyp === 'technical') f.technical++;
+    else if (u.foul_subtyp === 'unsportsmanlike') f.unsportsmanlike++;
+    else f.personal++;
+  }
+  return f;
+}
+
+// Pravidlo FIBA pro vyloužení (DQ): 5 osobnich faulu, NEBO 2 technicke/nesportovni v jakekoli
+// kombinaci (2T, 2U, nebo 1T+1U). Technicke i nesportovni se zaroven pocitaji do peti faulu.
+export type DuvodVylouceni = 'fauly' | 'technicke';
+
+export function duvodVylouceni(udalosti: Udalost[], hracId: string): DuvodVylouceni | null {
+  const f = pocetFauluPodleSubtypu(udalosti, hracId);
+  if (f.celkem >= MAX_FAULU) return 'fauly';
+  if (f.technical + f.unsportsmanlike >= 2) return 'technicke';
+  return null;
+}
+
 export function jeFouledOut(udalosti: Udalost[], hracId: string): boolean {
-  return pocetFaulu(udalosti, hracId) >= MAX_FAULU;
+  return duvodVylouceni(udalosti, hracId) !== null;
 }
 
 export function formatMinSec(ms: number): string {
