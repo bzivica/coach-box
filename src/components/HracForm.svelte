@@ -280,7 +280,7 @@
           <input bind:value={rocnik_narozeni} type="number" min={ROCNIK_MIN} max={ROCNIK_MAX} placeholder="např. 2012" />
         </label>
         <label>
-          <span>Domácí kategorie * {#if autoKategorie !== null}<small class="vek-info">z ročníku, mění se v září</small>{/if}</span>
+          <span>Domácí kategorie * {#if autoKategorie !== null}<small class="vek-info">z ročníku, mění se v srpnu</small>{/if}</span>
           <select bind:value={domaci_kategorie}>
             {#each KATEGORIE_PORADI as k}
               <option value={k}>{kategorieLabel(k)}</option>

@@ -52,12 +52,13 @@ export function kategorieLabel(k: Kategorie): string {
   return KATEGORIE_LABEL[k] ?? k;
 }
 
-// Sezona zacina v zari. springYear = kalendarni rok, kdy sezona konci (= rok pro vekovou kategorii).
-// Cerven 2026 -> sezona 2025/26 -> springYear 2026. Zari 2026 -> sezona 2026/27 -> springYear 2027.
+// Sezona zacina v srpnu (turnaj koncem srpna uz patri do nove sezony a nove kategorie).
+// springYear = kalendarni rok, kdy sezona konci (= rok pro vekovou kategorii).
+// Cerven 2026 -> sezona 2025/26 -> springYear 2026. Srpen 2026 -> sezona 2026/27 -> springYear 2027.
 export function aktualniSezonaSpringYear(ref: Date = new Date()): number {
-  const m = ref.getMonth(); // 0-11; zari = 8
+  const m = ref.getMonth(); // 0-11; srpen = 7
   const y = ref.getFullYear();
-  return m >= 8 ? y + 1 : y;
+  return m >= 7 ? y + 1 : y;
 }
 
 // Vekova kategorie z roku narozeni pro danou sezonu. V zari se vsem sama posune o stupen vys.
