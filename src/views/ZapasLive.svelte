@@ -2030,7 +2030,7 @@
     {#snippet boxscorePanel()}
       <section class="boxscore">
         <header class="bs-head">
-          <h3>Boxscore - My ({kategorieLabel(zapas.nase_kategorie)})</h3>
+          <h3>Boxscore - My ({kategorieLabel(zapas!.nase_kategorie)})</h3>
           <span class="bs-hint">{periodKlokPouzit ? 'Stopky aktivní' : 'Stopky nebyly použité - minuty se nepočítají'}</span>
         </header>
         <div class="period-tabs">
@@ -2255,7 +2255,7 @@
       </div>
     {/snippet}
 
-    {#if mode !== 'loading' && mode !== 'inProgress'}
+    {#if mode !== 'inProgress'}
       {@render statsPanelBox()}
     {/if}
 
