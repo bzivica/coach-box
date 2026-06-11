@@ -36,11 +36,12 @@
 
   let jmeno = $state(initial.jmeno);
   let prijmeni = $state(initial.prijmeni);
-  let cislo_dresu = $state(initial.cislo_dresu);
+  // bind:value na type="number" vraci po editaci number (prazdne pole undefined), ne string
+  let cislo_dresu = $state<string | number>(initial.cislo_dresu);
   let pozice = $state<Pozice | ''>(initial.pozice);
   let datum_narozeni = $state(initial.datum_narozeni);
-  let rocnik_narozeni = $state(initial.rocnik_narozeni);
-  let vyska_cm = $state(initial.vyska_cm);
+  let rocnik_narozeni = $state<string | number>(initial.rocnik_narozeni);
+  let vyska_cm = $state<string | number>(initial.vyska_cm);
   let domaci_kategorie = $state<Kategorie>(initial.domaci_kategorie);
 
   $effect(() => {
@@ -134,40 +135,35 @@
       : { width: Math.round(max * ratio), height: max };
   }
 
+  // Snese string i number (i undefined z prazdneho number inputu); prazdne = undefined.
+  function ciselnePole(v: string | number): number | undefined {
+    const s = v === undefined || v === null ? '' : String(v).trim();
+    if (s === '') return undefined;
+    return Number(s);
+  }
+
   async function ulozit() {
     chyba = null;
 
     if (!jmeno.trim()) { chyba = 'Jméno je povinné'; return; }
     if (!prijmeni.trim()) { chyba = 'Příjmení je povinné'; return; }
 
-    let cisloParsed: number | undefined;
-    if (cislo_dresu.trim() !== '') {
-      const n = Number(cislo_dresu);
-      if (!Number.isInteger(n) || n < 0 || n > 99) {
-        chyba = 'Číslo dresu musí být celé číslo 0-99 (nebo prázdné)';
-        return;
-      }
-      cisloParsed = n;
+    const cisloParsed = ciselnePole(cislo_dresu);
+    if (cisloParsed !== undefined && (!Number.isInteger(cisloParsed) || cisloParsed < 0 || cisloParsed > 99)) {
+      chyba = 'Číslo dresu musí být celé číslo 0-99 (nebo prázdné)';
+      return;
     }
 
-    let vyskaParsed: number | undefined;
-    if (vyska_cm.trim() !== '') {
-      const n = Number(vyska_cm);
-      if (!Number.isInteger(n) || n < VYSKA_MIN_CM || n > VYSKA_MAX_CM) {
-        chyba = `Výška musí být celé číslo ${VYSKA_MIN_CM}-${VYSKA_MAX_CM} cm (nebo prázdné)`;
-        return;
-      }
-      vyskaParsed = n;
+    const vyskaParsed = ciselnePole(vyska_cm);
+    if (vyskaParsed !== undefined && (!Number.isInteger(vyskaParsed) || vyskaParsed < VYSKA_MIN_CM || vyskaParsed > VYSKA_MAX_CM)) {
+      chyba = `Výška musí být celé číslo ${VYSKA_MIN_CM}-${VYSKA_MAX_CM} cm (nebo prázdné)`;
+      return;
     }
 
-    let rocnikParsed: number | undefined;
-    if (rocnik_narozeni.trim() !== '') {
-      const n = Number(rocnik_narozeni);
-      if (!Number.isInteger(n) || n < ROCNIK_MIN || n > ROCNIK_MAX) {
-        chyba = `Ročník musí být ${ROCNIK_MIN}-${ROCNIK_MAX}`;
-        return;
-      }
-      rocnikParsed = n;
+    const rocnikParsed = ciselnePole(rocnik_narozeni);
+    if (rocnikParsed !== undefined && (!Number.isInteger(rocnikParsed) || rocnikParsed < ROCNIK_MIN || rocnikParsed > ROCNIK_MAX)) {
+      chyba = `Ročník musí být ${ROCNIK_MIN}-${ROCNIK_MAX}`;
+      return;
     }
 
     ukladani = true;
