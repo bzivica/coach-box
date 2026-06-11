@@ -76,6 +76,7 @@
     {/if}
   </div>
 {:else}
+  <div class="table-scroll">
   <table>
     <thead>
       <tr>
@@ -99,6 +100,7 @@
       {/each}
     </tbody>
   </table>
+  </div>
 {/if}
 
 {#if zobrazFormular}
@@ -111,6 +113,8 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 16px;
+    flex-wrap: wrap;
+    gap: 10px;
   }
   .toolbar h2 { font-size: 22px; color: var(--text); }
 
@@ -140,8 +144,14 @@
     color: var(--text-muted);
   }
 
+  .table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 8px;
+  }
   table {
     width: 100%;
+    min-width: 420px;
     border-collapse: collapse;
     background: var(--surface);
     border: 1px solid var(--border);
@@ -187,4 +197,8 @@
   button.primary:hover { background: var(--accent-hover); color: var(--accent-fg); }
   button.danger { background: var(--danger); color: var(--accent-fg); }
   button.danger:hover { background: var(--danger-hover); color: var(--accent-fg); }
+
+  @media (max-width: 600px) {
+    th, td { padding: 8px 10px; }
+  }
 </style>

@@ -145,6 +145,7 @@
     {/if}
   </div>
 {:else}
+  <div class="table-scroll">
   <table>
     <thead>
       <tr>
@@ -181,6 +182,7 @@
       {/each}
     </tbody>
   </table>
+  </div>
 {/if}
 
 {#if zobrazFormular}
@@ -248,6 +250,8 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 16px;
+    flex-wrap: wrap;
+    gap: 10px;
   }
   .toolbar h2 { font-size: 22px; color: var(--text); }
   .toolbar-akce { display: flex; gap: 8px; align-items: center; }
@@ -326,6 +330,12 @@
   }
   .dup-buttons button { padding: 10px 18px; font-size: 14px; }
 
+  @media (max-width: 600px) {
+    th, td { padding: 8px 10px; }
+    .dup-modal { padding: 14px; }
+    .dc-detail { flex-basis: 100%; }
+  }
+
   .filters {
     display: flex;
     gap: 10px;
@@ -352,8 +362,14 @@
     color: var(--text-muted);
   }
 
+  .table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 8px;
+  }
   table {
     width: 100%;
+    min-width: 640px;
     border-collapse: collapse;
     background: var(--surface);
     border: 1px solid var(--border);
