@@ -235,6 +235,7 @@
           <li><strong>Foto</strong> (volitelné, zmenší se na 240×240 JPEG; bez fotky se ukazuje stylizovaný dres s číslem)</li>
           <li><strong>Aktivní</strong> = v soupisce klubu</li>
         </ul>
+        <p><strong>🧹 Sloučit duplikáty</strong> (tlačítko nahoře vedle „+ Nový hráč"): najde pravděpodobné duplicitní záznamy téhož hráče - stejné jméno (i bez diakritiky či s prohozeným jménem/příjmením), ročník se neliší (shoda, nebo u jednoho chybí) a stejná kategorie včetně B varianty. Typicky vznikají, když je hráč založen ručně a podruhé přijde importem. U každé skupiny vybereš záznam, který se <em>ponechá</em> - chybějící údaje (číslo dresu, pozice, ročník, foto) se na něj doplní ze smazaných a všechny zapsané akce se přepojí, takže statistiky zůstanou. Dva stejně pojmenovaní hráči s různým ročníkem jsou různí lidé a nástroj je nenabídne.</p>
       </section>
 
       <section class="step">
@@ -308,7 +309,7 @@
         <p><strong>Domů → Záloha / přenos dat</strong>:</p>
         <ul>
           <li><strong>Export</strong> → stáhne <code>basket-data-YYYY-MM-DD.json</code> s <strong>celou databází</strong> - včetně <strong>rozehraných (neukončených) zápasů</strong> a všech jejich akcí, čtvrtin i stavu stopek. Rozehraný zápas tak jde přenést na jiné zařízení a tam dohrát.</li>
-          <li><strong>Import (přepsat)</strong> → přepíše VŠECHNA data v této instanci. <strong>Sloučit z JSON</strong> → přidá jen nové (nepřepíše, nezdvojí).</li>
+          <li><strong>Import (přepsat)</strong> → přepíše VŠECHNA data v této instanci. <strong>Sloučit z JSON</strong> → přidá jen nové (nepřepíše, nezdvojí). Hráči se párují podle jména a ročníku (bez ohledu na diakritiku a velikost písmen); ručně založený hráč bez ročníku se pozná podle jména + kategorie a importem se mu chybějící údaje doplní. Kdyby přesto duplicity vznikly, vyčistí je <strong>Hráči → 🧹 Sloučit duplikáty</strong>.</li>
         </ul>
         <p><strong>Workflow přenos trenér ↔ asistent:</strong></p>
         <ol>
