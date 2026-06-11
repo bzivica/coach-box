@@ -60,6 +60,8 @@
     return out;
   });
 
+  // initialPeriod je jednorazova vychozi hodnota pri otevreni, dalsi vyber ridi uzivatel
+  // svelte-ignore state_referenced_locally
   let vybrane = $state(initialPeriod ?? 'total');
   const aktivni = $derived(
     obdobi.find((o) => o.key === vybrane) ?? obdobi[obdobi.length - 1],

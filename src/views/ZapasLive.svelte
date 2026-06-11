@@ -5141,45 +5141,6 @@
   }
   .foul-subtyp-buttons button.primary:hover { background: var(--accent-hover); }
 
-  .opp-foul-modal { width: 560px; max-width: 92vw; }
-  .opp-numbers-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-    gap: 8px;
-    max-height: 50vh;
-    overflow-y: auto;
-    margin: 10px 0;
-  }
-  .opp-num-btn {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    padding: 12px 8px;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    cursor: pointer;
-    font-family: inherit;
-    color: var(--text);
-    transition: all 0.15s;
-  }
-  .opp-num-btn:hover {
-    background: var(--accent);
-    color: var(--accent-fg);
-    border-color: var(--accent);
-  }
-  .opp-num-btn .opp-num { font-size: 18px; font-weight: 800; }
-  .opp-num-btn .opp-pr { font-size: 12px; }
-  .opp-num-btn .opp-fa {
-    font-size: 11px;
-    background: var(--danger);
-    color: var(--accent-fg);
-    padding: 2px 6px;
-    border-radius: 3px;
-    font-weight: 700;
-  }
-
   .opp-fauly-summary {
     margin-top: 12px;
     padding: 10px 12px;
