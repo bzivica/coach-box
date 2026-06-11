@@ -318,12 +318,34 @@ function emptyStat(): MergeStat {
   return { added: 0, updated: 0, skipped: 0 };
 }
 
-// Identita hrace = jmeno + prijmeni + rocnik (cislo dresu se mezi sezonami/tymy meni, do klice nepatri).
-// Normalizace (trim + mala pismena) aby "Marek" a "marek " splynuly a netvorily duplikat.
-function hracKey(h: Hrac): string {
-  const norm = (s: string) => s.trim().toLocaleLowerCase('cs');
-  return `${norm(h.jmeno)}|${norm(h.prijmeni)}|${h.rocnik_narozeni ?? ''}`;
+// Normalizace casti jmena: trim, mala pismena, bez diakritiky ("Novák" = "novak"),
+// aby rucni zapis bez hacku/carek netvoril duplikat proti importu z webu.
+function normJmenoCast(s: string): string {
+  return s
+    .trim()
+    .toLocaleLowerCase('cs')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
 }
+
+// Identita hrace = jmeno + prijmeni + rocnik (cislo dresu se mezi sezonami/tymy meni, do klice nepatri).
+function hracKey(h: Hrac): string {
+  return `${normJmenoCast(h.jmeno)}|${normJmenoCast(h.prijmeni)}|${h.rocnik_narozeni ?? ''}`;
+}
+
+// Klic jen ze jmena, necitlivy na poradi jmeno/prijmeni (web uvadi "Prijmeni Jmeno").
+function hracJmenoKey(h: Hrac): string {
+  return [normJmenoCast(h.jmeno), normJmenoCast(h.prijmeni)].sort().join('|');
+}
+
+// Rodina kategorie = A i B varianta tehoz veku (U15 a U15B muze byt tentyz hrac, jine kategorie ne).
+function kategorieRodina(k: Kategorie): string {
+  if (k === 'MuziA' || k === 'MuziB') return 'Muzi';
+  return k.endsWith('B') ? k.slice(0, -1) : k;
+}
+
+// Pole, ktera se pri slucovani doplnuji z duplikatu, kdyz na ponechanem zaznamu chybi.
+const HRAC_DOPLNITELNA_POLE = ['cislo_dresu', 'pozice', 'rocnik_narozeni', 'datum_narozeni', 'vyska_cm', 'foto'] as const;
 
 function souperKey(s: Souper): string {
   return `${s.nazev}|${s.kategorie}`;
@@ -385,8 +407,16 @@ async function dedupeHraci(): Promise<{ removed: number; affectedZapasy: Set<str
     }
   }
 
+  if (toDelete.length === 0) return { removed: 0, affectedZapasy: new Set() };
+  const affectedZapasy = await aplikujRemapHracu(remap, toDelete);
+  return { removed: toDelete.length, affectedZapasy };
+}
+
+// Prepoji vsechny odkazy na hrace (udalosti, sestavy ctvrtin, nasazeni v zapasech) dle remap
+// (dupId -> keeperId) a duplikaty smaze. Musi bezet uvnitr rw transakce nad vsemi tabulkami.
+// Vraci id zapasu, kterych se prepojeni dotklo (pro prepocet skore).
+async function aplikujRemapHracu(remap: Map<string, string>, toDelete: string[]): Promise<Set<string>> {
   const affectedZapasy = new Set<string>();
-  if (toDelete.length === 0) return { removed: 0, affectedZapasy };
 
   const udalosti = await db.udalosti.toArray();
   for (const u of udalosti) {
@@ -419,7 +449,154 @@ async function dedupeHraci(): Promise<{ removed: number; affectedZapasy: Set<str
   }
 
   await db.hraci.bulkDelete(toDelete);
-  return { removed: toDelete.length, affectedZapasy };
+  return affectedZapasy;
+}
+
+// Prepocita cache skore na zapasech z udalosti (po prepojeni hracu nebo importu).
+async function prepocitejSkoreZapasu(zapasIds: Iterable<string>): Promise<void> {
+  for (const zid of zapasIds) {
+    const zUdalosti = await db.udalosti.where('zapas_id').equals(zid).toArray();
+    const zCtvrtiny = await db.ctvrtiny.where('zapas_id').equals(zid).toArray();
+    const s = computeSkore(zUdalosti);
+    const perQ = computeSkorePoCtvrtinach(zUdalosti, zCtvrtiny);
+    await db.zapasy.update(zid, {
+      skore_nase: s.nase,
+      skore_souper: s.souper,
+      skore_po_ctvrtinach: perQ,
+    });
+  }
+}
+
+export interface DuplicitniHrac {
+  hrac: Hrac;
+  pocet_akci: number;
+}
+
+export interface DuplicitniSkupina {
+  hraci: DuplicitniHrac[];
+  navrh_keeper_id: string;
+}
+
+// Najde skupiny pravdepodobnych duplikatu: stejne jmeno (bez diakritiky, necitlive na poradi
+// jmeno/prijmeni), rocniky se nesmi rozchazet (shoda, nebo nektery chybi) a vsichni musi byt
+// ve stejne kategorii vc. B varianty - stejne jmeno v jine kategorii = jiny hrac.
+// Nic nemaze, jen vraci kandidaty k potvrzeni uzivatelem.
+export async function najdiDuplicitniHrace(): Promise<DuplicitniSkupina[]> {
+  const [all, udalosti] = await Promise.all([db.hraci.toArray(), db.udalosti.toArray()]);
+
+  const akce = new Map<string, number>();
+  const pricti = (id: string | null | undefined) => {
+    if (id) akce.set(id, (akce.get(id) ?? 0) + 1);
+  };
+  for (const u of udalosti) {
+    pricti(u.hrac_id);
+    pricti(u.sub_in_id);
+    pricti(u.sub_out_id);
+  }
+
+  const dleJmena = new Map<string, Hrac[]>();
+  for (const h of all) {
+    const k = hracJmenoKey(h);
+    const g = dleJmena.get(k);
+    if (g) g.push(h);
+    else dleJmena.set(k, [h]);
+  }
+
+  const skupiny: DuplicitniSkupina[] = [];
+  for (const g of dleJmena.values()) {
+    if (g.length < 2) continue;
+
+    const dleRocniku = new Map<number, Hrac[]>();
+    const bezRocniku: Hrac[] = [];
+    for (const h of g) {
+      if (h.rocnik_narozeni === undefined) {
+        bezRocniku.push(h);
+      } else {
+        const rg = dleRocniku.get(h.rocnik_narozeni);
+        if (rg) rg.push(h);
+        else dleRocniku.set(h.rocnik_narozeni, [h]);
+      }
+    }
+
+    const clustery: Hrac[][] = [];
+    if (dleRocniku.size === 0) {
+      clustery.push(bezRocniku);
+    } else if (dleRocniku.size === 1) {
+      const [jediny] = dleRocniku.values();
+      clustery.push([...jediny, ...bezRocniku]);
+    } else {
+      // vice ruznych rocniku = ruzni hraci; zaznamy bez rocniku nelze jednoznacne priradit
+      clustery.push(...dleRocniku.values());
+    }
+
+    for (const c of clustery) {
+      if (c.length < 2) continue;
+      const rodiny = new Set(c.map((h) => kategorieRodina(h.domaci_kategorie)));
+      if (rodiny.size > 1) continue;
+      const hraci = c
+        .map((h) => ({ hrac: h, pocet_akci: akce.get(h.id) ?? 0 }))
+        .sort((a, b) => b.pocet_akci - a.pocet_akci || a.hrac.vytvoreno_at - b.hrac.vytvoreno_at);
+      skupiny.push({ hraci, navrh_keeper_id: hraci[0].hrac.id });
+    }
+  }
+
+  skupiny.sort((a, b) => a.hraci[0].hrac.prijmeni.localeCompare(b.hraci[0].hrac.prijmeni, 'cs'));
+  return skupiny;
+}
+
+export interface SlouceniHracuVstup {
+  keeper_id: string;
+  smazat_ids: string[];
+}
+
+// Slouci uzivatelem potvrzene skupiny duplikatu. Ponechany zaznam dostane udaje, ktere mu
+// chybi (cislo dresu, pozice, rocnik, datum narozeni, vyska, foto), vsechny odkazy se
+// prepoji a skore dotcenych zapasu se prepocita. Vraci pocet smazanych zaznamu.
+export async function slucDuplicitniHrace(skupiny: SlouceniHracuVstup[]): Promise<number> {
+  let smazano = 0;
+  await db.transaction('rw', [db.hraci, db.zapasy, db.ctvrtiny, db.udalosti], async () => {
+    const remap = new Map<string, string>();
+    for (const s of skupiny) {
+      const keeper = await db.hraci.get(s.keeper_id);
+      if (!keeper) continue;
+      const dupy = (await db.hraci.bulkGet(s.smazat_ids)).filter(
+        (d): d is Hrac => d !== undefined && d.id !== keeper.id,
+      );
+      if (dupy.length === 0) continue;
+
+      const patch: Partial<Hrac> = { updated_at: Date.now() };
+      for (const d of dupy) {
+        for (const pole of HRAC_DOPLNITELNA_POLE) {
+          if (keeper[pole] === undefined && d[pole] !== undefined) {
+            (patch as Record<string, unknown>)[pole] = d[pole];
+            (keeper as unknown as Record<string, unknown>)[pole] = d[pole];
+          }
+        }
+        if (!keeper.aktivni && d.aktivni) {
+          patch.aktivni = true;
+          keeper.aktivni = true;
+        }
+        remap.set(d.id, keeper.id);
+      }
+
+      // doplneny rocnik muze posunout kategorii (rucni B varianta se zachova)
+      if (patch.rocnik_narozeni !== undefined) {
+        let cil = kategorieZRocniku(patch.rocnik_narozeni);
+        if (B_KATEGORIE.has(keeper.domaci_kategorie) && B_VARIANTA[cil]) {
+          cil = B_VARIANTA[cil] as Kategorie;
+        }
+        if (cil !== keeper.domaci_kategorie) patch.domaci_kategorie = cil;
+      }
+
+      await db.hraci.update(keeper.id, patch);
+    }
+
+    if (remap.size === 0) return;
+    const affected = await aplikujRemapHracu(remap, Array.from(remap.keys()));
+    await prepocitejSkoreZapasu(affected);
+    smazano = remap.size;
+  });
+  return smazano;
 }
 
 export async function importMerge(payload: ExportData): Promise<MergeResult> {
@@ -486,8 +663,28 @@ export async function importMerge(payload: ExportData): Promise<MergeResult> {
 
       const existingHraci = await db.hraci.toArray();
       const hraciByKey = new Map(existingHraci.map((h) => [hracKey(h), h]));
+      const hraciByJmeno = new Map<string, Hrac[]>();
+      for (const eh of existingHraci) {
+        const jk = hracJmenoKey(eh);
+        const jg = hraciByJmeno.get(jk);
+        if (jg) jg.push(eh);
+        else hraciByJmeno.set(jk, [eh]);
+      }
       for (const h of incoming.hraci) {
-        const existing = hraciByKey.get(hracKey(h));
+        let existing = hraciByKey.get(hracKey(h));
+        if (!existing) {
+          // volnejsi parovani: stejne jmeno, rocniky se nerozchazi, stejna kategorie vc. B
+          // varianty - chyta rucne zalozene hrace bez rocniku proti importu z webu.
+          // Pri vice kandidatech radeji zalozime novy zaznam (resi nastroj Sloucit duplikaty).
+          const kandidati = (hraciByJmeno.get(hracJmenoKey(h)) ?? []).filter(
+            (e) =>
+              (e.rocnik_narozeni === undefined ||
+                h.rocnik_narozeni === undefined ||
+                e.rocnik_narozeni === h.rocnik_narozeni) &&
+              kategorieRodina(e.domaci_kategorie) === kategorieRodina(h.domaci_kategorie),
+          );
+          if (kandidati.length === 1) existing = kandidati[0];
+        }
         if (existing) {
           hracIdMap.set(h.id, existing.id);
           if (h.updated_at > existing.updated_at) {
@@ -506,7 +703,20 @@ export async function importMerge(payload: ExportData): Promise<MergeResult> {
             });
             result.hraci.updated++;
           } else {
-            result.hraci.skipped++;
+            // import je starsi, ale udaje chybejici na existujicim zaznamu doplnime
+            const patch: Partial<Hrac> = {};
+            for (const pole of HRAC_DOPLNITELNA_POLE) {
+              if (existing[pole] === undefined && h[pole] !== undefined) {
+                (patch as Record<string, unknown>)[pole] = h[pole];
+              }
+            }
+            if (Object.keys(patch).length > 0) {
+              patch.updated_at = Date.now();
+              await db.hraci.update(existing.id, patch);
+              result.hraci.updated++;
+            } else {
+              result.hraci.skipped++;
+            }
           }
         } else {
           hracIdMap.set(h.id, h.id);
@@ -626,17 +836,10 @@ export async function importMerge(payload: ExportData): Promise<MergeResult> {
       result.hraci_duplikaty_smazany = dedup.removed;
       for (const zid of dedup.affectedZapasy) zapasyDotcene.add(zid);
 
-      for (const zid of zapasyDotcene) {
-        const zUdalosti = await db.udalosti.where('zapas_id').equals(zid).toArray();
-        const zCtvrtiny = await db.ctvrtiny.where('zapas_id').equals(zid).toArray();
-        const s = computeSkore(zUdalosti);
-        const perQ = computeSkorePoCtvrtinach(zUdalosti, zCtvrtiny);
-        await db.zapasy.update(zid, {
-          skore_nase: s.nase,
-          skore_souper: s.souper,
-          skore_po_ctvrtinach: perQ,
-        });
-      }
+      // doplnene rocniky mohly zmenit kategorie - srovnat hned, ne az pri pristim startu
+      await recomputeKategorieZRocniku();
+
+      await prepocitejSkoreZapasu(zapasyDotcene);
     },
   );
 
