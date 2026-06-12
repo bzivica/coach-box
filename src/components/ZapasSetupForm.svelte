@@ -3,6 +3,7 @@
   import { db, newId } from '../lib/db';
   import {
     KATEGORIE_PORADI,
+    aktualniSezonaSpringYear,
     kategorieLabel,
     muzeHratV,
     souperiZNasichKategorie,
@@ -30,17 +31,20 @@
   let { onClose, onSaved }: Props = $props();
 
   const today = new Date().toISOString().slice(0, 10);
-  const currentSeason = (() => {
-    const now = new Date();
-    const y = now.getFullYear();
-    return now.getMonth() >= 7 ? `${y}/${(y + 1) % 100}` : `${y - 1}/${y % 100}`;
-  })();
+
+  function sezonaZData(d: string): string | null {
+    const [y, m] = d.split('-').map(Number);
+    if (!y || !m) return null;
+    const spring = aktualniSezonaSpringYear(new Date(y, m - 1, 1));
+    return `${spring - 1}/${spring % 100}`;
+  }
 
   let datum = $state(today);
   let nase_kategorie = $state<Kategorie>('U14');
   let souper_id = $state('');
   let soutez_id = $state('');
-  let sezona = $state(currentSeason);
+  let sezona = $state(sezonaZData(today) ?? '');
+  let sezonaRucne = $state(false);
   let nase_strana = $state<NaseStrana>('home');
   let souper_nas_tym = $state(false);
   let souper_nas_kategorie = $state<Kategorie>('U14');
@@ -71,6 +75,12 @@
     if (!souper_nas_kategorie_moznosti.includes(souper_nas_kategorie)) {
       souper_nas_kategorie = nase_kategorie;
     }
+  });
+
+  $effect(() => {
+    if (sezonaRucne) return;
+    const s = sezonaZData(datum);
+    if (s) sezona = s;
   });
   const eligible_hraci = $derived(
     hraci
@@ -275,7 +285,7 @@
       <div class="row3">
         <label>
           <span>Sezona *</span>
-          <input bind:value={sezona} type="text" placeholder="např. 2025/26" />
+          <input bind:value={sezona} oninput={() => (sezonaRucne = true)} type="text" placeholder="např. 2025/26" />
         </label>
         <label>
           <span>Délka čtvrtiny (min) *</span>

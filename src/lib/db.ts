@@ -204,7 +204,7 @@ const B_VARIANTA: Partial<Record<Kategorie, Kategorie>> = {
 };
 const B_KATEGORIE = new Set<Kategorie>(['U15B', 'U17B', 'U19B', 'MuziB']);
 
-// Prepocita domaci_kategorie z roku narozeni pro aktualni sezonu (od zari se vsem posune o stupen vys).
+// Prepocita domaci_kategorie z roku narozeni pro aktualni sezonu (od srpna se vsem posune o stupen vys).
 // Hraci bez rocniku zustavaji na rucne zvolene kategorii. Rucne zvolena B-varianta se zachova.
 async function recomputeKategorieZRocniku(): Promise<void> {
   const hraci = await db.hraci.toArray();

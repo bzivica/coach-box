@@ -61,7 +61,7 @@ export function aktualniSezonaSpringYear(ref: Date = new Date()): number {
   return m >= 7 ? y + 1 : y;
 }
 
-// Vekova kategorie z roku narozeni pro danou sezonu. V zari se vsem sama posune o stupen vys.
+// Vekova kategorie z roku narozeni pro danou sezonu. V srpnu se vsem sama posune o stupen vys.
 // Musi odpovidat gen.mjs v coach-box-soupiska.
 export function kategorieZRocniku(rocnik: number, ref: Date = new Date()): Kategorie {
   const vek = aktualniSezonaSpringYear(ref) - rocnik;
