@@ -47,6 +47,12 @@
     tymoveFaulyVCtvrtine,
     type BoxStat,
   } from '../lib/live';
+  import {
+    RADIAL_INNER_DEFAULT,
+    RADIAL_OUTER_DEFAULT,
+    resolveRadialSegments,
+    loadRadialLayout,
+  } from '../lib/radial';
   import Avatar from '../components/Avatar.svelte';
   import HracForm from '../components/HracForm.svelte';
   import SkoreVyvojGraf from '../components/SkoreVyvojGraf.svelte';
@@ -1619,24 +1625,20 @@
     return { ring: 'outer', idx: Math.floor((normalized + 36) / 72) % 5 };
   }
 
-  const RADIAL_INNER_SEGMENTS: { typ: GesturActionTyp; label: string; tone: SegTone }[] = [
-    { typ: 'shot_2_made', label: '✓2', tone: 'made' },
-    { typ: 'shot_3_made', label: '✓3', tone: 'made' },
-    { typ: 'reb_off', label: 'REB-O', tone: 'reb' },
-    { typ: 'ft_miss', label: '✗FT', tone: 'miss' },
-    { typ: 'shot_2_miss', label: '✗2', tone: 'miss' },
-    { typ: 'shot_3_miss', label: '✗3', tone: 'miss' },
-    { typ: 'reb_def', label: 'REB-D', tone: 'reb' },
-    { typ: 'ft_made', label: '✓FT', tone: 'made' },
-  ];
+  // Rozestaveni radialu je konfigurovatelne (Napoveda). Default = vychozi poradi
+  // z lib/radial; ulozene poradi se nacte pri startu zapasu nize v onMount.
+  let RADIAL_INNER_SEGMENTS = $state<{ typ: GesturActionTyp; label: string; tone: SegTone }[]>([
+    ...RADIAL_INNER_DEFAULT,
+  ]);
+  let RADIAL_OUTER_SEGMENTS = $state<{ typ: GesturActionTyp; label: string; tone: SegTone }[]>([
+    ...RADIAL_OUTER_DEFAULT,
+  ]);
 
-  const RADIAL_OUTER_SEGMENTS: { typ: GesturActionTyp; label: string; tone: SegTone }[] = [
-    { typ: 'assist', label: 'AST', tone: 'pozit' },
-    { typ: 'steal', label: 'STL', tone: 'pozit' },
-    { typ: 'block', label: 'BLK', tone: 'pozit' },
-    { typ: 'turnover', label: 'TO', tone: 'negat' },
-    { typ: 'foul', label: 'FAUL', tone: 'foul' },
-  ];
+  onMount(async () => {
+    const seg = resolveRadialSegments(await loadRadialLayout());
+    RADIAL_INNER_SEGMENTS = seg.inner;
+    RADIAL_OUTER_SEGMENTS = seg.outer;
+  });
 
   async function dispatchGesturAction(playerId: string, typ: GesturActionTyp) {
     if (typ === 'foul') {

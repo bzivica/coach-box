@@ -1,7 +1,67 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
+  import {
+    RADIAL_INNER_DEFAULT,
+    RADIAL_OUTER_DEFAULT,
+    RADIAL_NAZEV,
+    RADIAL_INNER_SMERY,
+    RADIAL_OUTER_SMERY,
+    resolveRadialSegments,
+    loadRadialLayout,
+    saveRadialLayout,
+    defaultRadialLayout,
+    type RadialSeg,
+    type RadialActionTyp,
+  } from '../lib/radial';
+
   type Sekce = 'asistent' | 'trener' | 'limity';
 
   let aktivni = $state<Sekce>('asistent');
+
+  // Konfigurace rozestaveni radialu (jen prohazovani stavajicich akci).
+  let innerSeg = $state<RadialSeg[]>([...RADIAL_INNER_DEFAULT]);
+  let outerSeg = $state<RadialSeg[]>([...RADIAL_OUTER_DEFAULT]);
+
+  onMount(async () => {
+    const seg = resolveRadialSegments(await loadRadialLayout());
+    innerSeg = seg.inner;
+    outerSeg = seg.outer;
+  });
+
+  async function persistRadial() {
+    await saveRadialLayout({
+      inner: innerSeg.map((s) => s.typ),
+      outer: outerSeg.map((s) => s.typ),
+    });
+  }
+
+  // Uzivatel vybral akci pro danou pozici. Aby zustala permutace (zadna akce
+  // nezmizi ani se nezdvoji), prohodime ji s pozici, kde akce dosud byla.
+  function vyberInner(pos: number, novyTyp: RadialActionTyp) {
+    const odkud = innerSeg.findIndex((s) => s.typ === novyTyp);
+    if (odkud === -1 || odkud === pos) return;
+    const next = [...innerSeg];
+    [next[pos], next[odkud]] = [next[odkud], next[pos]];
+    innerSeg = next;
+    void persistRadial();
+  }
+
+  function vyberOuter(pos: number, novyTyp: RadialActionTyp) {
+    const odkud = outerSeg.findIndex((s) => s.typ === novyTyp);
+    if (odkud === -1 || odkud === pos) return;
+    const next = [...outerSeg];
+    [next[pos], next[odkud]] = [next[odkud], next[pos]];
+    outerSeg = next;
+    void persistRadial();
+  }
+
+  async function resetRadial() {
+    const d = defaultRadialLayout();
+    const seg = resolveRadialSegments(d);
+    innerSeg = seg.inner;
+    outerSeg = seg.outer;
+    await saveRadialLayout(d);
+  }
 </script>
 
 <div class="navod">
@@ -157,6 +217,48 @@
           <strong>V radialu drží logika:</strong> dané koše nahoře, nedané dole, doskoky po stranách - každá akce má svůj protějšek přímo proti sobě, takže si na směry rychle zvykneš.<br/>
           Tap na hráče (= výběr) + tap na tlačítko (= zápis) funguje pořád úplně stejně jako bez gest - gesta jsou jen rychlejší alternativa pro toho kdo si zvykne.
         </p>
+
+        <div class="radial-config">
+          <h5>Vlastní rozestavení radiálu</h5>
+          <p class="muted-note">
+            Tady si můžeš přeskládat, která akce je v radiálu na kterém směru. Akce se jen <strong>prohazují</strong> - žádná nezmizí ani nepřibude. Výchozí rozestavení je nastavené rozumně (dané koše nahoře, nedané dole), měň jen pokud ti sedí něco jiného. Změna se uloží hned a platí pro <strong>všechna zařízení i platformy</strong> (po importu/synchronizaci dat).
+          </p>
+          <div class="radial-config-grid">
+            <div class="radial-config-ring">
+              <h6>Vnitřní kruh (8)</h6>
+              {#each innerSeg as seg, i (i)}
+                <label class="radial-config-row">
+                  <span class="rc-smer">{RADIAL_INNER_SMERY[i]}</span>
+                  <select
+                    value={seg.typ}
+                    onchange={(e) => vyberInner(i, e.currentTarget.value as RadialActionTyp)}
+                  >
+                    {#each RADIAL_INNER_DEFAULT as opt (opt.typ)}
+                      <option value={opt.typ}>{opt.label} - {RADIAL_NAZEV[opt.typ]}</option>
+                    {/each}
+                  </select>
+                </label>
+              {/each}
+            </div>
+            <div class="radial-config-ring">
+              <h6>Vnější kruh (5)</h6>
+              {#each outerSeg as seg, i (i)}
+                <label class="radial-config-row">
+                  <span class="rc-smer">{RADIAL_OUTER_SMERY[i]}</span>
+                  <select
+                    value={seg.typ}
+                    onchange={(e) => vyberOuter(i, e.currentTarget.value as RadialActionTyp)}
+                  >
+                    {#each RADIAL_OUTER_DEFAULT as opt (opt.typ)}
+                      <option value={opt.typ}>{opt.label} - {RADIAL_NAZEV[opt.typ]}</option>
+                    {/each}
+                  </select>
+                </label>
+              {/each}
+            </div>
+          </div>
+          <button class="radial-config-reset" type="button" onclick={resetRadial}>Vrátit výchozí</button>
+        </div>
       </section>
 
       <section class="step">
@@ -434,6 +536,71 @@
     color: var(--accent);
     border-bottom-color: var(--accent);
   }
+
+  .radial-config {
+    margin-top: 18px;
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+  }
+  .radial-config h5 {
+    margin: 0 0 6px;
+    font-size: 15px;
+    color: var(--text);
+  }
+  .radial-config-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    margin: 12px 0;
+  }
+  @media (max-width: 600px) {
+    .radial-config-grid { grid-template-columns: 1fr; }
+  }
+  .radial-config-ring h6 {
+    margin: 0 0 8px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .radial-config-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+  .rc-smer {
+    flex: 0 0 1.4em;
+    text-align: center;
+    font-size: 18px;
+    color: var(--accent);
+  }
+  .radial-config-row select {
+    flex: 1 1 auto;
+    padding: 7px 8px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 14px;
+  }
+  .radial-config-reset {
+    margin-top: 4px;
+    padding: 8px 16px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .radial-config-reset:hover { border-color: var(--accent); color: var(--accent); }
 
   .content {
     display: flex;
