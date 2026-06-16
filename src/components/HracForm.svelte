@@ -1,7 +1,7 @@
 <script lang="ts">
   import { untrack } from 'svelte';
   import { db, newId } from '../lib/db';
-  import { KATEGORIE_PORADI, kategorieLabel, kategorieZRocniku, odhadniPohlavi, vypoctiVek, type Hrac, type Kategorie, type Pozice } from '../lib/types';
+  import { KATEGORIE_PORADI, VEKOVA_SKUPINA, kategorieLabel, kategorieZRocniku, odhadniPohlavi, vypoctiVek, type Hrac, type Kategorie, type Pozice } from '../lib/types';
   import Avatar from './Avatar.svelte';
 
   const POZICE_HODNOTY: Pozice[] = ['PG', 'SG', 'SF', 'PF', 'C'];
@@ -30,6 +30,7 @@
     rocnik_narozeni: existing?.rocnik_narozeni !== undefined ? String(existing.rocnik_narozeni) : '',
     vyska_cm: existing?.vyska_cm !== undefined ? String(existing.vyska_cm) : '',
     domaci_kategorie: (existing?.domaci_kategorie ?? 'U13') as Kategorie,
+    kategorie_rucne: existing?.kategorie_rucne ?? false,
     obvykle_kategorie: (existing?.obvykle_kategorie ?? []) as Kategorie[],
     pohlavi: (existing?.pohlavi ?? 'M') as 'M' | 'Z',
     pohlaviRucne: existing !== undefined,
@@ -49,6 +50,7 @@
   let pohlavi = $state<'M' | 'Z'>(initial.pohlavi);
   let pohlaviRucne = $state(initial.pohlaviRucne);
   let obvykle_kategorie = $state<Kategorie[]>(initial.obvykle_kategorie);
+  let kategorie_rucne = $state(initial.kategorie_rucne);
 
   function toggleObvykle(k: Kategorie) {
     obvykle_kategorie = obvykle_kategorie.includes(k)
@@ -85,12 +87,21 @@
     return kategorieZRocniku(r);
   });
 
+  // Hrac smi hrat jen ve sve nativni (dle rocniku) kategorii nebo STARSI (hraje "nahoru"),
+  // nikdy mladsi. Tj. 2012 (nativne U14) muze do U15B; 2011 (nativne U15) uz do U14 ne.
+  // Bez rocniku nabidneme vse. Aktualni hodnotu vzdy ponechame, at se select nerozbije.
+  const povoleneKategorie = $derived.by(() => {
+    if (autoKategorie === null) return KATEGORIE_PORADI;
+    const ng = VEKOVA_SKUPINA[autoKategorie];
+    return KATEGORIE_PORADI.filter((k) => VEKOVA_SKUPINA[k] >= ng || k === domaci_kategorie);
+  });
+
   let lastAuto: Kategorie | null = untrack(() => autoKategorie);
   $effect(() => {
     const a = autoKategorie;
     if (a && a !== lastAuto) {
       lastAuto = a;
-      domaci_kategorie = a;
+      if (!kategorie_rucne) domaci_kategorie = a; // rucni volbu neprepisujeme
     }
   });
   let foto = $state<string>(initial.foto);
@@ -198,6 +209,7 @@
           rocnik_narozeni: rocnikParsed,
           vyska_cm: vyskaParsed,
           domaci_kategorie,
+          kategorie_rucne,
           obvykle_kategorie: obvykle_kategorie.filter((k) => k !== domaci_kategorie),
           pohlavi,
           foto: foto || undefined,
@@ -215,6 +227,7 @@
           rocnik_narozeni: rocnikParsed,
           vyska_cm: vyskaParsed,
           domaci_kategorie,
+          kategorie_rucne,
           obvykle_kategorie: obvykle_kategorie.filter((k) => k !== domaci_kategorie),
           pohlavi,
           foto: foto || undefined,
@@ -299,19 +312,24 @@
           <input bind:value={rocnik_narozeni} type="number" min={ROCNIK_MIN} max={ROCNIK_MAX} placeholder="např. 2012" />
         </label>
         <label>
-          <span>Domácí kategorie * {#if autoKategorie !== null}<small class="vek-info">z ročníku, mění se v srpnu</small>{/if}</span>
-          <select bind:value={domaci_kategorie}>
-            {#each KATEGORIE_PORADI as k}
+          <span>Domácí kategorie * {#if autoKategorie !== null && !kategorie_rucne}<small class="vek-info">z ročníku, mění se v srpnu</small>{/if}</span>
+          <select bind:value={domaci_kategorie} onchange={() => (kategorie_rucne = true)}>
+            {#each povoleneKategorie as k}
               <option value={k}>{kategorieLabel(k)}</option>
             {/each}
           </select>
         </label>
       </div>
 
+      <label class="checkbox">
+        <input bind:checked={kategorie_rucne} type="checkbox" />
+        <span>Kategorii řídím ručně (nepřepisovat podle ročníku) - pro slabší hráče v „B"</span>
+      </label>
+
       <div class="obvykle-pole">
         <span class="ob-label">Obvykle hraje i za <small class="opt">(volitelné - nabídne se i v těchto kategoriích)</small></span>
         <div class="ob-chips">
-          {#each KATEGORIE_PORADI.filter((k) => k !== domaci_kategorie) as k}
+          {#each povoleneKategorie.filter((k) => k !== domaci_kategorie) as k}
             <button type="button" class="ob-chip" class:active={obvykle_kategorie.includes(k)} onclick={() => toggleObvykle(k)}>
               {kategorieLabel(k)}
             </button>

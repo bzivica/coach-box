@@ -137,6 +137,9 @@ export interface Hrac {
   rocnik_narozeni?: number;
   vyska_cm?: number;
   domaci_kategorie: Kategorie;
+  // Kategorie nastavena rucne -> neprepisovat ji automatickym prepoctem z rocniku.
+  // Pro slabsi hrace, co herne patri do jine (napr. B) kategorie nez dle veku.
+  kategorie_rucne?: boolean;
   // Dalsi kategorie, za ktere hrac bezne nastupuje (krome domaci) - rucne nastavitelne.
   // Takovy hrac se pak v zalozeni zapasu te kategorie nabidne v mrizce automaticky.
   obvykle_kategorie?: Kategorie[];
@@ -285,14 +288,14 @@ export function jeMixKategorie(k: Kategorie): boolean {
   return k.toUpperCase().includes('MIX');
 }
 
-// Patri hrac do zakladni nabidky pro zapas dane kategorie? Ano kdyz: je te kategorie (stejna
-// vekova skupina vc. B varianty), nebo ma kategorii rucne ve "obvykle hraje i za", nebo uz
-// nekdy hral zapas teto kategorie (mnozina `odehrane` z historie zapasu). Porovnava se vek.
+// Patri hrac do zakladni nabidky pro zapas dane kategorie? Porovnava se PRESNA kategorie
+// (U14 != U15B != U15 - aby se B hraci nepletli do A nabidky). Ano kdyz: je presne te
+// kategorie, nebo ma kategorii ve "obvykle hraje i za", nebo uz nekdy hral zapas teto
+// kategorie (mnozina `odehrane` z historie zapasu).
 export function hrajeZaKategorii(h: Hrac, zapasKategorie: Kategorie, odehrane?: Set<Kategorie>): boolean {
-  const g = VEKOVA_SKUPINA[zapasKategorie];
-  if (VEKOVA_SKUPINA[h.domaci_kategorie] === g) return true;
-  if ((h.obvykle_kategorie ?? []).some((k) => VEKOVA_SKUPINA[k] === g)) return true;
-  if (odehrane && [...odehrane].some((k) => VEKOVA_SKUPINA[k] === g)) return true;
+  if (h.domaci_kategorie === zapasKategorie) return true;
+  if ((h.obvykle_kategorie ?? []).includes(zapasKategorie)) return true;
+  if (odehrane?.has(zapasKategorie)) return true;
   return false;
 }
 

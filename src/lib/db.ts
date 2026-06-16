@@ -225,6 +225,7 @@ async function recomputeKategorieZRocniku(): Promise<void> {
   const hraci = await db.hraci.toArray();
   for (const h of hraci) {
     if (h.rocnik_narozeni === undefined) continue;
+    if (h.kategorie_rucne) continue; // rucne nastavenou kategorii neprepisujeme
     let cil = kategorieZRocniku(h.rocnik_narozeni);
     if (B_KATEGORIE.has(h.domaci_kategorie) && B_VARIANTA[cil]) {
       cil = B_VARIANTA[cil] as Kategorie;
@@ -361,7 +362,7 @@ function kategorieRodina(k: Kategorie): string {
 }
 
 // Pole, ktera se pri slucovani doplnuji z duplikatu, kdyz na ponechanem zaznamu chybi.
-const HRAC_DOPLNITELNA_POLE = ['cislo_dresu', 'pozice', 'rocnik_narozeni', 'datum_narozeni', 'vyska_cm', 'pohlavi', 'obvykle_kategorie', 'foto'] as const;
+const HRAC_DOPLNITELNA_POLE = ['cislo_dresu', 'pozice', 'rocnik_narozeni', 'datum_narozeni', 'vyska_cm', 'pohlavi', 'kategorie_rucne', 'obvykle_kategorie', 'foto'] as const;
 
 function souperKey(s: Souper): string {
   return `${s.nazev}|${s.kategorie}`;
@@ -713,6 +714,7 @@ export async function importMerge(payload: ExportData): Promise<MergeResult> {
               rocnik_narozeni: h.rocnik_narozeni ?? existing.rocnik_narozeni,
               vyska_cm: h.vyska_cm ?? existing.vyska_cm,
               domaci_kategorie: h.domaci_kategorie,
+              kategorie_rucne: h.kategorie_rucne ?? existing.kategorie_rucne,
               obvykle_kategorie: h.obvykle_kategorie ?? existing.obvykle_kategorie,
               pohlavi: h.pohlavi ?? existing.pohlavi,
               foto: h.foto ?? existing.foto,

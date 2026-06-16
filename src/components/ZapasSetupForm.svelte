@@ -6,7 +6,6 @@
     aktualniSezonaSpringYear,
     kategorieLabel,
     hrajeZaKategorii,
-    jeMixKategorie,
     VEKOVA_SKUPINA,
     souperiZNasichKategorie,
     DEFAULT_DELKA_CTVRTINY_MIN,
@@ -54,7 +53,6 @@
   let pridani = $state<string[]>([]); // jednotlivci pridani rucne pres "+ Pridat hrace"
   let hledani = $state('');
   let pickerOtevren = $state(false);
-  let nase_pohlavi = $state<'M' | 'Z'>('M');
   let delka_ctvrtiny = $state(String(DEFAULT_DELKA_CTVRTINY_MIN));
   let pocet_ctvrtin = $state(DEFAULT_POCET_CTVRTIN);
 
@@ -103,12 +101,9 @@
     const s = sezonaZData(datum);
     if (s) sezona = s;
   });
-  // MIX kategorie nabizi obe pohlavi; jinak jen vybranou stranu (kluci/holky se nemichaji).
-  const jeMix = $derived(jeMixKategorie(nase_kategorie));
-  const pohlaviSedi = (h: Hrac) => jeMix || (h.pohlavi ?? 'M') === nase_pohlavi;
   const radDleCisla = (a: Hrac, b: Hrac) => (a.cislo_dresu ?? 99) - (b.cislo_dresu ?? 99);
 
-  // Zakladni nabidka: hraci te kategorie (vek) + ti s priznakem "obvykle hraje i za" + ti,
+  // Zakladni nabidka: hraci presne te kategorie + ti s priznakem "obvykle hraje i za" + ti,
   // kdo uz nekdy hrali zapas teto kategorie (historie). Plus rucne pridani jednotlivci.
   const eligible_hraci = $derived(
     hraci
@@ -117,12 +112,11 @@
           hrajeZaKategorii(h, nase_kategorie, odehraneKategorie.get(h.id)) ||
           (pridani.includes(h.id) && VEKOVA_SKUPINA[h.domaci_kategorie] <= VEKOVA_SKUPINA[nase_kategorie]),
       )
-      .filter(pohlaviSedi)
       .sort(radDleCisla),
   );
 
-  // Picker "+ Pridat hrace": kdokoli mladsi (nebo stejny vek), kdo zatim neni v nabidce,
-  // odpovida pohlavi a sedi na hledani podle jmena.
+  // Picker "+ Pridat hrace": kdokoli stejne stary nebo mladsi (ne starsi), kdo zatim neni
+  // v nabidce a sedi na hledani podle jmena.
   const pridatelni = $derived.by(() => {
     const vMrizce = new Set(eligible_hraci.map((h) => h.id));
     const cilSkupina = VEKOVA_SKUPINA[nase_kategorie];
@@ -130,7 +124,6 @@
     return hraci
       .filter((h) => !vMrizce.has(h.id))
       .filter((h) => VEKOVA_SKUPINA[h.domaci_kategorie] <= cilSkupina) // stejne stari a mladsi, ne starsi
-      .filter(pohlaviSedi)
       .filter((h) => !q || `${h.jmeno} ${h.prijmeni}`.toLocaleLowerCase('cs').includes(q))
       .sort((a, b) => a.prijmeni.localeCompare(b.prijmeni, 'cs'))
       .slice(0, 30);
@@ -369,12 +362,6 @@
         <div class="roster-header">
           <span class="label">Nasazení hráči ({nasazeni.length} vybráno, min. 5) - kategorie {kategorieLabel(nase_kategorie)}</span>
           <div class="roster-buttons">
-            {#if !jeMix}
-              <div class="seg">
-                <button type="button" class:active={nase_pohlavi === 'M'} onclick={() => (nase_pohlavi = 'M')}>Kluci</button>
-                <button type="button" class:active={nase_pohlavi === 'Z'} onclick={() => (nase_pohlavi = 'Z')}>Holky</button>
-              </div>
-            {/if}
             <button type="button" class="small" class:active={pickerOtevren} onclick={() => (pickerOtevren = !pickerOtevren)}>+ Přidat hráče</button>
             <button type="button" class="small" onclick={vybratVse}>Vybrat všechny</button>
             <button type="button" class="small" onclick={odznacitVse}>Odznačit</button>
@@ -645,10 +632,6 @@
     font-family: inherit;
   }
   button.small { padding: 6px 12px; font-size: 13px; }
-  .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
-  .seg button { background: var(--bg); border: none; border-radius: 0; padding: 6px 14px; font-size: 13px; }
-  .seg button + button { border-left: 1px solid var(--border); }
-  .seg button.active { background: var(--accent); color: var(--accent-fg); }
   button.small.active { background: var(--accent); color: var(--accent-fg); }
   .picker {
     background: var(--surface);
