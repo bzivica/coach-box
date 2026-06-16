@@ -138,7 +138,7 @@ export interface Hrac {
   vyska_cm?: number;
   domaci_kategorie: Kategorie;
   // Kategorie nastavena rucne -> neprepisovat ji automatickym prepoctem z rocniku.
-  // Pro slabsi hrace, co herne patri do jine (napr. B) kategorie nez dle veku.
+  // Pro hrace, co herne patri do jine (napr. B) kategorie nez dle veku.
   kategorie_rucne?: boolean;
   // Dalsi kategorie, za ktere hrac bezne nastupuje (krome domaci) - rucne nastavitelne.
   // Takovy hrac se pak v zalozeni zapasu te kategorie nabidne v mrizce automaticky.

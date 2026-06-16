@@ -323,7 +323,7 @@
 
       <label class="checkbox">
         <input bind:checked={kategorie_rucne} type="checkbox" />
-        <span>Kategorii řídím ručně (nepřepisovat podle ročníku) - pro slabší hráče v „B"</span>
+        <span>Kategorii řídím ručně (nepřepisovat podle ročníku)</span>
       </label>
 
       <div class="obvykle-pole">
