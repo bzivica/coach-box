@@ -1937,6 +1937,21 @@
     document.documentElement.classList.toggle('radial-scroll-lock', locked);
     return () => document.documentElement.classList.remove('radial-scroll-lock');
   });
+
+  // Mobil: jakmile prohlížeč gesto vyhodnotí jako svislý scroll (touch-action: pan-y),
+  // pozdější pointermove preventDefault ani overflow:hidden už rozjetý dotykový scroll
+  // nezastaví. Jediná spolehlivá obrana je non-passive touchmove listener, který po dobu
+  // otevřeného radiálu scroll ruší přímo. Mimo radiál se nedělá nic, takže běžný scroll
+  // seznamu hráčů zůstává nedotčený.
+  onMount(() => {
+    const blockTouchScrollBehindRadial = (e: TouchEvent) => {
+      if (activeGesture?.mode === 'radial' || actionGesture?.mode === 'radial') {
+        e.preventDefault();
+      }
+    };
+    window.addEventListener('touchmove', blockTouchScrollBehindRadial, { passive: false });
+    return () => window.removeEventListener('touchmove', blockTouchScrollBehindRadial);
+  });
 </script>
 
 {#if mode === 'loading' || !zapas || !souper}
