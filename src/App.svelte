@@ -9,6 +9,7 @@
   import Zapasy from './views/Zapasy.svelte';
   import Statistiky from './views/Statistiky.svelte';
   import Navod from './views/Navod.svelte';
+  import { version as APP_VERSION } from '../package.json';
 
   type View = 'home' | 'hraci' | 'souperi' | 'souteze' | 'zapasy' | 'statistiky' | 'navod';
   type Theme = 'light' | 'dark';
@@ -96,7 +97,7 @@
         </a>
         <div class="brand-text">
           <h1><a class="club-link" href={KLUB_URL} target="_blank" rel="noopener noreferrer" title="Oficiální web klubu Jižní Supi (otevře se v nové záložce)">Jižní Supi</a> <span class="brand-sep">-</span> <span class="app-name">Coach Box</span></h1>
-          <span class="version">v1.0.63</span>
+          <span class="version">v{APP_VERSION}</span>
         </div>
       </div>
       <button class="theme-toggle" onclick={toggleTheme} title={theme === 'light' ? 'Přepnout na tmavé téma' : 'Přepnout na světlé téma'}>

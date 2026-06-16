@@ -54,7 +54,6 @@
   let hledani = $state('');
   let pickerOtevren = $state(false);
   let delka_ctvrtiny = $state(String(DEFAULT_DELKA_CTVRTINY_MIN));
-  let pocet_ctvrtin = $state(DEFAULT_POCET_CTVRTIN);
 
   let hraci = $state<Hrac[]>([]);
   let souperi = $state<Souper[]>([]);
@@ -248,7 +247,7 @@
         nase_strana,
         nasazeni_hraci: [...nasazeni],
         delka_ctvrtiny_min: delkaParsed,
-        pocet_ctvrtin: je_pratelak ? pocet_ctvrtin : DEFAULT_POCET_CTVRTIN,
+        pocet_ctvrtin: DEFAULT_POCET_CTVRTIN,
         status: 'rozehrany',
         skore_nase: 0,
         skore_souper: 0,
@@ -347,15 +346,6 @@
           <span>Délka čtvrtiny (min) *</span>
           <input bind:value={delka_ctvrtiny} type="number" min={MIN_Q_LENGTH} max={MAX_Q_LENGTH} step="1" />
         </label>
-        {#if je_pratelak}
-          <label>
-            <span>Počet čtvrtin (přátelák)</span>
-            <select bind:value={pocet_ctvrtin}>
-              <option value={3}>3 čtvrtiny</option>
-              <option value={4}>4 čtvrtiny</option>
-            </select>
-          </label>
-        {/if}
       </div>
 
       <div class="roster-section">
