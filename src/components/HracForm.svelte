@@ -89,10 +89,10 @@
 
   // Hrac smi hrat jen ve sve nativni (dle rocniku) kategorii nebo STARSI (hraje "nahoru"),
   // nikdy mladsi. Tj. 2012 (nativne U14) muze do U15B; 2011 (nativne U15) uz do U14 ne.
-  // Bez rocniku nabidneme vse. Aktualni hodnotu vzdy ponechame, at se select nerozbije.
+  // Spodni hranice = nativni kategorie dle rocniku; kdyz rocnik chybi, bere se domaci
+  // kategorie (at se nikdy nenabizi mladsi). Aktualni hodnotu vzdy ponechame, at se select nerozbije.
   const povoleneKategorie = $derived.by(() => {
-    if (autoKategorie === null) return KATEGORIE_PORADI;
-    const ng = VEKOVA_SKUPINA[autoKategorie];
+    const ng = VEKOVA_SKUPINA[autoKategorie ?? domaci_kategorie];
     return KATEGORIE_PORADI.filter((k) => VEKOVA_SKUPINA[k] >= ng || k === domaci_kategorie);
   });
 
