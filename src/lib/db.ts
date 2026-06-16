@@ -2,6 +2,7 @@ import Dexie, { type EntityTable } from 'dexie';
 import {
   DEFAULT_DELKA_CTVRTINY_MIN,
   kategorieZRocniku,
+  odhadniPohlavi,
   type Hrac,
   type Kategorie,
   type Soutez,
@@ -183,6 +184,20 @@ async function migrateLegacyKategorie(): Promise<void> {
   }
 }
 
+// Doplni pohlavi tam, kde chybi - odhadem z prijmeni (-ova/-a = holka). Bezi pri kazdem startu,
+// ale meni jen zaznamy bez pohlavi, takze rucni opravu uzivatele uz neprepise.
+async function migratePohlavi(): Promise<number> {
+  const hraci = await db.hraci.toArray();
+  let doplneno = 0;
+  for (const h of hraci) {
+    if (h.pohlavi === undefined) {
+      await db.hraci.update(h.id, { pohlavi: odhadniPohlavi(h.jmeno, h.prijmeni) });
+      doplneno++;
+    }
+  }
+  return doplneno;
+}
+
 async function migrateSoutezLimity(): Promise<void> {
   const souteze = await db.souteze.toArray();
   for (const s of souteze) {
@@ -226,6 +241,7 @@ export async function seedAll(): Promise<void> {
   await seedSouteze();
   await migrateSoutezLimity();
   await seedHraci();
+  await migratePohlavi();
   await recomputeKategorieZRocniku();
 }
 
@@ -345,7 +361,7 @@ function kategorieRodina(k: Kategorie): string {
 }
 
 // Pole, ktera se pri slucovani doplnuji z duplikatu, kdyz na ponechanem zaznamu chybi.
-const HRAC_DOPLNITELNA_POLE = ['cislo_dresu', 'pozice', 'rocnik_narozeni', 'datum_narozeni', 'vyska_cm', 'foto'] as const;
+const HRAC_DOPLNITELNA_POLE = ['cislo_dresu', 'pozice', 'rocnik_narozeni', 'datum_narozeni', 'vyska_cm', 'pohlavi', 'obvykle_kategorie', 'foto'] as const;
 
 function souperKey(s: Souper): string {
   return `${s.nazev}|${s.kategorie}`;
@@ -697,6 +713,8 @@ export async function importMerge(payload: ExportData): Promise<MergeResult> {
               rocnik_narozeni: h.rocnik_narozeni ?? existing.rocnik_narozeni,
               vyska_cm: h.vyska_cm ?? existing.vyska_cm,
               domaci_kategorie: h.domaci_kategorie,
+              obvykle_kategorie: h.obvykle_kategorie ?? existing.obvykle_kategorie,
+              pohlavi: h.pohlavi ?? existing.pohlavi,
               foto: h.foto ?? existing.foto,
               aktivni: h.aktivni,
               updated_at: h.updated_at,

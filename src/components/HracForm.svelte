@@ -1,7 +1,7 @@
 <script lang="ts">
   import { untrack } from 'svelte';
   import { db, newId } from '../lib/db';
-  import { KATEGORIE_PORADI, kategorieLabel, kategorieZRocniku, vypoctiVek, type Hrac, type Kategorie, type Pozice } from '../lib/types';
+  import { KATEGORIE_PORADI, kategorieLabel, kategorieZRocniku, odhadniPohlavi, vypoctiVek, type Hrac, type Kategorie, type Pozice } from '../lib/types';
   import Avatar from './Avatar.svelte';
 
   const POZICE_HODNOTY: Pozice[] = ['PG', 'SG', 'SF', 'PF', 'C'];
@@ -30,6 +30,9 @@
     rocnik_narozeni: existing?.rocnik_narozeni !== undefined ? String(existing.rocnik_narozeni) : '',
     vyska_cm: existing?.vyska_cm !== undefined ? String(existing.vyska_cm) : '',
     domaci_kategorie: (existing?.domaci_kategorie ?? 'U13') as Kategorie,
+    obvykle_kategorie: (existing?.obvykle_kategorie ?? []) as Kategorie[],
+    pohlavi: (existing?.pohlavi ?? 'M') as 'M' | 'Z',
+    pohlaviRucne: existing !== undefined,
     foto: existing?.foto ?? '',
     aktivni: existing?.aktivni ?? true,
   }));
@@ -43,6 +46,22 @@
   let rocnik_narozeni = $state<string | number>(initial.rocnik_narozeni);
   let vyska_cm = $state<string | number>(initial.vyska_cm);
   let domaci_kategorie = $state<Kategorie>(initial.domaci_kategorie);
+  let pohlavi = $state<'M' | 'Z'>(initial.pohlavi);
+  let pohlaviRucne = $state(initial.pohlaviRucne);
+  let obvykle_kategorie = $state<Kategorie[]>(initial.obvykle_kategorie);
+
+  function toggleObvykle(k: Kategorie) {
+    obvykle_kategorie = obvykle_kategorie.includes(k)
+      ? obvykle_kategorie.filter((x) => x !== k)
+      : [...obvykle_kategorie, k];
+  }
+
+  // U noveho hrace navrhni pohlavi z prijmeni, dokud ho uzivatel rucne nezmeni.
+  $effect(() => {
+    if (pohlaviRucne) return;
+    const p = prijmeni.trim();
+    if (p) pohlavi = odhadniPohlavi(jmeno, p);
+  });
 
   $effect(() => {
     if (datum_narozeni && datum_narozeni.length >= 4) {
@@ -179,6 +198,8 @@
           rocnik_narozeni: rocnikParsed,
           vyska_cm: vyskaParsed,
           domaci_kategorie,
+          obvykle_kategorie: obvykle_kategorie.filter((k) => k !== domaci_kategorie),
+          pohlavi,
           foto: foto || undefined,
           aktivni,
           updated_at: now,
@@ -194,6 +215,8 @@
           rocnik_narozeni: rocnikParsed,
           vyska_cm: vyskaParsed,
           domaci_kategorie,
+          obvykle_kategorie: obvykle_kategorie.filter((k) => k !== domaci_kategorie),
+          pohlavi,
           foto: foto || undefined,
           aktivni,
           vytvoreno_at: now,
@@ -284,6 +307,25 @@
           </select>
         </label>
       </div>
+
+      <div class="obvykle-pole">
+        <span class="ob-label">Obvykle hraje i za <small class="opt">(volitelné - nabídne se i v těchto kategoriích)</small></span>
+        <div class="ob-chips">
+          {#each KATEGORIE_PORADI.filter((k) => k !== domaci_kategorie) as k}
+            <button type="button" class="ob-chip" class:active={obvykle_kategorie.includes(k)} onclick={() => toggleObvykle(k)}>
+              {kategorieLabel(k)}
+            </button>
+          {/each}
+        </div>
+      </div>
+
+      <label class="pohlavi-pole">
+        <span>Pohlaví</span>
+        <div class="seg">
+          <button type="button" class:active={pohlavi === 'M'} onclick={() => { pohlavi = 'M'; pohlaviRucne = true; }}>Kluk</button>
+          <button type="button" class:active={pohlavi === 'Z'} onclick={() => { pohlavi = 'Z'; pohlaviRucne = true; }}>Holka</button>
+        </div>
+      </label>
 
       <label class="checkbox">
         <input bind:checked={aktivni} type="checkbox" />
@@ -392,6 +434,25 @@
   input:focus, select:focus { outline: none; border-color: var(--accent); }
   .checkbox { flex-direction: row; align-items: center; gap: 8px; cursor: pointer; }
   .checkbox input { width: 18px; height: 18px; cursor: pointer; }
+  .obvykle-pole { display: flex; flex-direction: column; gap: 6px; }
+  .ob-label { font-size: 13px; font-weight: 500; color: var(--text-muted); }
+  .ob-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .ob-chip {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-family: inherit;
+  }
+  .ob-chip:hover { border-color: var(--border-strong); }
+  .ob-chip.active { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+  .pohlavi-pole { display: flex; flex-direction: column; gap: 6px; }
+  .seg { display: inline-flex; gap: 0; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; width: fit-content; }
+  .seg button { background: var(--bg); border: none; border-radius: 0; padding: 8px 18px; font-size: 14px; }
+  .seg button + button { border-left: 1px solid var(--border); }
+  .seg button.active { background: var(--accent); color: var(--accent-fg); }
   .chyba {
     background: var(--danger-bg);
     color: var(--danger-fg);

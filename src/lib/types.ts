@@ -137,6 +137,10 @@ export interface Hrac {
   rocnik_narozeni?: number;
   vyska_cm?: number;
   domaci_kategorie: Kategorie;
+  // Dalsi kategorie, za ktere hrac bezne nastupuje (krome domaci) - rucne nastavitelne.
+  // Takovy hrac se pak v zalozeni zapasu te kategorie nabidne v mrizce automaticky.
+  obvykle_kategorie?: Kategorie[];
+  pohlavi?: 'M' | 'Z';
   foto?: string;
   aktivni: boolean;
   vytvoreno_at: number;
@@ -259,6 +263,49 @@ export const VEKOVA_SKUPINA: Record<Kategorie, number> = {
   MuziB: 9,
   MuziA: 9,
 };
+
+// Kdo se smi nasadit do zapasu dane kategorie: hraci te same vekove skupiny
+// a o `mladsiSkupiny` vekovych skupin niz (starsi se do mladsiho zapasu nenabizeji).
+// Vychozi 1 = kategorie zapasu + o jednu skupinu mladsi (napr. U15 -> U15/U15B + U14).
+export const ZAPAS_DEFAULT_MLADSI_SKUPINY = 1;
+
+export function muzeHratVZapase(
+  domaci: Kategorie,
+  zapasKategorie: Kategorie,
+  mladsiSkupiny: number = ZAPAS_DEFAULT_MLADSI_SKUPINY,
+): boolean {
+  const cil = VEKOVA_SKUPINA[zapasKategorie];
+  const ag = VEKOVA_SKUPINA[domaci];
+  return ag <= cil && ag >= cil - mladsiSkupiny;
+}
+
+// MIX kategorie = smiseny tym (kluci i holky dohromady). Dnes U10 MIX; pripadne U11mix
+// nektere kluby maji. Mimo MIX se pohlavi v tymu nemicha.
+export function jeMixKategorie(k: Kategorie): boolean {
+  return k.toUpperCase().includes('MIX');
+}
+
+// Patri hrac do zakladni nabidky pro zapas dane kategorie? Ano kdyz: je te kategorie (stejna
+// vekova skupina vc. B varianty), nebo ma kategorii rucne ve "obvykle hraje i za", nebo uz
+// nekdy hral zapas teto kategorie (mnozina `odehrane` z historie zapasu). Porovnava se vek.
+export function hrajeZaKategorii(h: Hrac, zapasKategorie: Kategorie, odehrane?: Set<Kategorie>): boolean {
+  const g = VEKOVA_SKUPINA[zapasKategorie];
+  if (VEKOVA_SKUPINA[h.domaci_kategorie] === g) return true;
+  if ((h.obvykle_kategorie ?? []).some((k) => VEKOVA_SKUPINA[k] === g)) return true;
+  if (odehrane && [...odehrane].some((k) => VEKOVA_SKUPINA[k] === g)) return true;
+  return false;
+}
+
+// Odhad pohlavi z prijmeni (cesky spolehlivy signal): -ova/-a (Novakova, Vesela) = holka,
+// jinak kluk. Krestni jmena se zamerne nepouzivaji (prezdivky Vojta/Honza konci na -a).
+// Heuristika - cizi nesklonna prijmeni holek se minou, opravi se rucne u hrace.
+export function odhadniPohlavi(_jmeno: string, prijmeni: string): 'M' | 'Z' {
+  const low = prijmeni.trim().toLocaleLowerCase('cs');
+  const bezDiakritiky = low.normalize('NFD').replace(/[̀-ͯ]/g, '');
+  if (bezDiakritiky.endsWith('ova')) return 'Z';
+  if (low.endsWith('á')) return 'Z';
+  return 'M';
+}
 
 export const SOUPER_NAS_MAX_SKUPINY_NAHORU = 2;
 

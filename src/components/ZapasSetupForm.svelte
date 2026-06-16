@@ -5,7 +5,9 @@
     KATEGORIE_PORADI,
     aktualniSezonaSpringYear,
     kategorieLabel,
-    muzeHratV,
+    hrajeZaKategorii,
+    jeMixKategorie,
+    VEKOVA_SKUPINA,
     souperiZNasichKategorie,
     DEFAULT_DELKA_CTVRTINY_MIN,
     DEFAULT_POCET_CTVRTIN,
@@ -49,12 +51,17 @@
   let souper_nas_tym = $state(false);
   let souper_nas_kategorie = $state<Kategorie>('U14');
   let nasazeni = $state<string[]>([]);
+  let pridani = $state<string[]>([]); // jednotlivci pridani rucne pres "+ Pridat hrace"
+  let hledani = $state('');
+  let pickerOtevren = $state(false);
+  let nase_pohlavi = $state<'M' | 'Z'>('M');
   let delka_ctvrtiny = $state(String(DEFAULT_DELKA_CTVRTINY_MIN));
   let pocet_ctvrtin = $state(DEFAULT_POCET_CTVRTIN);
 
   let hraci = $state<Hrac[]>([]);
   let souperi = $state<Souper[]>([]);
   let souteze = $state<Soutez[]>([]);
+  let zapasy = $state<Zapas[]>([]);
 
   let chyba = $state<string | null>(null);
   let ukladani = $state(false);
@@ -64,6 +71,20 @@
     souperi = await db.souperi.orderBy('nazev').toArray();
     souteze = await db.souteze.toArray();
     souteze = souteze.filter((s) => s.aktivni);
+    zapasy = await db.zapasy.toArray();
+  });
+
+  // Kategorie, ve kterych uz hrac nekdy byl v soupisce zapasu (historie) - pro auto-nabidku.
+  const odehraneKategorie = $derived.by(() => {
+    const map = new Map<string, Set<Kategorie>>();
+    for (const z of zapasy) {
+      for (const id of z.nasazeni_hraci) {
+        const s = map.get(id) ?? new Set<Kategorie>();
+        s.add(z.nase_kategorie);
+        map.set(id, s);
+      }
+    }
+    return map;
   });
 
   const filtrovani_souperi = $derived(souperi.filter((s) => s.kategorie === nase_kategorie));
@@ -82,11 +103,53 @@
     const s = sezonaZData(datum);
     if (s) sezona = s;
   });
+  // MIX kategorie nabizi obe pohlavi; jinak jen vybranou stranu (kluci/holky se nemichaji).
+  const jeMix = $derived(jeMixKategorie(nase_kategorie));
+  const pohlaviSedi = (h: Hrac) => jeMix || (h.pohlavi ?? 'M') === nase_pohlavi;
+  const radDleCisla = (a: Hrac, b: Hrac) => (a.cislo_dresu ?? 99) - (b.cislo_dresu ?? 99);
+
+  // Zakladni nabidka: hraci te kategorie (vek) + ti s priznakem "obvykle hraje i za" + ti,
+  // kdo uz nekdy hrali zapas teto kategorie (historie). Plus rucne pridani jednotlivci.
   const eligible_hraci = $derived(
     hraci
-      .filter((h) => muzeHratV(h.domaci_kategorie, nase_kategorie))
-      .sort((a, b) => (a.cislo_dresu ?? 99) - (b.cislo_dresu ?? 99))
+      .filter(
+        (h) =>
+          hrajeZaKategorii(h, nase_kategorie, odehraneKategorie.get(h.id)) ||
+          (pridani.includes(h.id) && VEKOVA_SKUPINA[h.domaci_kategorie] <= VEKOVA_SKUPINA[nase_kategorie]),
+      )
+      .filter(pohlaviSedi)
+      .sort(radDleCisla),
   );
+
+  // Picker "+ Pridat hrace": kdokoli mladsi (nebo stejny vek), kdo zatim neni v nabidce,
+  // odpovida pohlavi a sedi na hledani podle jmena.
+  const pridatelni = $derived.by(() => {
+    const vMrizce = new Set(eligible_hraci.map((h) => h.id));
+    const cilSkupina = VEKOVA_SKUPINA[nase_kategorie];
+    const q = hledani.trim().toLocaleLowerCase('cs');
+    return hraci
+      .filter((h) => !vMrizce.has(h.id))
+      .filter((h) => VEKOVA_SKUPINA[h.domaci_kategorie] <= cilSkupina) // stejne stari a mladsi, ne starsi
+      .filter(pohlaviSedi)
+      .filter((h) => !q || `${h.jmeno} ${h.prijmeni}`.toLocaleLowerCase('cs').includes(q))
+      .sort((a, b) => a.prijmeni.localeCompare(b.prijmeni, 'cs'))
+      .slice(0, 30);
+  });
+
+  function pridejHrace(id: string) {
+    if (!pridani.includes(id)) pridani = [...pridani, id];
+    if (!nasazeni.includes(id)) nasazeni = [...nasazeni, id];
+    hledani = '';
+  }
+
+  // Pri zmene kategorie/pohlavi odznac a odeber ty, kdo uz do nabidky nepatri.
+  $effect(() => {
+    const opravneni = new Set(eligible_hraci.map((h) => h.id));
+    const orezN = nasazeni.filter((id) => opravneni.has(id));
+    if (orezN.length !== nasazeni.length) nasazeni = orezN;
+    const orezP = pridani.filter((id) => opravneni.has(id));
+    if (orezP.length !== pridani.length) pridani = orezP;
+  });
 
   const nasazeniHraci = $derived(
     nasazeni
@@ -304,12 +367,43 @@
 
       <div class="roster-section">
         <div class="roster-header">
-          <span class="label">Nasazení hráči ({nasazeni.length} vybráno, min. 5) - kategorie {kategorieLabel(nase_kategorie)} a starší</span>
+          <span class="label">Nasazení hráči ({nasazeni.length} vybráno, min. 5) - kategorie {kategorieLabel(nase_kategorie)}</span>
           <div class="roster-buttons">
+            {#if !jeMix}
+              <div class="seg">
+                <button type="button" class:active={nase_pohlavi === 'M'} onclick={() => (nase_pohlavi = 'M')}>Kluci</button>
+                <button type="button" class:active={nase_pohlavi === 'Z'} onclick={() => (nase_pohlavi = 'Z')}>Holky</button>
+              </div>
+            {/if}
+            <button type="button" class="small" class:active={pickerOtevren} onclick={() => (pickerOtevren = !pickerOtevren)}>+ Přidat hráče</button>
             <button type="button" class="small" onclick={vybratVse}>Vybrat všechny</button>
             <button type="button" class="small" onclick={odznacitVse}>Odznačit</button>
           </div>
         </div>
+
+        {#if pickerOtevren}
+          <div class="picker">
+            <input
+              class="picker-input"
+              type="text"
+              bind:value={hledani}
+              placeholder="Hledej jméno mladšího hráče…"
+              autocomplete="off"
+            />
+            {#if pridatelni.length === 0}
+              <div class="picker-empty">Nikdo k přidání {hledani.trim() ? 'neodpovídá hledání' : '(všichni už jsou v nabídce)'}.</div>
+            {:else}
+              <div class="picker-list">
+                {#each pridatelni as h (h.id)}
+                  <button type="button" class="picker-item" onclick={() => pridejHrace(h.id)}>
+                    <span class="pi-name">{h.prijmeni} {h.jmeno}</span>
+                    <span class="pi-meta">{kategorieLabel(h.domaci_kategorie)}{h.cislo_dresu !== undefined ? ` · #${h.cislo_dresu}` : ''}</span>
+                  </button>
+                {/each}
+              </div>
+            {/if}
+          </div>
+        {/if}
 
         {#if nasazeniHraci.length > 0}
           <div class="breakdown">
@@ -551,6 +645,48 @@
     font-family: inherit;
   }
   button.small { padding: 6px 12px; font-size: 13px; }
+  .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+  .seg button { background: var(--bg); border: none; border-radius: 0; padding: 6px 14px; font-size: 13px; }
+  .seg button + button { border-left: 1px solid var(--border); }
+  .seg button.active { background: var(--accent); color: var(--accent-fg); }
+  button.small.active { background: var(--accent); color: var(--accent-fg); }
+  .picker {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .picker-input {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 9px 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: inherit;
+  }
+  .picker-input:focus { outline: none; border-color: var(--accent); }
+  .picker-empty { color: var(--text-dim); font-size: 13px; padding: 4px 2px; }
+  .picker-list { display: flex; flex-direction: column; gap: 4px; max-height: 240px; overflow-y: auto; }
+  .picker-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 12px;
+    border-radius: 6px;
+    text-align: left;
+    font-family: inherit;
+  }
+  .picker-item:hover { background: var(--surface-hover); border-color: var(--border-strong); }
+  .pi-name { font-size: 14px; font-weight: 600; }
+  .pi-meta { font-size: 12px; color: var(--text-muted); }
   button:hover:not(:disabled) { background: var(--border-strong); color: var(--accent-fg); }
   button.primary { background: var(--accent); color: var(--accent-fg); }
   button.primary:hover:not(:disabled) { background: var(--accent-hover); color: var(--accent-fg); }
