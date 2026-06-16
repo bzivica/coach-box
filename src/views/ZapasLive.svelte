@@ -1928,6 +1928,15 @@
     if (actionGesture.longPressTimer !== null) window.clearTimeout(actionGesture.longPressTimer);
     actionGesture = null;
   }
+
+  // Když je otevřený některý radiál, zamkneme scroll stránky. Karty/tlačítka mají
+  // touch-action: pan-y (kvůli scrollu), takže bez tohoto zámku by tah na výběr
+  // segmentu posouval stránku a fixně umístěný radiál by ujel od prstu.
+  $effect(() => {
+    const locked = activeGesture?.mode === 'radial' || actionGesture?.mode === 'radial';
+    document.documentElement.classList.toggle('radial-scroll-lock', locked);
+    return () => document.documentElement.classList.remove('radial-scroll-lock');
+  });
 </script>
 
 {#if mode === 'loading' || !zapas || !souper}
@@ -2443,11 +2452,19 @@
             <div class="group-grid negat">
               {@render aBtn('foul', 'Faul', 'foul')}
               {@render aBtn('turnover', 'Ztráta', 'turnover')}
+            </div>
+          </div>
+
+          <!-- Samostatná skupina (NE pp-only), aby typ faulu šel zadat i na mobilu,
+               kde jsou panely akcí schované a radial umí jen osobní faul. -->
+          <div class="action-group">
+            <div class="group-label">TYP FAULU</div>
+            <div class="group-grid">
               <button
                 class="action foul foul-special action-span-2"
                 class:disabled-look={!selectedPlayer}
                 onclick={() => { if (selectedPlayer) foulSubtypePicker = { playerId: selectedPlayer }; }}
-                title="Nesportovní / technická chyba (běžný faul zapíšeš tlačítkem Faul)"
+                title="Nesportovní / technická chyba vybraného hráče (běžný osobní faul zapíšeš tlačítkem Faul nebo podržením hráče)"
               >Nesportovní / technická…</button>
             </div>
           </div>
@@ -3582,10 +3599,11 @@
     align-items: center;
     gap: 10px;
     text-align: left;
-    /* none (ne pan-y): swipe/long-press musí chytit i svislý pohyb, jinak ho
-       prohlížeč vezme jako scroll a vystřelí pointercancel → gesto/radiál zmizí.
-       touch-action se fixuje při touchstart, takže reaktivní přepnutí nestačí. */
-    touch-action: none;
+    /* pan-y: svislý scroll stránky musí jít i prstem položeným na kartě.
+       Long-press radiál se otevře až po 250 ms bez pohybu (scroll se rozjede
+       hned a pošle pointercancel → radiál se neotevře). Při otevřeném radialu
+       zamykáme scroll stránky (radial-scroll-lock), aby tah na výběr nescrolloval. */
+    touch-action: pan-y;
     user-select: none;
     -webkit-user-select: none;
     -webkit-tap-highlight-color: transparent;
@@ -3785,9 +3803,10 @@
     font-weight: 600;
     text-align: left;
     transition: all 0.1s ease;
-    /* none (ne pan-y): long-press → radiál hráčů potřebuje i svislý pohyb;
-       s pan-y prohlížeč tah vyhodnotí jako scroll a radiál zmizí. */
-    touch-action: none;
+    /* pan-y: svislý scroll musí jít i prstem na tlačítku akce. Long-press radiál
+       hráčů se otevře až po 250 ms bez pohybu; při otevřeném radialu zamykáme
+       scroll stránky (radial-scroll-lock), takže tah na výběr nescrolluje. */
+    touch-action: pan-y;
     user-select: none;
     -webkit-user-select: none;
     -webkit-tap-highlight-color: transparent;
@@ -5335,6 +5354,13 @@
   .swipe-dir.swipe-down.active { transform: translate(-50%, 100%) scale(1.15); }
   .swipe-dir.swipe-left.active { transform: translate(-100%, -50%) scale(1.15); }
   .swipe-dir.swipe-right.active { transform: translate(100%, -50%) scale(1.15); }
+
+  /* Zámek scrollu po dobu otevřeného radialu (viz $effect radial-scroll-lock). */
+  :global(html.radial-scroll-lock),
+  :global(html.radial-scroll-lock body) {
+    overflow: hidden !important;
+    overscroll-behavior: none;
+  }
 
   .radial-overlay {
     position: fixed;

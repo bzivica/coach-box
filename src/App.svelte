@@ -96,7 +96,7 @@
         </a>
         <div class="brand-text">
           <h1><a class="club-link" href={KLUB_URL} target="_blank" rel="noopener noreferrer" title="Oficiální web klubu Jižní Supi (otevře se v nové záložce)">Jižní Supi</a> <span class="brand-sep">-</span> <span class="app-name">Coach Box</span></h1>
-          <span class="version">v1.0.61</span>
+          <span class="version">v1.0.62</span>
         </div>
       </div>
       <button class="theme-toggle" onclick={toggleTheme} title={theme === 'light' ? 'Přepnout na tmavé téma' : 'Přepnout na světlé téma'}>
@@ -219,6 +219,9 @@
     color: var(--text);
     min-height: 100vh;
     transition: background 0.15s ease, color 0.15s ease;
+    /* Vypne pull-to-refresh (Android Chrome / Samsung Internet): tah dolů u horního
+       okraje jinak obnoví PWA a appka naběhne zpět na Domů. Jinde neškodí. */
+    overscroll-behavior-y: contain;
   }
 
   main {

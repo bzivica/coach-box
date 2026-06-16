@@ -187,7 +187,7 @@
               <td>
                 <strong>Vnitřní kruh (8):</strong> dané koše nahoře (↖✓FT, ↑✓2, ↗✓3), nedané dole (↙✗3, ↓✗2, ↘✗FT), doskoky po stranách (←REB-D, →REB-O). Protějšky jsou proti sobě.<br/>
                 <strong>Vnější kruh (5):</strong> AST, STL, BLK, TO, FAUL - dál od středu.<br/>
-                Táhneš prstem na výseč a pustíš = zápis. <strong>Uprostřed se ukáže, co zapíšeš</strong> (např. „2 body daný"). Vnitřní/vnější se rozlišuje vzdáleností (vnější ≥ 122 px). Ve středu (× zrušit) = cancel. Faul = rovnou osobní.<br/>
+                Táhneš prstem na výseč a pustíš = zápis. <strong>Uprostřed se ukáže, co zapíšeš</strong> (např. „2 body daný"). Vnitřní/vnější se rozlišuje vzdáleností (vnější ≥ 122 px). Ve středu (× zrušit) = cancel. Faul v radialu = <strong>rovnou osobní</strong>; nesportovní/technickou zadáš tlačítkem <strong>Nesportovní / technická…</strong> (skupina TYP FAULU - i na mobilu, pod hráči, po výběru hráče).<br/>
                 <em>Toto je výchozí rozestavení - pokud sis radiál přeskládal (viz „Vlastní rozestavení radiálu" níže), platí tvoje pořadí.</em>
               </td>
             </tr>
