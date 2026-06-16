@@ -143,6 +143,7 @@ export interface Hrac {
   // Dalsi kategorie, za ktere hrac bezne nastupuje (krome domaci) - rucne nastavitelne.
   // Takovy hrac se pak v zalozeni zapasu te kategorie nabidne v mrizce automaticky.
   obvykle_kategorie?: Kategorie[];
+  // Pohlavi ma smysl jen v MIX kategorii (smiseny tym, dnes U10 MIX). Jinde se neresi.
   pohlavi?: 'M' | 'Z';
   foto?: string;
   aktivni: boolean;

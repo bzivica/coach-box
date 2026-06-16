@@ -1,7 +1,7 @@
 <script lang="ts">
   import { untrack } from 'svelte';
   import { db, newId } from '../lib/db';
-  import { KATEGORIE_PORADI, VEKOVA_SKUPINA, kategorieLabel, kategorieZRocniku, odhadniPohlavi, vypoctiVek, type Hrac, type Kategorie, type Pozice } from '../lib/types';
+  import { KATEGORIE_PORADI, VEKOVA_SKUPINA, jeMixKategorie, kategorieLabel, kategorieZRocniku, odhadniPohlavi, vypoctiVek, type Hrac, type Kategorie, type Pozice } from '../lib/types';
   import Avatar from './Avatar.svelte';
 
   const POZICE_HODNOTY: Pozice[] = ['PG', 'SG', 'SF', 'PF', 'C'];
@@ -337,13 +337,15 @@
         </div>
       </div>
 
-      <label class="pohlavi-pole">
-        <span>Pohlaví</span>
-        <div class="seg">
-          <button type="button" class:active={pohlavi === 'M'} onclick={() => { pohlavi = 'M'; pohlaviRucne = true; }}>Kluk</button>
-          <button type="button" class:active={pohlavi === 'Z'} onclick={() => { pohlavi = 'Z'; pohlaviRucne = true; }}>Holka</button>
-        </div>
-      </label>
+      {#if jeMixKategorie(domaci_kategorie)}
+        <label class="pohlavi-pole">
+          <span>Pohlaví <small class="opt">(smíšený tým)</small></span>
+          <div class="seg">
+            <button type="button" class:active={pohlavi === 'M'} onclick={() => { pohlavi = 'M'; pohlaviRucne = true; }}>Kluk</button>
+            <button type="button" class:active={pohlavi === 'Z'} onclick={() => { pohlavi = 'Z'; pohlaviRucne = true; }}>Holka</button>
+          </div>
+        </label>
+      {/if}
 
       <label class="checkbox">
         <input bind:checked={aktivni} type="checkbox" />
