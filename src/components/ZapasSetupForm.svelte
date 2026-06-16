@@ -6,6 +6,7 @@
     aktualniSezonaSpringYear,
     kategorieLabel,
     hrajeZaKategorii,
+    kategorieZRocniku,
     VEKOVA_SKUPINA,
     souperiZNasichKategorie,
     DEFAULT_DELKA_CTVRTINY_MIN,
@@ -101,6 +102,12 @@
     if (s) sezona = s;
   });
   const radDleCisla = (a: Hrac, b: Hrac) => (a.cislo_dresu ?? 99) - (b.cislo_dresu ?? 99);
+  // Vekova skupina dle ROCNIKU (nativni vek), ne dle domaci kategorie - hrac muze hrat svuj
+  // vek nebo vys. 2012 (nativne U14) hrajici U15B muze zaskocit do U14; 2011 do U14 ne.
+  const nativniSkupina = (h: Hrac) =>
+    h.rocnik_narozeni !== undefined
+      ? VEKOVA_SKUPINA[kategorieZRocniku(h.rocnik_narozeni)]
+      : VEKOVA_SKUPINA[h.domaci_kategorie];
 
   // Zakladni nabidka: hraci presne te kategorie + ti s priznakem "obvykle hraje i za" + ti,
   // kdo uz nekdy hrali zapas teto kategorie (historie). Plus rucne pridani jednotlivci.
@@ -109,7 +116,7 @@
       .filter(
         (h) =>
           hrajeZaKategorii(h, nase_kategorie, odehraneKategorie.get(h.id)) ||
-          (pridani.includes(h.id) && VEKOVA_SKUPINA[h.domaci_kategorie] <= VEKOVA_SKUPINA[nase_kategorie]),
+          (pridani.includes(h.id) && nativniSkupina(h) <= VEKOVA_SKUPINA[nase_kategorie]),
       )
       .sort(radDleCisla),
   );
@@ -122,7 +129,7 @@
     const q = hledani.trim().toLocaleLowerCase('cs');
     return hraci
       .filter((h) => !vMrizce.has(h.id))
-      .filter((h) => VEKOVA_SKUPINA[h.domaci_kategorie] <= cilSkupina) // stejne stari a mladsi, ne starsi
+      .filter((h) => nativniSkupina(h) <= cilSkupina) // dle rocniku: svuj vek nebo mladsi, ne starsi
       .filter((h) => !q || `${h.jmeno} ${h.prijmeni}`.toLocaleLowerCase('cs').includes(q))
       .sort((a, b) => a.prijmeni.localeCompare(b.prijmeni, 'cs'))
       .slice(0, 30);
