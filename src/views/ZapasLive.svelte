@@ -613,6 +613,27 @@
   // Stránkujeme jen v průběhu zápasu (ne při výběru pětice, konci čtvrtiny apod.).
   const isPaged = $derived(isMobilePager && mode === 'inProgress');
 
+  // --- Způsoby zadávání akcí (jen mimo telefon) ---
+  // Způsob 1 = panel akcí (vyber hráče -> tlačítka), způsob 2 = podržení karty hráče -> radiál.
+  // Na telefonu se nic nemění: panel je schovaný, jede vždy radiál přes hráče.
+  // Volba platí jen pro tento běh (po refreshi zpět oba zapnuté).
+  let panelEnabled = $state(true);
+  let radialEnabled = $state(true);
+  // Radiál přes hráče je aktivní na telefonu vždy, jinak dle volby.
+  const radialGestureOn = $derived(isMobilePager || radialEnabled);
+  // Panel per-hráč akcí schováme jen mimo telefon, když je způsob 1 vypnutý.
+  const panelOff = $derived(!isMobilePager && !panelEnabled);
+  function toggleInput(which: 'panel' | 'radial') {
+    // Aspoň jeden způsob musí zůstat zapnutý.
+    if (which === 'panel') {
+      if (panelEnabled && !radialEnabled) return;
+      panelEnabled = !panelEnabled;
+    } else {
+      if (radialEnabled && !panelEnabled) return;
+      radialEnabled = !radialEnabled;
+    }
+  }
+
   // Sekce schovaná, když stránkujeme a nejsme na její stránce.
   function pgHidden(p: LivePage): boolean {
     return isPaged && livePage !== p;
@@ -1689,11 +1710,14 @@
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     const el = e.currentTarget as HTMLElement;
     const rect = el.getBoundingClientRect();
-    const timer = window.setTimeout(() => {
-      if (activeGesture && activeGesture.mode === 'idle' && activeGesture.pointerId === e.pointerId) {
-        activeGesture = { ...activeGesture, mode: 'radial', longPressTimer: null };
-      }
-    }, LONG_PRESS_MS);
+    // Když je radiál přes hráče vypnutý, nezakládáme long-press timer - tap jen vybere hráče.
+    const timer = radialGestureOn
+      ? window.setTimeout(() => {
+          if (activeGesture && activeGesture.mode === 'idle' && activeGesture.pointerId === e.pointerId) {
+            activeGesture = { ...activeGesture, mode: 'radial', longPressTimer: null };
+          }
+        }, LONG_PRESS_MS)
+      : null;
     activeGesture = {
       pointerId: e.pointerId,
       playerId,
@@ -2444,7 +2468,28 @@
         {/if}
       </section>
 
-      <section class="live" class:lp-hidden={pgHidden('akce')}>
+      <section class="live" class:lp-hidden={pgHidden('akce')} class:panel-off={panelOff}>
+        {#if !isMobilePager}
+          <div class="input-mode-bar">
+            <span class="imb-label">Zadávání akcí:</span>
+            <button
+              type="button"
+              class="imb-toggle"
+              class:on={panelEnabled}
+              disabled={panelEnabled && !radialEnabled}
+              onclick={() => toggleInput('panel')}
+              title={panelEnabled && !radialEnabled ? 'Musí zůstat aspoň jeden způsob zadávání' : 'Panel akcí: vyber hráče a mačkej tlačítka'}
+            >{panelEnabled ? '✓ ' : ''}Panel akcí</button>
+            <button
+              type="button"
+              class="imb-toggle"
+              class:on={radialEnabled}
+              disabled={radialEnabled && !panelEnabled}
+              onclick={() => toggleInput('radial')}
+              title={radialEnabled && !panelEnabled ? 'Musí zůstat aspoň jeden způsob zadávání' : 'Radiál: podrž kartu hráče a vyber akci'}
+            >{radialEnabled ? '✓ ' : ''}Radiál (podržení hráče)</button>
+          </div>
+        {/if}
         <div class="actions" class:disabled={!selectedPlayer}>
           <div class="actions-label">
             {#if selectedPlayer}
@@ -3560,6 +3605,43 @@
     gap: 12px;
     flex: 1;
   }
+  /* Lišta přepínání způsobů zadávání akcí - přes celou šířku gridu. */
+  .input-mode-bar {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .imb-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--muted, #6b7280);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .imb-toggle {
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border, #d1d5db);
+    background: var(--surface, #fff);
+    color: var(--muted, #6b7280);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .imb-toggle.on {
+    border-color: var(--accent, #2563eb);
+    background: color-mix(in srgb, var(--accent, #2563eb) 12%, transparent);
+    color: var(--accent, #2563eb);
+  }
+  .imb-toggle:disabled {
+    cursor: not-allowed;
+    opacity: 0.7;
+  }
+  /* Způsob 1 vypnutý (mimo telefon): schovej per-hráč panel akcí (jako na telefonu). */
+  .live.panel-off .actions .pp-only { display: none; }
+  .live.panel-off .actions > .actions-label { display: none; }
   @media (max-width: 1100px) {
     .live {
       grid-template-columns: minmax(0, 1fr) 240px;
