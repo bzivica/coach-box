@@ -1,5 +1,5 @@
 import type { Udalost, UdalostTyp, Ctvrtina, Kategorie, Zapas } from './types';
-import { DEFAULT_DELKA_CTVRTINY_MIN, DEFAULT_POCET_CTVRTIN, formatCtvrtina } from './types';
+import { DEFAULT_DELKA_CTVRTINY_MIN, DEFAULT_POCET_CTVRTIN, formatCtvrtina, normCislo } from './types';
 
 export interface BoxStat {
   body: number;
@@ -355,6 +355,14 @@ export interface OppTotals {
   body_2: number;
   body_3: number;
   body_th: number;
+  // Daný/pokus pro střelbu soupeře. Pokusy = daný + neúspěšné střely (zápis neúspěchů je nepovinný,
+  // takže když se nezapisují, pokusy == daný a procenta nemají smysl - viz strelbaProcento).
+  dany_2: number;
+  pokusy_2: number;
+  dany_3: number;
+  pokusy_3: number;
+  dany_th: number;
+  pokusy_th: number;
   fauly: number;
   doskoky_off: number;
   doskoky_def: number;
@@ -365,12 +373,16 @@ export interface OppTotals {
 export function computeOppTotals(udalosti: Udalost[]): OppTotals {
   const t: OppTotals = {
     body: 0, body_2: 0, body_3: 0, body_th: 0,
+    dany_2: 0, pokusy_2: 0, dany_3: 0, pokusy_3: 0, dany_th: 0, pokusy_th: 0,
     fauly: 0, doskoky_off: 0, doskoky_def: 0, doskoky_neznamy: 0, ztraty: 0,
   };
   for (const u of udalosti) {
-    if (u.typ === 'opp_pts_2') { t.body_2++; t.body += 2; }
-    else if (u.typ === 'opp_pts_3') { t.body_3++; t.body += 3; }
-    else if (u.typ === 'opp_pts_1') { t.body_th++; t.body += 1; }
+    if (u.typ === 'opp_pts_2') { t.body_2++; t.body += 2; t.dany_2++; t.pokusy_2++; }
+    else if (u.typ === 'opp_pts_3') { t.body_3++; t.body += 3; t.dany_3++; t.pokusy_3++; }
+    else if (u.typ === 'opp_pts_1') { t.body_th++; t.body += 1; t.dany_th++; t.pokusy_th++; }
+    else if (u.typ === 'opp_2_miss') t.pokusy_2++;
+    else if (u.typ === 'opp_3_miss') t.pokusy_3++;
+    else if (u.typ === 'opp_ft_miss') t.pokusy_th++;
     else if (u.typ === 'opp_foul') t.fauly++;
     else if (u.typ === 'opp_reb_off') t.doskoky_off++;
     else if (u.typ === 'opp_reb_def') t.doskoky_def++;
@@ -680,12 +692,13 @@ export function pocetBenchTech(udalosti: Udalost[]): number {
   return n;
 }
 
-export function oppFaulyPerCislo(udalosti: Udalost[]): Map<number, number> {
-  const m = new Map<number, number>();
+export function oppFaulyPerCislo(udalosti: Udalost[]): Map<string, number> {
+  const m = new Map<string, number>();
   for (const u of udalosti) {
-    if (u.typ === 'opp_foul' && typeof u.opp_hrac_cislo === 'number') {
-      m.set(u.opp_hrac_cislo, (m.get(u.opp_hrac_cislo) ?? 0) + 1);
-    }
+    if (u.typ !== 'opp_foul') continue;
+    const c = normCislo(u.opp_hrac_cislo);
+    if (!c) continue;
+    m.set(c, (m.get(c) ?? 0) + 1);
   }
   return m;
 }
@@ -695,28 +708,43 @@ export interface OppHracStat {
   body_2: number;
   body_3: number;
   body_th: number;
+  // Daný/pokus (pokusy zahrnují i nepovinně zapsané neúspěšné střely).
+  dany_2: number;
+  pokusy_2: number;
+  dany_3: number;
+  pokusy_3: number;
+  dany_th: number;
+  pokusy_th: number;
   fauly: number;
   doskoky: number;
   doskoky_off: number;
   doskoky_def: number;
 }
 
-export function oppStatsPerCislo(udalosti: Udalost[]): Map<number, OppHracStat> {
-  const m = new Map<number, OppHracStat>();
-  const get = (cislo: number): OppHracStat => {
+export function oppStatsPerCislo(udalosti: Udalost[]): Map<string, OppHracStat> {
+  const m = new Map<string, OppHracStat>();
+  const get = (cislo: string): OppHracStat => {
     let s = m.get(cislo);
     if (!s) {
-      s = { body: 0, body_2: 0, body_3: 0, body_th: 0, fauly: 0, doskoky: 0, doskoky_off: 0, doskoky_def: 0 };
+      s = {
+        body: 0, body_2: 0, body_3: 0, body_th: 0,
+        dany_2: 0, pokusy_2: 0, dany_3: 0, pokusy_3: 0, dany_th: 0, pokusy_th: 0,
+        fauly: 0, doskoky: 0, doskoky_off: 0, doskoky_def: 0,
+      };
       m.set(cislo, s);
     }
     return s;
   };
   for (const u of udalosti) {
-    if (typeof u.opp_hrac_cislo !== 'number') continue;
-    const s = get(u.opp_hrac_cislo);
-    if (u.typ === 'opp_pts_2') { s.body += 2; s.body_2 += 2; }
-    else if (u.typ === 'opp_pts_3') { s.body += 3; s.body_3 += 3; }
-    else if (u.typ === 'opp_pts_1') { s.body += 1; s.body_th += 1; }
+    const c = normCislo(u.opp_hrac_cislo);
+    if (!c) continue;
+    const s = get(c);
+    if (u.typ === 'opp_pts_2') { s.body += 2; s.body_2 += 2; s.dany_2++; s.pokusy_2++; }
+    else if (u.typ === 'opp_pts_3') { s.body += 3; s.body_3 += 3; s.dany_3++; s.pokusy_3++; }
+    else if (u.typ === 'opp_pts_1') { s.body += 1; s.body_th += 1; s.dany_th++; s.pokusy_th++; }
+    else if (u.typ === 'opp_2_miss') s.pokusy_2++;
+    else if (u.typ === 'opp_3_miss') s.pokusy_3++;
+    else if (u.typ === 'opp_ft_miss') s.pokusy_th++;
     else if (u.typ === 'opp_foul') s.fauly++;
     else if (u.typ === 'opp_reb_off') { s.doskoky++; s.doskoky_off++; }
     else if (u.typ === 'opp_reb_def') { s.doskoky++; s.doskoky_def++; }

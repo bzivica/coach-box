@@ -107,6 +107,9 @@ export type UdalostTyp =
   | 'opp_pts_2'
   | 'opp_pts_3'
   | 'opp_pts_1'
+  | 'opp_2_miss'
+  | 'opp_3_miss'
+  | 'opp_ft_miss'
   | 'opp_foul'
   | 'opp_reb'
   | 'opp_reb_off'
@@ -163,9 +166,29 @@ export interface Soutez {
 }
 
 export interface SouperHrac {
-  cislo: number;
+  // Cislo dresu soupere je TEXT (ne cislo), aby slo rozlisit "0" a "00" (basketbal je
+  // bere jako dva ruzne hrace). Stara data mela number - pri cteni vzdy normalizuj
+  // pres normCislo. Prazdny string = nevyplneno.
+  cislo: string;
   jmeno?: string;
   prijmeni?: string;
+}
+
+// Normalizace cisla dresu soupere na text. Stara data (number) i nova (string) -> string.
+// Prazdne/chybejici -> ''. Nepridava ani neubira nuly (zachova "0" vs "00").
+export function normCislo(x: unknown): string {
+  if (x === null || x === undefined) return '';
+  return String(x).trim();
+}
+
+// Razeni cisel dresu jako string: nejdriv dle ciselne hodnoty, pak dle delky/textu,
+// aby "0" bylo pred "00" a "7" pred "07".
+export function cisloSort(a: string, b: string): number {
+  const na = parseInt(a, 10);
+  const nb = parseInt(b, 10);
+  if (!Number.isNaN(na) && !Number.isNaN(nb) && na !== nb) return na - nb;
+  if (a.length !== b.length) return a.length - b.length;
+  return a.localeCompare(b);
 }
 
 export interface Souper {
@@ -212,7 +235,8 @@ export interface Ctvrtina {
   zapas_id: string;
   cislo: number;
   petice_start: string[];
-  petice_soupere_start?: number[];
+  // Cisla dresu soupere v zakladni petici - TEXT (viz SouperHrac.cislo). Stara data number[].
+  petice_soupere_start?: string[];
   zacatek_at: number;
   konec_at?: number;
   klok_zakladna_ms?: number;
@@ -229,7 +253,8 @@ export interface Udalost {
   sub_out_id?: string;
   sub_in_id?: string;
   foul_subtyp?: FoulSubtyp;
-  opp_hrac_cislo?: number;
+  // Cislo dresu soupere - TEXT (viz SouperHrac.cislo). Stara data number; pri cteni normCislo.
+  opp_hrac_cislo?: string;
   timestamp_at: number;
   cas_v_q_ms?: number;
   pozn?: string;

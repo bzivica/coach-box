@@ -9,6 +9,8 @@
     foulSubtypLabel,
     DEFAULT_DELKA_CTVRTINY_MIN,
     DEFAULT_POCET_CTVRTIN,
+    normCislo,
+    cisloSort,
     type Zapas,
     type Ctvrtina,
     type Udalost,
@@ -102,9 +104,12 @@
   let foulOutPrompt = $state<{ playerId: string } | null>(null);
 
   let pickLineup = $state<string[]>([]);
-  let pickLineupOpp = $state<number[]>([]);
-  let selectedOppCislo = $state<number | null>(null);
-  let oppOnCourt = $state<number[]>([]);
+  let pickLineupOpp = $state<string[]>([]);
+  let selectedOppCislo = $state<string | null>(null);
+  let oppOnCourt = $state<string[]>([]);
+
+  // Cislo dresu soupere = text (jen cislice, 0-99 i "00"/"07"). Prazdne = nevyplneno.
+  const CISLO_RE = /^\d{1,3}$/;
 
   let editRosterOpen = $state(false);
   let editRosterAllHraci = $state<Hrac[]>([]);
@@ -358,7 +363,7 @@
     if (aktualni) {
       aktualniCtvrtinaCislo = aktualni.cislo;
       onCourt = computeOnCourt(aktualni, udalosti);
-      oppOnCourt = [...(aktualni.petice_soupere_start ?? [])];
+      oppOnCourt = (aktualni.petice_soupere_start ?? []).map(normCislo);
       casZakladnaMs = aktualni.klok_zakladna_ms ?? 0;
       casStartedAt = aktualni.klok_started_at ?? null;
       ted = Date.now();
@@ -445,8 +450,10 @@
 
   const opponentRoster = $derived.by(() => {
     const all = souper?.hraci_soupere ?? [];
-    const seen = new Map<number, typeof all[number]>();
-    for (const h of all) {
+    const seen = new Map<string, SouperHrac>();
+    for (const raw of all) {
+      const h: SouperHrac = { ...raw, cislo: normCislo(raw.cislo) };
+      if (!h.cislo) continue;
       const ex = seen.get(h.cislo);
       if (!ex) {
         seen.set(h.cislo, h);
@@ -454,7 +461,7 @@
         seen.set(h.cislo, h);
       }
     }
-    return [...seen.values()].sort((a, b) => a.cislo - b.cislo);
+    return [...seen.values()].sort((a, b) => cisloSort(a.cislo, b.cislo));
   });
 
   let selectedPeriod = $state<'total' | number>('total');
@@ -478,11 +485,15 @@
   const periodOppStatsPerCisloMap = $derived(oppStatsPerCislo(periodUdalosti));
   const periodOppBezCisla = $derived.by(() => {
     let body = 0, body_2 = 0, body_3 = 0, body_th = 0, fauly = 0, doskoky = 0, doskoky_off = 0, doskoky_def = 0;
+    let dany_2 = 0, pokusy_2 = 0, dany_3 = 0, pokusy_3 = 0, dany_th = 0, pokusy_th = 0;
     for (const s of periodOppStatsPerCisloMap.values()) {
       body += s.body;
       body_2 += s.body_2;
       body_3 += s.body_3;
       body_th += s.body_th;
+      dany_2 += s.dany_2; pokusy_2 += s.pokusy_2;
+      dany_3 += s.dany_3; pokusy_3 += s.pokusy_3;
+      dany_th += s.dany_th; pokusy_th += s.pokusy_th;
       fauly += s.fauly;
       doskoky += s.doskoky;
       doskoky_off += s.doskoky_off;
@@ -494,6 +505,12 @@
       body_2: Math.max(0, periodOppTotals.body_2 - body_2),
       body_3: Math.max(0, periodOppTotals.body_3 - body_3),
       body_th: Math.max(0, periodOppTotals.body_th - body_th),
+      dany_2: Math.max(0, periodOppTotals.dany_2 - dany_2),
+      pokusy_2: Math.max(0, periodOppTotals.pokusy_2 - pokusy_2),
+      dany_3: Math.max(0, periodOppTotals.dany_3 - dany_3),
+      pokusy_3: Math.max(0, periodOppTotals.pokusy_3 - pokusy_3),
+      dany_th: Math.max(0, periodOppTotals.dany_th - dany_th),
+      pokusy_th: Math.max(0, periodOppTotals.pokusy_th - pokusy_th),
       fauly: Math.max(0, periodOppTotals.fauly - fauly),
       doskoky: Math.max(0, dosTot - doskoky),
       doskoky_off: Math.max(0, periodOppTotals.doskoky_off - doskoky_off),
@@ -537,6 +554,20 @@
   const hraciSerazeni = $derived(
     [...hraci].sort((a, b) => (a.cislo_dresu ?? 99) - (b.cislo_dresu ?? 99)),
   );
+
+  // Maxima vybranych statistik v aktualnim obdobi (Q nebo cely zapas) pro zvyrazneni lidru.
+  // Lidr = hodnota === max & max > 0; pri shode se zvyrazni vsichni.
+  const boxLeaders = $derived.by(() => {
+    let pts = 0, reb = 0, ast = 0, stl = 0;
+    for (const s of periodBoxscore.values()) {
+      if (s.body > pts) pts = s.body;
+      const r = s.doskoky_off + s.doskoky_def;
+      if (r > reb) reb = r;
+      if (s.asistence > ast) ast = s.asistence;
+      if (s.zisky > stl) stl = s.zisky;
+    }
+    return { pts, reb, ast, stl };
+  });
 
   function formatPlusMinus(n: number): string {
     if (n > 0) return `+${n}`;
@@ -756,7 +787,7 @@
     await db.udalosti.add(ev);
     udalosti = [...udalosti, ev];
     pushUndo({ kind: 'event', eventId: ev.id });
-    toast(`SOUPEŘ${typeof cislo === 'number' ? ` #${cislo}` : ''} - ${popisAkce(typ)}`);
+    toast(`SOUPEŘ${cislo ? ` #${cislo}` : ''} - ${popisAkce(typ)}`);
     selectedOppCislo = null;
     await updateZapasCache();
   }
@@ -973,7 +1004,7 @@
     void recordOppFoul(cislo, subtyp);
   }
 
-  function togglePickOpp(cislo: number) {
+  function togglePickOpp(cislo: string) {
     if (pickLineupOpp.includes(cislo)) {
       pickLineupOpp = pickLineupOpp.filter((x) => x !== cislo);
     } else {
@@ -982,11 +1013,11 @@
     }
   }
 
-  function selectOppPlayer(cislo: number) {
+  function selectOppPlayer(cislo: string) {
     selectedOppCislo = selectedOppCislo === cislo ? null : cislo;
   }
 
-  async function recordOppFoul(cislo: number | undefined, subtyp: FoulSubtyp = 'personal') {
+  async function recordOppFoul(cislo: string | undefined, subtyp: FoulSubtyp = 'personal') {
     if (!zapas) return;
     const ev: Udalost = {
       id: newId(),
@@ -1003,14 +1034,14 @@
     await db.udalosti.add(ev);
     udalosti = [...udalosti, ev];
     pushUndo({ kind: 'event', eventId: ev.id });
-    toast(`SOUPEŘ - Faul (${foulSubtypLabel(subtyp)})${typeof cislo === 'number' ? ` #${cislo}` : ''}`);
+    toast(`SOUPEŘ - Faul (${foulSubtypLabel(subtyp)})${cislo ? ` #${cislo}` : ''}`);
     selectedOppCislo = null;
     await updateZapasCache();
   }
 
   function openOppRosterEdit() {
     if (!souper) return;
-    oppRosterDraft = (souper.hraci_soupere ?? []).map((h) => ({ ...h }));
+    oppRosterDraft = (souper.hraci_soupere ?? []).map((h) => ({ ...h, cislo: normCislo(h.cislo) }));
     oppRosterChyba = null;
     oppRosterBulkOpen = false;
     oppRosterBulkText = '';
@@ -1018,7 +1049,7 @@
   }
 
   function addOppRosterRow() {
-    oppRosterDraft = [...oppRosterDraft, { cislo: 0, jmeno: '', prijmeni: '' }];
+    oppRosterDraft = [...oppRosterDraft, { cislo: '', jmeno: '', prijmeni: '' }];
   }
 
   function removeOppRosterRow(i: number) {
@@ -1035,8 +1066,8 @@
     const noviHraci: SouperHrac[] = [];
     for (let i = 0; i < radky.length; i++) {
       const tokeny = radky[i].split(/\s+/);
-      const cislo = parseInt(tokeny[0], 10);
-      if (isNaN(cislo) || cislo < 0 || cislo > 99) { oppRosterChyba = `Položka ${i + 1}: neplatné číslo "${tokeny[0]}"`; return; }
+      const cislo = tokeny[0].trim();
+      if (!CISLO_RE.test(cislo)) { oppRosterChyba = `Položka ${i + 1}: neplatné číslo "${tokeny[0]}"`; return; }
       const zbytek = tokeny.slice(1);
       let jmeno: string | undefined;
       let prijmeni: string | undefined;
@@ -1047,7 +1078,7 @@
       }
       noviHraci.push({ cislo, jmeno, prijmeni });
     }
-    const existujiciCisla = new Set(oppRosterDraft.map((h) => h.cislo));
+    const existujiciCisla = new Set(oppRosterDraft.map((h) => normCislo(h.cislo)));
     const pridana = noviHraci.filter((h) => !existujiciCisla.has(h.cislo));
     oppRosterDraft = [...oppRosterDraft, ...pridana];
     oppRosterBulkOpen = false;
@@ -1058,17 +1089,17 @@
     if (!souper) return;
     oppRosterChyba = null;
     const cisteni: SouperHrac[] = [];
-    const videnaCisla = new Set<number>();
+    const videnaCisla = new Set<string>();
     for (let i = 0; i < oppRosterDraft.length; i++) {
       const h = oppRosterDraft[i];
-      const c = typeof h.cislo === 'string' ? parseInt(h.cislo, 10) : h.cislo;
+      const c = normCislo(h.cislo);
       if (!c && !h.jmeno?.trim() && !h.prijmeni?.trim()) continue;
-      if (c === undefined || c === null || isNaN(c as number)) {
+      if (!c) {
         oppRosterChyba = `Řádek ${i + 1}: číslo musí být vyplněné`;
         return;
       }
-      if (c < 0 || c > 99) {
-        oppRosterChyba = `Řádek ${i + 1}: číslo musí být 0-99`;
+      if (!CISLO_RE.test(c)) {
+        oppRosterChyba = `Řádek ${i + 1}: číslo dresu jen číslice (0-99, lze i "00")`;
         return;
       }
       if (videnaCisla.has(c)) {
@@ -1126,6 +1157,9 @@
       case 'opp_pts_2': return '+2 body';
       case 'opp_pts_3': return '+3 body';
       case 'opp_pts_1': return '+1 trestný';
+      case 'opp_2_miss': return '2 body nedaný';
+      case 'opp_3_miss': return '3 body nedaný';
+      case 'opp_ft_miss': return 'trestný nedaný';
       case 'opp_foul': return '+1 faul';
       case 'opp_reb': return '+ doskok';
       case 'opp_reb_off': return '+ doskok útoč.';
@@ -1150,8 +1184,8 @@
       return h ? `#${h.cislo_dresu ?? '?'} ${h.prijmeni} - ${akce}` : akce;
     }
     if (ev.typ.startsWith('opp_')) {
-      const num = typeof ev.opp_hrac_cislo === 'number' ? ` #${ev.opp_hrac_cislo}` : '';
-      return `Soupeř${num} - ${akce}`;
+      const c = normCislo(ev.opp_hrac_cislo);
+      return `Soupeř${c ? ` #${c}` : ''} - ${akce}`;
     }
     if (ev.typ.startsWith('team_')) return `Tým (bez hráče) - ${akce}`;
     return akce;
@@ -2079,15 +2113,15 @@
               <tr>
                 <th class="th-sticky" colspan="2">Hráč</th>
                 <th title="Minuty na hřišti">Min</th>
-                <th title="Body">PTS</th>
+                <th class="col-key" title="Body">PTS</th>
                 <th title="2 body daný/pokus">2P</th>
                 <th title="3 body daný/pokus">3P</th>
                 <th title="Trestné daný/pokus">FT</th>
                 <th title="Doskok útočný">OFF</th>
                 <th title="Doskok obranný">DEF</th>
-                <th title="Doskoky celkem (OFF+DEF)">REB</th>
-                <th title="Asistence">AST</th>
-                <th title="Zisky / steals">STL</th>
+                <th class="col-key" title="Doskoky celkem (OFF+DEF)">REB</th>
+                <th class="col-key" title="Asistence">AST</th>
+                <th class="col-key" title="Zisky / steals">STL</th>
                 <th title="Ztráty / turnovers">TO</th>
                 <th title="Bloky">BLK</th>
                 <th title="Osobní fauly - celkem za zápas (cesta k vyloučení = 5)">PF</th>
@@ -2100,6 +2134,7 @@
                 {@const s = statHrace(h.id)}
                 {@const fo = jeFouledOut(udalosti, h.id)}
                 {@const faulyCelkem = pocetFaulu(udalosti, h.id)}
+                {@const reb = s.doskoky_off + s.doskoky_def}
                 <tr class:foulout={fo}>
                   <td class="td-num">{h.cislo_dresu ?? '?'}</td>
                   <td class="td-name">
@@ -2107,15 +2142,15 @@
                     {#if fo}<span class="bs-tag-fo">FO</span>{/if}
                   </td>
                   <td class="td-mono">{periodKlokPouzit ? formatMinSec(s.minuty_ms) : '-'}</td>
-                  <td class="td-mono td-pts">{s.body}</td>
+                  <td class="td-mono td-pts col-key" class:leader={s.body === boxLeaders.pts && s.body > 0}>{s.body}{#if s.body === boxLeaders.pts && s.body > 0}<span class="lead-dot" title="Nejvíc bodů">▴</span>{/if}</td>
                   <td class="td-mono">{s.dany_2}/{s.pokusy_2}</td>
                   <td class="td-mono">{s.dany_3}/{s.pokusy_3}</td>
                   <td class="td-mono">{s.dany_th}/{s.pokusy_th}</td>
                   <td class="td-mono">{s.doskoky_off}</td>
                   <td class="td-mono">{s.doskoky_def}</td>
-                  <td class="td-mono">{s.doskoky_off + s.doskoky_def}</td>
-                  <td class="td-mono">{s.asistence}</td>
-                  <td class="td-mono">{s.zisky}</td>
+                  <td class="td-mono col-key" class:leader={reb === boxLeaders.reb && reb > 0}>{reb}{#if reb === boxLeaders.reb && reb > 0}<span class="lead-dot" title="Nejvíc doskoků">▴</span>{/if}</td>
+                  <td class="td-mono col-key" class:leader={s.asistence === boxLeaders.ast && s.asistence > 0}>{s.asistence}{#if s.asistence === boxLeaders.ast && s.asistence > 0}<span class="lead-dot" title="Nejvíc asistencí">▴</span>{/if}</td>
+                  <td class="td-mono col-key" class:leader={s.zisky === boxLeaders.stl && s.zisky > 0}>{s.zisky}{#if s.zisky === boxLeaders.stl && s.zisky > 0}<span class="lead-dot" title="Nejvíc zisků">▴</span>{/if}</td>
                   <td class="td-mono">{s.ztraty}</td>
                   <td class="td-mono">{s.bloky}</td>
                   <td
@@ -2131,15 +2166,15 @@
                 <tr class="row-bez-hrace">
                   <td colspan="2" class="td-name td-bezhrace">Bez hráče</td>
                   <td class="td-mono">-</td>
-                  <td class="td-mono td-pts">{periodTeamUnattributed.body}</td>
+                  <td class="td-mono td-pts col-key">{periodTeamUnattributed.body}</td>
                   <td class="td-mono" title="2-bodové koše bez hráče">{periodTeamUnattributed.body_2}</td>
                   <td class="td-mono" title="3-bodové koše bez hráče">{periodTeamUnattributed.body_3}</td>
                   <td class="td-mono" title="Trestné body bez hráče">{periodTeamUnattributed.body_th}</td>
                   <td class="td-mono">-</td>
                   <td class="td-mono">-</td>
-                  <td class="td-mono">-</td>
-                  <td class="td-mono">-</td>
-                  <td class="td-mono">-</td>
+                  <td class="td-mono col-key">-</td>
+                  <td class="td-mono col-key">-</td>
+                  <td class="td-mono col-key">-</td>
                   <td class="td-mono" title="Týmové ztráty bez hráče">{periodTeamUnattributed.ztraty || '-'}</td>
                   <td class="td-mono">-</td>
                   <td class="td-mono">-</td>
@@ -2150,15 +2185,15 @@
               <tr class="row-total">
                 <td colspan="2" class="td-name">TÝM</td>
                 <td class="td-mono">{periodKlokPouzit ? formatMinSec(periodTeamTotals.minuty_ms) : '-'}</td>
-                <td class="td-mono td-pts">{periodTeamTotals.body + periodTeamUnattributed.body}</td>
+                <td class="td-mono td-pts col-key">{periodTeamTotals.body + periodTeamUnattributed.body}</td>
                 <td class="td-mono">{periodTeamTotals.dany_2}/{periodTeamTotals.pokusy_2}</td>
                 <td class="td-mono">{periodTeamTotals.dany_3}/{periodTeamTotals.pokusy_3}</td>
                 <td class="td-mono">{periodTeamTotals.dany_th}/{periodTeamTotals.pokusy_th}</td>
                 <td class="td-mono">{periodTeamTotals.doskoky_off}</td>
                 <td class="td-mono">{periodTeamTotals.doskoky_def}</td>
-                <td class="td-mono">{periodTeamTotals.doskoky_off + periodTeamTotals.doskoky_def}</td>
-                <td class="td-mono">{periodTeamTotals.asistence}</td>
-                <td class="td-mono">{periodTeamTotals.zisky}</td>
+                <td class="td-mono col-key">{periodTeamTotals.doskoky_off + periodTeamTotals.doskoky_def}</td>
+                <td class="td-mono col-key">{periodTeamTotals.asistence}</td>
+                <td class="td-mono col-key">{periodTeamTotals.zisky}</td>
                 <td class="td-mono">{periodTeamTotals.ztraty + periodTeamUnattributed.ztraty}</td>
                 <td class="td-mono">{periodTeamTotals.bloky}</td>
                 <td class="td-mono">{periodTeamTotals.fauly}</td>
@@ -2554,7 +2589,7 @@
                 - bez čísla (volitelně vyber)
               {/if}
             </span>
-            <button class="opp-roster-edit" onclick={openOppRosterEdit} title="Upravit soupisku soupeře (přidat / opravit číslo)">✎ Soupiska</button>
+            <button class="opp-roster-edit" onclick={openOppRosterEdit} title="Přidat nebo opravit hráče soupeře i během zápasu (číslo dresu, jméno, i hromadně).">+ Přidat / upravit hráče</button>
           </div>
           {#if opponentRoster.length > 0}
             <div class="opp-roster-row">
@@ -2578,6 +2613,9 @@
             <button class="opp" onclick={() => recordOpponent('opp_pts_2')}>+2 body</button>
             <button class="opp" onclick={() => recordOpponent('opp_pts_3')}>+3 body</button>
             <button class="opp" onclick={() => recordOpponent('opp_pts_1')}>+1 trestný</button>
+            <button class="opp opp-miss" onclick={() => recordOpponent('opp_2_miss')} title="Nedaná 2bodová střela soupeře (nepovinné - jen když chceš sledovat úspěšnost).">✗ 2 body</button>
+            <button class="opp opp-miss" onclick={() => recordOpponent('opp_3_miss')} title="Nedaná 3bodová střela soupeře (nepovinné).">✗ 3 body</button>
+            <button class="opp opp-miss" onclick={() => recordOpponent('opp_ft_miss')} title="Nedaný trestný hod soupeře (nepovinné).">✗ trestný</button>
             <button class="opp" onclick={() => openOppFoul('personal')} title="Osobní faul soupeře. Když máš vybrané číslo hráče, přiřadí se mu; jinak se zapíše jako týmový faul bez čísla.">+1 faul</button>
             <button class="opp" onclick={() => openOppFoul('unsportsmanlike')} title="Nesportovní faul soupeře (přiřadí vybranému číslu, jinak bez čísla).">Nesport.</button>
             <button class="opp" onclick={() => openOppFoul('technical')} title="Technická chyba (i trenér/lavička) - zapíše se bez čísla">Technická</button>
@@ -2622,9 +2660,9 @@
         <div class="lt-row">
           <div class="lt-label them">SOUPEŘ</div>
           <div class="lt-chip"><span class="lt-l">PTS</span><span class="lt-v lt-pts">{oppTotals.body}</span></div>
-          <div class="lt-chip"><span class="lt-l">2P</span><span class="lt-v">{oppTotals.body_2}</span></div>
-          <div class="lt-chip"><span class="lt-l">3P</span><span class="lt-v">{oppTotals.body_3}</span></div>
-          <div class="lt-chip"><span class="lt-l">FT</span><span class="lt-v">{oppTotals.body_th}</span></div>
+          <div class="lt-chip" title="2 body daný/pokus (pokusy jen pokud zapisuješ i nedané)"><span class="lt-l">2P</span><span class="lt-v">{oppTotals.dany_2}/{oppTotals.pokusy_2}</span></div>
+          <div class="lt-chip" title="3 body daný/pokus"><span class="lt-l">3P</span><span class="lt-v">{oppTotals.dany_3}/{oppTotals.pokusy_3}</span></div>
+          <div class="lt-chip" title="Trestné daný/pokus"><span class="lt-l">FT</span><span class="lt-v">{oppTotals.dany_th}/{oppTotals.pokusy_th}</span></div>
           <div class="lt-chip"><span class="lt-l">OFF</span><span class="lt-v">{oppTotals.doskoky_off}</span></div>
           <div class="lt-chip"><span class="lt-l">DEF</span><span class="lt-v">{oppTotals.doskoky_def}</span></div>
           <div class="lt-chip"><span class="lt-l">REB</span><span class="lt-v">{oppTotals.doskoky_off + oppTotals.doskoky_def + oppTotals.doskoky_neznamy}</span></div>
@@ -2641,7 +2679,7 @@
         {#if oppFaulyPerCisloMap.size > 0}
           <div class="lt-row opp-fauly-row">
             <div class="lt-label them">PF #</div>
-            {#each [...oppFaulyPerCisloMap.entries()].sort((a, b) => a[0] - b[0]) as [cislo, n] (cislo)}
+            {#each [...oppFaulyPerCisloMap.entries()].sort((a, b) => cisloSort(a[0], b[0])) as [cislo, n] (cislo)}
               <div class="lt-chip opp-fa-chip"><span class="lt-l">#{cislo}</span><span class="lt-v">F{n}</span></div>
             {/each}
           </div>
@@ -2869,9 +2907,9 @@
         <h3>Soupeř - {souper.nazev} {selectedPeriod === 'total' ? '' : `(${fmtQ(selectedPeriod as number)})`}</h3>
         <div class="opp-grid">
           <div class="opp-item"><span class="opp-l">PTS</span><span class="opp-v">{periodOppTotals.body}</span></div>
-          <div class="opp-item"><span class="opp-l">2P košů</span><span class="opp-v">{periodOppTotals.body_2}</span></div>
-          <div class="opp-item"><span class="opp-l">3P košů</span><span class="opp-v">{periodOppTotals.body_3}</span></div>
-          <div class="opp-item"><span class="opp-l">Trestné</span><span class="opp-v">{periodOppTotals.body_th}</span></div>
+          <div class="opp-item" title="2 body daný/pokus (pokusy jen pokud zapisuješ i nedané střely)"><span class="opp-l">2P</span><span class="opp-v">{periodOppTotals.dany_2}/{periodOppTotals.pokusy_2}</span></div>
+          <div class="opp-item" title="3 body daný/pokus"><span class="opp-l">3P</span><span class="opp-v">{periodOppTotals.dany_3}/{periodOppTotals.pokusy_3}</span></div>
+          <div class="opp-item" title="Trestné daný/pokus"><span class="opp-l">Trestné</span><span class="opp-v">{periodOppTotals.dany_th}/{periodOppTotals.pokusy_th}</span></div>
           <div class="opp-item"><span class="opp-l">Fauly</span><span class="opp-v">{periodOppTotals.fauly}</span></div>
           <div class="opp-item"><span class="opp-l">Doskok OFF</span><span class="opp-v">{periodOppTotals.doskoky_off}</span></div>
           <div class="opp-item"><span class="opp-l">Doskok DEF</span><span class="opp-v">{periodOppTotals.doskoky_def}</span></div>
@@ -2890,9 +2928,9 @@
                   <th>#</th>
                   <th>Jméno</th>
                   <th class="th-mono" title="Body celkem">PTS</th>
-                  <th class="th-mono" title="Body z 2P košů">2P</th>
-                  <th class="th-mono" title="Body z 3P košů">3P</th>
-                  <th class="th-mono" title="Body z trestných">FT</th>
+                  <th class="th-mono" title="2 body daný/pokus">2P</th>
+                  <th class="th-mono" title="3 body daný/pokus">3P</th>
+                  <th class="th-mono" title="Trestné daný/pokus">FT</th>
                   <th class="th-mono" title="Útočný doskok">OFF</th>
                   <th class="th-mono" title="Obranný doskok">DEF</th>
                   <th class="th-mono" title="Doskoky celkem">REB</th>
@@ -2900,15 +2938,15 @@
                 </tr>
               </thead>
               <tbody>
-                {#each [...periodOppStatsPerCisloMap.entries()].sort((a, b) => b[1].body - a[1].body || a[0] - b[0]) as [cislo, st] (cislo)}
-                  {@const oh = souper.hraci_soupere?.find((h) => h.cislo === cislo)}
+                {#each [...periodOppStatsPerCisloMap.entries()].sort((a, b) => b[1].body - a[1].body || cisloSort(a[0], b[0])) as [cislo, st] (cislo)}
+                  {@const oh = souper.hraci_soupere?.find((h) => normCislo(h.cislo) === cislo)}
                   <tr>
                     <td class="td-mono">#{cislo}</td>
                     <td>{oh?.prijmeni ?? ''}</td>
                     <td class="td-mono"><strong>{st.body}</strong></td>
-                    <td class="td-mono">{st.body_2}</td>
-                    <td class="td-mono">{st.body_3}</td>
-                    <td class="td-mono">{st.body_th}</td>
+                    <td class="td-mono">{st.dany_2}/{st.pokusy_2}</td>
+                    <td class="td-mono">{st.dany_3}/{st.pokusy_3}</td>
+                    <td class="td-mono">{st.dany_th}/{st.pokusy_th}</td>
                     <td class="td-mono">{st.doskoky_off}</td>
                     <td class="td-mono">{st.doskoky_def}</td>
                     <td class="td-mono">{st.doskoky}</td>
@@ -2920,9 +2958,9 @@
                     <td class="td-mono">-</td>
                     <td><em>Bez čísla hráče</em></td>
                     <td class="td-mono"><strong>{periodOppBezCisla.body}</strong></td>
-                    <td class="td-mono">{periodOppBezCisla.body_2}</td>
-                    <td class="td-mono">{periodOppBezCisla.body_3}</td>
-                    <td class="td-mono">{periodOppBezCisla.body_th}</td>
+                    <td class="td-mono">{periodOppBezCisla.dany_2}/{periodOppBezCisla.pokusy_2}</td>
+                    <td class="td-mono">{periodOppBezCisla.dany_3}/{periodOppBezCisla.pokusy_3}</td>
+                    <td class="td-mono">{periodOppBezCisla.dany_th}/{periodOppBezCisla.pokusy_th}</td>
                     <td class="td-mono">{periodOppBezCisla.doskoky_off}</td>
                     <td class="td-mono">{periodOppBezCisla.doskoky_def}</td>
                     <td class="td-mono">{periodOppBezCisla.doskoky}</td>
@@ -3146,7 +3184,7 @@
             <div class="opp-edit-list">
               {#each oppRosterDraft as h, i (i)}
                 <div class="opp-edit-row">
-                  <input bind:value={h.cislo} type="number" min="0" max="99" placeholder="#" class="opp-edit-num" />
+                  <input bind:value={h.cislo} type="text" inputmode="numeric" maxlength="3" placeholder="#" class="opp-edit-num" />
                   <input bind:value={h.jmeno} type="text" placeholder="Jméno (volitelné)" />
                   <input bind:value={h.prijmeni} type="text" placeholder="Příjmení (volitelné)" />
                   <button type="button" class="danger small" onclick={() => removeOppRosterRow(i)}>×</button>
@@ -4015,6 +4053,13 @@
     text-align: center;
   }
   .opp:hover { background: var(--opp-btn-hover); }
+  /* Nedane strely soupere - nepovinne, vizualne potlacene (jen pokus, 0 bodu). */
+  .opp.opp-miss {
+    opacity: 0.78;
+    border-style: dashed;
+    font-weight: 500;
+  }
+  .opp.opp-miss:hover { opacity: 1; }
 
   .opp-roster-row {
     display: flex;
@@ -4791,6 +4836,17 @@
   .td-pm.pm-minus { color: var(--danger); font-weight: 700; }
   .td-pf.pf-high { color: var(--danger); font-weight: 800; }
   .td-eff { font-weight: 700; }
+
+  /* Zvyrazneni klicovych sloupcu (PTS/REB/AST/STL) + lidru v box score. */
+  .bs-table tbody td.col-key { background: color-mix(in srgb, var(--accent) 7%, transparent); }
+  .bs-table thead th.col-key { background: color-mix(in srgb, var(--accent) 18%, var(--surface-2)); color: var(--accent); }
+  .bs-table tbody td.leader {
+    background: color-mix(in srgb, var(--accent) 24%, transparent);
+    font-weight: 800;
+    color: var(--accent);
+  }
+  .lead-dot { font-size: 9px; margin-left: 2px; color: var(--accent); vertical-align: top; }
+
   .row-total td {
     background: var(--surface-2);
     border-top: 2px solid var(--border);

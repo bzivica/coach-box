@@ -3,6 +3,8 @@ import {
   DEFAULT_DELKA_CTVRTINY_MIN,
   kategorieZRocniku,
   odhadniPohlavi,
+  normCislo,
+  cisloSort,
   type Hrac,
   type Kategorie,
   type Soutez,
@@ -377,19 +379,22 @@ function zapasKey(z: Zapas): string {
 }
 
 function unionSouperHraci(a: SouperHrac[], b: SouperHrac[]): SouperHrac[] {
-  const byCislo = new Map<number, SouperHrac>();
-  for (const h of a) byCislo.set(h.cislo, h);
-  for (const h of b) {
-    const existing = byCislo.get(h.cislo);
+  const byCislo = new Map<string, SouperHrac>();
+  const put = (h: SouperHrac) => {
+    const c = normCislo(h.cislo);
+    const norm = { ...h, cislo: c };
+    const existing = byCislo.get(c);
     if (!existing) {
-      byCislo.set(h.cislo, h);
+      byCislo.set(c, norm);
     } else {
       const incomingNamed = h.prijmeni || h.jmeno;
       const existingNamed = existing.prijmeni || existing.jmeno;
-      if (incomingNamed && !existingNamed) byCislo.set(h.cislo, h);
+      if (incomingNamed && !existingNamed) byCislo.set(c, norm);
     }
-  }
-  return Array.from(byCislo.values()).sort((x, y) => x.cislo - y.cislo);
+  };
+  for (const h of a) put(h);
+  for (const h of b) put(h);
+  return Array.from(byCislo.values()).sort((x, y) => cisloSort(x.cislo, y.cislo));
 }
 
 const STATUS_PRIORITA: Record<Zapas['status'], number> = {

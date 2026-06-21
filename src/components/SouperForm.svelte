@@ -1,7 +1,10 @@
 <script lang="ts">
   import { untrack } from 'svelte';
   import { db, newId } from '../lib/db';
-  import { KATEGORIE_PORADI, kategorieLabel, type Souper, type SouperHrac, type Kategorie } from '../lib/types';
+  import { KATEGORIE_PORADI, kategorieLabel, normCislo, type Souper, type SouperHrac, type Kategorie } from '../lib/types';
+
+  // Cislo dresu = text (jen cislice, 0-99 i napr. "00" / "07"). Prazdne = nevyplneno.
+  const CISLO_RE = /^\d{1,3}$/;
 
   type Props = {
     existing?: Souper;
@@ -14,7 +17,7 @@
   const initial = untrack(() => ({
     nazev: existing?.nazev ?? '',
     kategorie: (existing?.kategorie ?? 'U13') as Kategorie,
-    hraci: (existing?.hraci_soupere ?? []).map((h) => ({ ...h })),
+    hraci: (existing?.hraci_soupere ?? []).map((h) => ({ ...h, cislo: normCislo(h.cislo) })),
   }));
 
   let nazev = $state(initial.nazev);
@@ -31,7 +34,7 @@
   let nactenoZeZapasuInfo = $state<string | null>(null);
 
   function pridejHrace() {
-    hraci.push({ cislo: 0, jmeno: '', prijmeni: '' });
+    hraci.push({ cislo: '', jmeno: '', prijmeni: '' });
   }
 
   function smazHrace(index: number) {
@@ -50,16 +53,19 @@
     }
     const posledni = [...zapasy].sort((a, b) => b.datum.localeCompare(a.datum))[0];
     const eventyZapasu = await db.udalosti.where('zapas_id').equals(posledni.id).toArray();
-    const nalezenaCisla = new Set<number>();
+    const nalezenaCisla = new Set<string>();
     for (const u of eventyZapasu) {
-      if (typeof u.opp_hrac_cislo === 'number') nalezenaCisla.add(u.opp_hrac_cislo);
+      const c = normCislo(u.opp_hrac_cislo);
+      if (c) nalezenaCisla.add(c);
     }
     if (nalezenaCisla.size === 0) {
       nactenoZeZapasuInfo = `Zápas ${posledni.datum} - žádná čísla soupeře nebyla atribuována při zápise.`;
       return;
     }
-    const stavajici = new Set(hraci.map((h) => h.cislo));
-    const noviProPridani = [...nalezenaCisla].filter((c) => !stavajici.has(c)).sort((a, b) => a - b);
+    const stavajici = new Set(hraci.map((h) => normCislo(h.cislo)));
+    const noviProPridani = [...nalezenaCisla]
+      .filter((c) => !stavajici.has(c))
+      .sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
     if (noviProPridani.length === 0) {
       nactenoZeZapasuInfo = `Všech ${nalezenaCisla.size} čísel ze zápasu ${posledni.datum} už máte v soupisce.`;
       return;
@@ -79,8 +85,8 @@
     const noviHraci: SouperHrac[] = [];
     for (let i = 0; i < radky.length; i++) {
       const tokeny = radky[i].split(/\s+/);
-      const cislo = parseInt(tokeny[0], 10);
-      if (isNaN(cislo) || cislo < 0 || cislo > 99) { hromadnyChyba = `Položka ${i + 1}: neplatné číslo "${tokeny[0]}"`; return; }
+      const cislo = tokeny[0].trim();
+      if (!CISLO_RE.test(cislo)) { hromadnyChyba = `Položka ${i + 1}: neplatné číslo "${tokeny[0]}"`; return; }
       const zbytek = tokeny.slice(1);
       let jmeno: string | undefined;
       let prijmeni: string | undefined;
@@ -103,19 +109,26 @@
     if (!nazev.trim()) { chyba = 'Název týmu je povinný'; return; }
 
     const cisteniHraci: SouperHrac[] = [];
+    const videnaCisla = new Set<string>();
     for (let i = 0; i < hraci.length; i++) {
       const h = hraci[i];
-      if (!h.cislo && !h.jmeno?.trim() && !h.prijmeni?.trim()) continue;
-      if (h.cislo === undefined || h.cislo === null || isNaN(h.cislo)) {
+      const c = normCislo(h.cislo);
+      if (!c && !h.jmeno?.trim() && !h.prijmeni?.trim()) continue;
+      if (!c) {
         chyba = `Řádek ${i + 1}: číslo musí být vyplněné`;
         return;
       }
-      if (h.cislo < 0 || h.cislo > 99) {
-        chyba = `Řádek ${i + 1}: číslo musí být 0-99`;
+      if (!CISLO_RE.test(c)) {
+        chyba = `Řádek ${i + 1}: číslo dresu jen číslice (0-99, lze i "00")`;
         return;
       }
+      if (videnaCisla.has(c)) {
+        chyba = `Číslo #${c} je v soupisce dvakrát`;
+        return;
+      }
+      videnaCisla.add(c);
       cisteniHraci.push({
-        cislo: h.cislo,
+        cislo: c,
         jmeno: h.jmeno?.trim() || undefined,
         prijmeni: h.prijmeni?.trim() || undefined,
       });
@@ -205,7 +218,7 @@
         {:else}
           {#each hraci as h, i (i)}
             <div class="player-row">
-              <input bind:value={h.cislo} type="number" min="0" max="99" placeholder="#" class="num-input" />
+              <input bind:value={h.cislo} type="text" inputmode="numeric" maxlength="3" placeholder="#" class="num-input" />
               <input bind:value={h.jmeno} type="text" placeholder="Jméno (volitelné)" />
               <input bind:value={h.prijmeni} type="text" placeholder="Příjmení (volitelné)" />
               <button type="button" class="danger small" onclick={() => smazHrace(i)}>×</button>
@@ -255,7 +268,7 @@
   .row { display: grid; grid-template-columns: 2fr 1fr; gap: 14px; }
   label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--text-muted); }
   label span { font-weight: 500; }
-  input[type="text"], input[type="number"], select {
+  input[type="text"], select {
     background: var(--bg);
     border: 1px solid var(--border);
     color: var(--text);

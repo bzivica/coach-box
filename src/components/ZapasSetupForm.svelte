@@ -11,6 +11,7 @@
     souperiZNasichKategorie,
     DEFAULT_DELKA_CTVRTINY_MIN,
     DEFAULT_POCET_CTVRTIN,
+    normCislo,
     type Zapas,
     type Hrac,
     type Souper,
@@ -212,7 +213,7 @@
     const nasiHraci = (await db.hraci.toArray())
       .filter((h) => h.aktivni && h.domaci_kategorie === kat)
       .sort((a, b) => (a.cislo_dresu ?? 99) - (b.cislo_dresu ?? 99))
-      .map((h) => ({ cislo: h.cislo_dresu ?? 0, jmeno: h.jmeno, prijmeni: h.prijmeni }));
+      .map((h) => ({ cislo: normCislo(h.cislo_dresu), jmeno: h.jmeno, prijmeni: h.prijmeni }));
     const now = Date.now();
     const existing = (await db.souperi.toArray()).find((s) => s.nazev === nazev && s.kategorie === kat);
     if (existing) {
