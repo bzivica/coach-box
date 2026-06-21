@@ -2655,18 +2655,37 @@
             </div>
           {/if}
           <div class="opp-actions">
-            <button class="opp" onclick={() => recordOpponent('opp_pts_2')}>+2 body</button>
-            <button class="opp" onclick={() => recordOpponent('opp_pts_3')}>+3 body</button>
-            <button class="opp" onclick={() => recordOpponent('opp_pts_1')}>+1 trestný</button>
-            <button class="opp opp-miss" onclick={() => recordOpponent('opp_2_miss')} title="Nedaná 2bodová střela soupeře (nepovinné - jen když chceš sledovat úspěšnost).">✗ 2 body</button>
-            <button class="opp opp-miss" onclick={() => recordOpponent('opp_3_miss')} title="Nedaná 3bodová střela soupeře (nepovinné).">✗ 3 body</button>
-            <button class="opp opp-miss" onclick={() => recordOpponent('opp_ft_miss')} title="Nedaný trestný hod soupeře (nepovinné).">✗ trestný</button>
-            <button class="opp" onclick={() => openOppFoul('personal')} title="Osobní faul soupeře. Když máš vybrané číslo hráče, přiřadí se mu; jinak se zapíše jako týmový faul bez čísla.">+1 faul</button>
-            <button class="opp" onclick={() => openOppFoul('unsportsmanlike')} title="Nesportovní faul soupeře (přiřadí vybranému číslu, jinak bez čísla).">Nesport.</button>
-            <button class="opp" onclick={() => openOppFoul('technical')} title="Technická chyba (i trenér/lavička) - zapíše se bez čísla">Technická</button>
-            <button class="opp" onclick={() => recordOpponent('opp_reb_off')}>+ dosk útoč.</button>
-            <button class="opp" onclick={() => recordOpponent('opp_reb_def')}>+ dosk obr.</button>
-            <button class="opp" onclick={() => recordOpponent('opp_turnover')} title="Ztráta soupeře bez našeho zisku (kroky, aut, ofenzivní faul…)">Ztráta</button>
+            <div class="opp-group opp-shoot">
+              <div class="opp-grp-label">STŘELBA</div>
+              <div class="opp-shoot-grid">
+                <span class="opp-col-head made">DANÉ</span>
+                <span class="opp-col-head miss">NEDANÉ</span>
+                <button class="opp opp-made" onclick={() => recordOpponent('opp_pts_2')}>+2 body</button>
+                <button class="opp opp-miss" onclick={() => recordOpponent('opp_2_miss')} title="Nedaná 2bodová střela soupeře (nepovinné - jen když chceš sledovat úspěšnost).">✗ 2 body</button>
+                <button class="opp opp-made" onclick={() => recordOpponent('opp_pts_3')}>+3 body</button>
+                <button class="opp opp-miss" onclick={() => recordOpponent('opp_3_miss')} title="Nedaná 3bodová střela soupeře (nepovinné).">✗ 3 body</button>
+                <button class="opp opp-made" onclick={() => recordOpponent('opp_pts_1')}>+1 trestný</button>
+                <button class="opp opp-miss" onclick={() => recordOpponent('opp_ft_miss')} title="Nedaný trestný hod soupeře (nepovinné).">✗ trestný</button>
+              </div>
+            </div>
+
+            <div class="opp-group">
+              <div class="opp-grp-label">CHYBY</div>
+              <div class="opp-pair-grid">
+                <button class="opp" onclick={() => openOppFoul('personal')} title="Osobní faul soupeře. Když máš vybrané číslo hráče, přiřadí se mu; jinak se zapíše jako týmový faul bez čísla.">+1 faul</button>
+                <button class="opp" onclick={() => recordOpponent('opp_turnover')} title="Ztráta soupeře bez našeho zisku (kroky, aut, ofenzivní faul…)">Ztráta</button>
+                <button class="opp" onclick={() => openOppFoul('unsportsmanlike')} title="Nesportovní faul soupeře (přiřadí vybranému číslu, jinak bez čísla).">Nesport.</button>
+                <button class="opp" onclick={() => openOppFoul('technical')} title="Technická chyba (i trenér/lavička) - zapíše se bez čísla">Technická</button>
+              </div>
+            </div>
+
+            <div class="opp-group">
+              <div class="opp-grp-label">DOSKOK</div>
+              <div class="opp-pair-grid">
+                <button class="opp" onclick={() => recordOpponent('opp_reb_off')}>Útočný</button>
+                <button class="opp" onclick={() => recordOpponent('opp_reb_def')}>Obranný</button>
+              </div>
+            </div>
           </div>
         </section>
       </section>
@@ -4118,6 +4137,38 @@
   }
   .opp-edit-row .danger:hover { background: var(--danger-hover); }
   .opp-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .opp-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .opp-grp-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--muted, #6b7280);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  /* Střelba: dané vlevo, nedané vpravo - naproti sobě po řádcích 2/3/trestný. */
+  .opp-shoot-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+  .opp-col-head {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    text-align: center;
+  }
+  .opp-col-head.made { color: #15803d; }
+  .opp-col-head.miss { color: #b91c1c; }
+  .opp-pair-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 6px;
@@ -4142,6 +4193,11 @@
     font-weight: 500;
   }
   .opp.opp-miss:hover { opacity: 1; }
+  /* Daná střela soupeře - zeleně odlišená proti nedané. */
+  .opp.opp-made {
+    border-color: #15803d;
+    box-shadow: inset 3px 0 0 #15803d;
+  }
 
   .opp-roster-row {
     display: flex;
