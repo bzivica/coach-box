@@ -1186,6 +1186,7 @@
       case 'opp_reb_off': return '+ doskok útoč.';
       case 'opp_reb_def': return '+ doskok obr.';
       case 'opp_turnover': return '+1 ztráta';
+      case 'opp_steal': return 'zisk';
       case 'foul_technical_bench': return 'technická chyba (lavička)';
       case 'oddech_my': return 'oddech';
       case 'oddech_opp': return 'oddech soupeře';
@@ -2686,6 +2687,11 @@
                 <button class="opp" onclick={() => recordOpponent('opp_reb_def')}>Obranný</button>
               </div>
             </div>
+
+            <div class="opp-group">
+              <div class="opp-grp-label">ZISK</div>
+              <button class="opp" onclick={() => recordOpponent('opp_steal')} title="Zisk soupeře (sebral nám míč). Nepovinné - jen když chceš sledovat.">Zisk</button>
+            </div>
           </div>
         </section>
       </section>
@@ -2731,6 +2737,7 @@
           <div class="lt-chip"><span class="lt-l">DEF</span><span class="lt-v">{oppTotals.doskoky_def}</span></div>
           <div class="lt-chip"><span class="lt-l">REB</span><span class="lt-v">{oppTotals.doskoky_off + oppTotals.doskoky_def + oppTotals.doskoky_neznamy}</span></div>
           <div class="lt-chip"><span class="lt-l">TO</span><span class="lt-v">{oppTotals.ztraty}</span></div>
+          <div class="lt-chip"><span class="lt-l">STL</span><span class="lt-v">{oppTotals.zisky}</span></div>
           <div class="lt-chip"><span class="lt-l">PF</span><span class="lt-v">{oppTotals.fauly}</span></div>
           {#if oppTotals.doskoky_neznamy > 0}
             <div class="lt-chip" title="Doskoky bez určení směru (z dřívějších verzí)"><span class="lt-l">REB?</span><span class="lt-v">{oppTotals.doskoky_neznamy}</span></div>

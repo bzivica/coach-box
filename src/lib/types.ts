@@ -115,6 +115,7 @@ export type UdalostTyp =
   | 'opp_reb_off'
   | 'opp_reb_def'
   | 'opp_turnover'
+  | 'opp_steal'
   | 'team_pts_2'
   | 'team_pts_3'
   | 'team_pts_1'
