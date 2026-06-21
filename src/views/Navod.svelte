@@ -176,17 +176,17 @@
             <tr>
               <td><strong>Krátké švihnutí ↑</strong></td>
               <td>+2 body daný</td>
-              <td rowspan="4">Při tažení se kolem karty objeví 4 popisky (↑✓2, ↓✗2, →FAUL, ←REB-D) - aktivní směr se modře zvýrazní. Pust až za hranicí karty, jinak se akce nezapíše. Nejrychlejší cesta pro 4 nejčastější situace.</td>
+              <td rowspan="4">Při tažení se kolem karty objeví 4 popisky (↑✓2, ↓✗2, →FAUL, ←DO) - aktivní směr se modře zvýrazní. Pust až za hranicí karty, jinak se akce nezapíše. Nejrychlejší cesta pro 4 nejčastější situace.</td>
             </tr>
             <tr><td><strong>Krátké švihnutí ↓</strong></td><td>2 body NEdaný</td></tr>
             <tr><td><strong>Krátké švihnutí →</strong></td><td>Faul (rovnou osobní)</td></tr>
-            <tr><td><strong>Krátké švihnutí ←</strong></td><td>Doskok obranný (REB-D)</td></tr>
+            <tr><td><strong>Krátké švihnutí ←</strong></td><td>Doskok obranný (DO)</td></tr>
             <tr>
               <td><strong>Podržení prstu (~¼ s) + tažení</strong></td>
               <td>Radial menu - dvě soustředné vrstvy s 13 akcemi</td>
               <td>
-                <strong>Vnitřní kruh (8):</strong> dané koše nahoře (↖✓FT, ↑✓2, ↗✓3), nedané dole (↙✗3, ↓✗2, ↘✗FT), doskoky po stranách (←REB-D, →REB-O). Protějšky jsou proti sobě.<br/>
-                <strong>Vnější kruh (5):</strong> AST, STL, BLK, TO, FAUL - dál od středu.<br/>
+                <strong>Vnitřní kruh (8):</strong> dané koše nahoře (↖✓TH, ↑✓2, ↗✓3), nedané dole (↙✗3, ↓✗2, ↘✗TH), doskoky po stranách (←DO, →DÚ). Protějšky jsou proti sobě.<br/>
+                <strong>Vnější kruh (5):</strong> ASIST, ZISK, BLOK, ZTRÁTA, FAUL - dál od středu.<br/>
                 Táhneš prstem na výseč a pustíš = zápis. <strong>Uprostřed se ukáže, co zapíšeš</strong> (např. „2 body daný"). Vnitřní/vnější se rozlišuje vzdáleností (vnější ≥ 122 px). Ve středu (× zrušit) = cancel. Faul v radialu = <strong>rovnou osobní</strong>; nesportovní/technickou zadáš tlačítkem <strong>Nesportovní / technická…</strong> (skupina TYP FAULU - i na mobilu, pod hráči, po výběru hráče).<br/>
                 <em>Toto je výchozí rozestavení - pokud sis radiál přeskládal (viz „Vlastní rozestavení radiálu" níže), platí tvoje pořadí.</em>
               </td>
@@ -209,7 +209,7 @@
             <tr>
               <td><strong>Podržení tlačítka (~¼ s) + tažení</strong></td>
               <td>Radial menu s <strong>5 hráči na hřišti</strong> (číslo + příjmení)</td>
-              <td>Funguje na <strong>všech 13 akcí</strong> (✓2, ✓3, ✓FT, ✗2, ✗3, ✗FT, REB-O, REB-D, AST, STL, BLK, FAUL, TO). Faul = rovnou osobní. Tažením přes segment hráče a puštěním = zápis bez nutnosti tappnout hráče dopředu.</td>
+              <td>Funguje na <strong>všech 13 akcí</strong> (✓2, ✓3, ✓TH, ✗2, ✗3, ✗TH, DÚ, DO, ASIST, ZISK, BLOK, FAUL, ZTRÁTA). Faul = rovnou osobní. Tažením přes segment hráče a puštěním = zápis bez nutnosti tappnout hráče dopředu.</td>
             </tr>
           </tbody>
         </table>

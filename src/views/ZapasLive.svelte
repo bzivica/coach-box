@@ -2616,7 +2616,7 @@
                     <span class="swipe-dir swipe-up" class:active={swipeActiveDir === 'shot_2_made'}>✓2</span>
                     <span class="swipe-dir swipe-down" class:active={swipeActiveDir === 'shot_2_miss'}>✗2</span>
                     <span class="swipe-dir swipe-right" class:active={swipeActiveDir === 'foul'}>FAUL</span>
-                    <span class="swipe-dir swipe-left" class:active={swipeActiveDir === 'reb_def'}>REB-D</span>
+                    <span class="swipe-dir swipe-left" class:active={swipeActiveDir === 'reb_def'}>DO</span>
                   </div>
                 {/if}
               </div>

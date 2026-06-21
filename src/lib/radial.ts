@@ -28,19 +28,19 @@ export interface RadialSeg {
 export const RADIAL_INNER_DEFAULT: RadialSeg[] = [
   { typ: 'shot_2_made', label: '✓2', tone: 'made' },
   { typ: 'shot_3_made', label: '✓3', tone: 'made' },
-  { typ: 'reb_off', label: 'REB-O', tone: 'reb' },
-  { typ: 'ft_miss', label: '✗FT', tone: 'miss' },
+  { typ: 'reb_off', label: 'DÚ', tone: 'reb' },
+  { typ: 'ft_miss', label: '✗TH', tone: 'miss' },
   { typ: 'shot_2_miss', label: '✗2', tone: 'miss' },
   { typ: 'shot_3_miss', label: '✗3', tone: 'miss' },
-  { typ: 'reb_def', label: 'REB-D', tone: 'reb' },
-  { typ: 'ft_made', label: '✓FT', tone: 'made' },
+  { typ: 'reb_def', label: 'DO', tone: 'reb' },
+  { typ: 'ft_made', label: '✓TH', tone: 'made' },
 ];
 
 export const RADIAL_OUTER_DEFAULT: RadialSeg[] = [
-  { typ: 'assist', label: 'AST', tone: 'pozit' },
-  { typ: 'steal', label: 'STL', tone: 'pozit' },
-  { typ: 'block', label: 'BLK', tone: 'pozit' },
-  { typ: 'turnover', label: 'TO', tone: 'negat' },
+  { typ: 'assist', label: 'ASIST', tone: 'pozit' },
+  { typ: 'steal', label: 'ZISK', tone: 'pozit' },
+  { typ: 'block', label: 'BLOK', tone: 'pozit' },
+  { typ: 'turnover', label: 'ZTRÁTA', tone: 'negat' },
   { typ: 'foul', label: 'FAUL', tone: 'foul' },
 ];
 
