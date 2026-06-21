@@ -2671,16 +2671,6 @@
             </div>
 
             <div class="opp-group">
-              <div class="opp-grp-label">CHYBY</div>
-              <div class="opp-pair-grid">
-                <button class="opp" onclick={() => openOppFoul('personal')} title="Osobní faul soupeře. Když máš vybrané číslo hráče, přiřadí se mu; jinak se zapíše jako týmový faul bez čísla.">+1 faul</button>
-                <button class="opp" onclick={() => recordOpponent('opp_turnover')} title="Ztráta soupeře bez našeho zisku (kroky, aut, ofenzivní faul…)">Ztráta</button>
-                <button class="opp" onclick={() => openOppFoul('unsportsmanlike')} title="Nesportovní faul soupeře (přiřadí vybranému číslu, jinak bez čísla).">Nesport.</button>
-                <button class="opp" onclick={() => openOppFoul('technical')} title="Technická chyba (i trenér/lavička) - zapíše se bez čísla">Technická</button>
-              </div>
-            </div>
-
-            <div class="opp-group">
               <div class="opp-grp-label">DOSKOK</div>
               <div class="opp-pair-grid">
                 <button class="opp" onclick={() => recordOpponent('opp_reb_off')}>Útočný</button>
@@ -2691,6 +2681,16 @@
             <div class="opp-group">
               <div class="opp-grp-label">ZISK</div>
               <button class="opp" onclick={() => recordOpponent('opp_steal')} title="Zisk soupeře (sebral nám míč). Nepovinné - jen když chceš sledovat.">Zisk</button>
+            </div>
+
+            <div class="opp-group">
+              <div class="opp-grp-label">CHYBY</div>
+              <div class="opp-pair-grid">
+                <button class="opp" onclick={() => openOppFoul('personal')} title="Osobní faul soupeře. Když máš vybrané číslo hráče, přiřadí se mu; jinak se zapíše jako týmový faul bez čísla.">+1 faul</button>
+                <button class="opp" onclick={() => recordOpponent('opp_turnover')} title="Ztráta soupeře bez našeho zisku (kroky, aut, ofenzivní faul…)">Ztráta</button>
+                <button class="opp" onclick={() => openOppFoul('unsportsmanlike')} title="Nesportovní faul soupeře (přiřadí vybranému číslu, jinak bez čísla).">Nesport.</button>
+                <button class="opp" onclick={() => openOppFoul('technical')} title="Technická chyba (i trenér/lavička) - zapíše se bez čísla">Technická</button>
+              </div>
             </div>
           </div>
         </section>
