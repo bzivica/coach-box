@@ -229,6 +229,29 @@
     })(),
   );
 
+  // Zobrazena hodnota statistiky (respektuje prepinac "na zapas").
+  function dispVal(v: number, gp: number): number {
+    return perGame && gp > 0 ? v / gp : v;
+  }
+
+  // Maxima klicovych statistik (PTS/REB/AST/STL) napric zobrazenymi hraci pro zvyrazneni lidru.
+  // Pocita se z prave zobrazene hodnoty (celkem vs. na zapas), aby lidr sedel s tim, co je videt.
+  const statLeaders = $derived.by(() => {
+    let pts = 0, reb = 0, ast = 0, stl = 0;
+    for (const r of rows) {
+      const gp = r.agg.gp;
+      pts = Math.max(pts, dispVal(r.agg.body, gp));
+      reb = Math.max(reb, dispVal(r.agg.doskoky_off + r.agg.doskoky_def, gp));
+      ast = Math.max(ast, dispVal(r.agg.asistence, gp));
+      stl = Math.max(stl, dispVal(r.agg.zisky, gp));
+    }
+    return { pts, reb, ast, stl };
+  });
+
+  function jeLidr(v: number, gp: number, max: number): boolean {
+    return max > 0 && dispVal(v, gp) === max;
+  }
+
   const sortedZapasy = $derived(
     [...filteredZapasy].sort((a, b) => b.datum.localeCompare(a.datum)),
   );
@@ -460,15 +483,15 @@
               <th class="th-sticky" colspan="2">Hráč</th>
               <th title="Games played">GP</th>
               <th title={perGame ? 'Min na zápas' : 'Celkem minut'}>Min</th>
-              <th title={perGame ? 'PPG (body/zápas)' : 'Celkem bodů'}>PTS</th>
+              <th class="col-key" title={perGame ? 'PPG (body/zápas)' : 'Celkem bodů'}>PTS</th>
               <th>2P</th>
               <th>3P</th>
               <th>FT</th>
               <th title="Doskok útočný">OFF</th>
               <th title="Doskok obranný">DEF</th>
-              <th title="Doskoky celkem (OFF+DEF)">REB</th>
-              <th title="Asistence">AST</th>
-              <th title="Zisky">STL</th>
+              <th class="col-key" title="Doskoky celkem (OFF+DEF)">REB</th>
+              <th class="col-key" title="Asistence">AST</th>
+              <th class="col-key" title="Zisky">STL</th>
               <th title="Ztráty">TO</th>
               <th title="Bloky">BLK</th>
               <th title="Osobní fauly">PF</th>
@@ -478,6 +501,7 @@
           </thead>
           <tbody>
             {#each rows as r (r.h.id)}
+              {@const reb = r.agg.doskoky_off + r.agg.doskoky_def}
               <tr>
                 <td class="td-avatar"><Avatar foto={r.h.foto} cislo={r.h.cislo_dresu} size={HRAC_AVATAR_SIZE} alt={`${r.h.jmeno} ${r.h.prijmeni}`} /></td>
                 <td class="td-name">
@@ -486,15 +510,15 @@
                 </td>
                 <td class="td-mono">{r.agg.gp}</td>
                 <td class="td-mono">{fmtMinutes(r.agg.minuty_ms, r.agg.gp)}</td>
-                <td class="td-mono td-pts">{fmtNum(r.agg.body, r.agg.gp)}</td>
+                <td class="td-mono td-pts col-key" class:leader={jeLidr(r.agg.body, r.agg.gp, statLeaders.pts)}>{fmtNum(r.agg.body, r.agg.gp)}{#if jeLidr(r.agg.body, r.agg.gp, statLeaders.pts)}<span class="lead-dot" title="Nejvíc bodů">▴</span>{/if}</td>
                 <td class="td-mono">{fmtRatio(r.agg.dany_2, r.agg.pokusy_2, r.agg.gp)}</td>
                 <td class="td-mono">{fmtRatio(r.agg.dany_3, r.agg.pokusy_3, r.agg.gp)}</td>
                 <td class="td-mono">{fmtRatio(r.agg.dany_th, r.agg.pokusy_th, r.agg.gp)}</td>
                 <td class="td-mono">{fmtNum(r.agg.doskoky_off, r.agg.gp)}</td>
                 <td class="td-mono">{fmtNum(r.agg.doskoky_def, r.agg.gp)}</td>
-                <td class="td-mono">{fmtNum(r.agg.doskoky_off + r.agg.doskoky_def, r.agg.gp)}</td>
-                <td class="td-mono">{fmtNum(r.agg.asistence, r.agg.gp)}</td>
-                <td class="td-mono">{fmtNum(r.agg.zisky, r.agg.gp)}</td>
+                <td class="td-mono col-key" class:leader={jeLidr(reb, r.agg.gp, statLeaders.reb)}>{fmtNum(reb, r.agg.gp)}{#if jeLidr(reb, r.agg.gp, statLeaders.reb)}<span class="lead-dot" title="Nejvíc doskoků">▴</span>{/if}</td>
+                <td class="td-mono col-key" class:leader={jeLidr(r.agg.asistence, r.agg.gp, statLeaders.ast)}>{fmtNum(r.agg.asistence, r.agg.gp)}{#if jeLidr(r.agg.asistence, r.agg.gp, statLeaders.ast)}<span class="lead-dot" title="Nejvíc asistencí">▴</span>{/if}</td>
+                <td class="td-mono col-key" class:leader={jeLidr(r.agg.zisky, r.agg.gp, statLeaders.stl)}>{fmtNum(r.agg.zisky, r.agg.gp)}{#if jeLidr(r.agg.zisky, r.agg.gp, statLeaders.stl)}<span class="lead-dot" title="Nejvíc zisků">▴</span>{/if}</td>
                 <td class="td-mono">{fmtNum(r.agg.ztraty, r.agg.gp)}</td>
                 <td class="td-mono">{fmtNum(r.agg.bloky, r.agg.gp)}</td>
                 <td class="td-mono">{fmtNum(r.agg.fauly, r.agg.gp)}</td>
@@ -854,6 +878,16 @@
   .td-pm.pm-plus { color: var(--success); font-weight: 700; }
   .td-pm.pm-minus { color: var(--danger); font-weight: 700; }
   .td-eff { font-weight: 700; }
+
+  /* Zvyrazneni klicovych sloupcu (PTS/REB/AST/STL) + lidru, stejne jako box score zapasu. */
+  .bs-table tbody td.col-key { background: color-mix(in srgb, var(--accent) 7%, transparent); }
+  .bs-table thead th.col-key { background: color-mix(in srgb, var(--accent) 18%, var(--surface-2)); color: var(--accent); }
+  .bs-table tbody td.leader {
+    background: color-mix(in srgb, var(--accent) 24%, transparent);
+    font-weight: 800;
+    color: var(--accent);
+  }
+  .lead-dot { font-size: 9px; margin-left: 2px; color: var(--accent); vertical-align: top; }
   .empty-row {
     text-align: center !important;
     color: var(--text-muted);
