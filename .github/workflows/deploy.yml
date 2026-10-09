@@ -33,6 +33,7 @@ jobs:
       - name: Build
         env:
           VITE_BASE: /coach-box/
+          VITE_CZ_BASKETBALL_API_URL: ${{ vars.VITE_CZ_BASKETBALL_API_URL }}
         run: npm run build
 
       - name: Setup Pages
