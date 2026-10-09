@@ -283,9 +283,23 @@
   .toolbar-akce { display: flex; gap: 8px; align-items: center; }
   .toolbar-akce > button:not(.primary) {
     background: var(--surface);
+    color: var(--text);
     border: 1px solid var(--border);
     padding: 10px 14px;
     font-size: 14px;
+    white-space: normal;
+    line-height: 1.35;
+  }
+  /* Keep toolbar labels readable on hover/focus; the global button:hover
+     color can otherwise blend into light theme backgrounds. */
+  .toolbar-akce > button:not(.primary):hover,
+  .toolbar-akce > button:not(.primary):focus-visible {
+    background: var(--surface-2);
+    color: var(--text);
+  }
+  .toolbar-akce > button:disabled {
+    color: var(--text-muted);
+    opacity: 1;
   }
 
   .modal-bg {
@@ -299,6 +313,7 @@
     z-index: 100;
   }
   .dup-modal {
+    min-height: 0;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 10px;
@@ -310,9 +325,9 @@
     flex-direction: column;
     box-shadow: var(--shadow-strong);
   }
-  .dup-modal h2 { font-size: 20px; margin-bottom: 10px; color: var(--accent); }
-  .dup-hint { font-size: 13px; color: var(--text-muted); margin-bottom: 14px; line-height: 1.5; }
-  .dup-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+  .dup-modal h2 { font-size: 20px; margin-bottom: 10px; color: var(--accent); flex-shrink: 0; }
+  .dup-hint { font-size: 13px; color: var(--text-muted); margin-bottom: 14px; line-height: 1.5; flex-shrink: 0; }
+  .dup-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: 12px; }
   .dup-skupina {
     border: 1px solid var(--border);
     border-radius: 8px;
@@ -409,6 +424,9 @@
     border-bottom: 1px solid var(--border);
   }
   th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
     background: var(--surface-2);
     font-size: 12px;
     color: var(--text-muted);
