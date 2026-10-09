@@ -25,6 +25,7 @@
     jmeno: existing?.jmeno ?? '',
     prijmeni: existing?.prijmeni ?? '',
     cislo_dresu: existing?.cislo_dresu !== undefined ? String(existing.cislo_dresu) : '',
+    cisla_dresu_kategorie: { ...(existing?.cisla_dresu_kategorie ? Object.fromEntries(Object.entries(existing.cisla_dresu_kategorie).map(([k, v]) => [k, String(v)])) : {}), ...(existing?.cisla_dresu_kategorie?.[existing.domaci_kategorie ?? 'U13'] === undefined && existing?.cislo_dresu !== undefined ? { [existing.domaci_kategorie ?? 'U13']: String(existing.cislo_dresu) } : {}) },
     pozice: (existing?.pozice ?? '') as Pozice | '',
     datum_narozeni: existing?.datum_narozeni ?? '',
     rocnik_narozeni: existing?.rocnik_narozeni !== undefined ? String(existing.rocnik_narozeni) : '',
@@ -42,6 +43,7 @@
   let prijmeni = $state(initial.prijmeni);
   // bind:value na type="number" vraci po editaci number (prazdne pole undefined), ne string
   let cislo_dresu = $state<string | number>(initial.cislo_dresu);
+  let cislaDresuKategorie = $state<Record<string, string>>(initial.cisla_dresu_kategorie);
   let pozice = $state<Pozice | ''>(initial.pozice);
   let datum_narozeni = $state(initial.datum_narozeni);
   let rocnik_narozeni = $state<string | number>(initial.rocnik_narozeni);
@@ -204,6 +206,7 @@
           jmeno: jmeno.trim(),
           prijmeni: prijmeni.trim(),
           cislo_dresu: cisloParsed,
+          cisla_dresu_kategorie: { ...Object.fromEntries(Object.entries(cislaDresuKategorie).flatMap(([k, raw]) => { const n = raw.trim() === '' ? NaN : Number(raw); return Number.isInteger(n) && n >= 0 && n <= 99 ? [[k, n]] : []; })), [domaci_kategorie]: cisloParsed },
           pozice: pozice || undefined,
           datum_narozeni: datum_narozeni || undefined,
           rocnik_narozeni: rocnikParsed,
@@ -222,6 +225,7 @@
           jmeno: jmeno.trim(),
           prijmeni: prijmeni.trim(),
           cislo_dresu: cisloParsed,
+          cisla_dresu_kategorie: { ...Object.fromEntries(Object.entries(cislaDresuKategorie).flatMap(([k, raw]) => { const n = raw.trim() === '' ? NaN : Number(raw); return Number.isInteger(n) && n >= 0 && n <= 99 ? [[k, n]] : []; })), [domaci_kategorie]: cisloParsed },
           pozice: pozice || undefined,
           datum_narozeni: datum_narozeni || undefined,
           rocnik_narozeni: rocnikParsed,
@@ -301,6 +305,19 @@
           <input bind:value={vyska_cm} type="number" min={VYSKA_MIN_CM} max={VYSKA_MAX_CM} placeholder="např. 175" />
         </label>
       </div>
+
+      {#if obvykle_kategorie.length > 0}
+        <div class="category-jerseys">
+          <strong>Čísla dresů v dalších kategoriích</strong>
+          <small>Kmenové číslo zůstává výše. Zde nastavíš odlišná čísla pro hostující kategorie.</small>
+          {#each obvykle_kategorie.filter((k) => k !== domaci_kategorie) as k (k)}
+            <label class="category-jersey-row">
+              <span>{kategorieLabel(k)}</span>
+              <input type="number" min="0" max="99" step="1" placeholder={cislaDresuKategorie[k] ?? ''} value={cislaDresuKategorie[k] ?? ''} oninput={(e) => { cislaDresuKategorie = { ...cislaDresuKategorie, [k]: e.currentTarget.value }; }} />
+            </label>
+          {/each}
+        </div>
+      {/if}
 
       <div class="row3">
         <label>
@@ -454,6 +471,10 @@
   input:focus, select:focus { outline: none; border-color: var(--accent); }
   .checkbox { flex-direction: row; align-items: center; gap: 8px; cursor: pointer; }
   .checkbox input { width: 18px; height: 18px; cursor: pointer; }
+  .category-jerseys { display: grid; gap: 8px; margin: 10px 0; padding: 12px; border: 1px solid var(--border, #d4d4d8); border-radius: 10px; }
+  .category-jerseys small { color: var(--muted, #71717a); }
+  .category-jersey-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .category-jersey-row input { width: 84px; }
   .obvykle-pole { display: flex; flex-direction: column; gap: 6px; }
   .ob-label { font-size: 13px; font-weight: 500; color: var(--text-muted); }
   .ob-chips { display: flex; flex-wrap: wrap; gap: 6px; }
