@@ -238,6 +238,64 @@ async function recomputeKategorieZRocniku(): Promise<void> {
   }
 }
 
+export interface CzBasketballSyncResult {
+  playersLoaded: number;
+  updated: number;
+  ambiguous: number;
+  matched: number;
+}
+
+function normalizePlayerName(value: string): string {
+  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('cs').replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+/** Načte oficiální soupisky Jižních Supů a bezpečně doplní ročníky hráčů.
+ * Kategorie přepočítává jen u hráčů, jejichž kategorie není ručně uzamčena.
+ */
+export async function synchronizovatHraceZCzBasketball(): Promise<CzBasketballSyncResult> {
+  const response = await fetch('http://127.0.0.1:4179/api/cz-basketball/jizni-supi-sync');
+  const data = await response.json() as { error?: string; players?: { jmeno?: string; prijmeni?: string; rocnik_narozeni?: number }[] };
+  if (!response.ok) throw new Error(data.error || `Chyba HTTP ${response.status}`);
+  const remote = (data.players ?? []).filter((p): p is { jmeno: string; prijmeni: string; rocnik_narozeni: number } =>
+    typeof p.jmeno === 'string' && typeof p.prijmeni === 'string' && Number.isInteger(p.rocnik_narozeni));
+  if (!remote.length) throw new Error('CZ.BASKETBALL nevrátil žádné hráče s rokem narození.');
+  const byName = new Map<string, typeof remote>();
+  for (const p of remote) {
+    const key = normalizePlayerName(`${p.jmeno} ${p.prijmeni}`);
+    byName.set(key, [...(byName.get(key) ?? []), p]);
+  }
+  const local = await db.hraci.toArray();
+  let updated = 0;
+  let ambiguous = 0;
+  let matched = 0;
+  for (const h of local) {
+    const matches = byName.get(normalizePlayerName(`${h.jmeno} ${h.prijmeni}`)) ?? [];
+    const years = [...new Set(matches.map((m) => m.rocnik_narozeni))];
+    if (years.length !== 1) {
+      if (years.length > 1) ambiguous++;
+      continue;
+    }
+    const year = years[0];
+    matched++;
+    const patch: Partial<Hrac> = {};
+    if (h.rocnik_narozeni !== year) patch.rocnik_narozeni = year;
+    if (!h.kategorie_rucne) {
+      let target = kategorieZRocniku(year);
+      const bVariant: Partial<Record<Kategorie, Kategorie>> = { U15: 'U15B', U17: 'U17B', U19: 'U19B', MuziA: 'MuziB' };
+      const wasB = ['U15B', 'U17B', 'U19B', 'MuziB'].includes(h.domaci_kategorie);
+      if (wasB && bVariant[target]) target = bVariant[target]!;
+      if (target !== h.domaci_kategorie) patch.domaci_kategorie = target;
+    }
+    if (Object.keys(patch).length) {
+      patch.updated_at = Date.now();
+      await db.hraci.update(h.id, patch);
+      updated++;
+    }
+  }
+  if (matched === 0) throw new Error(`Na CZ.BASKETBALL se načetlo ${remote.length} hráčů, ale žádné jméno se nepodařilo bezpečně spárovat s databází. Kategorie nebyly změněny.`);
+  return { playersLoaded: remote.length, updated, ambiguous, matched };
+}
+
 export async function seedAll(): Promise<void> {
   await migrateLegacyKategorie();
   await removeStaleSeedPlaceholders();

@@ -18,11 +18,15 @@
     nazev: existing?.nazev ?? '',
     kategorie: (existing?.kategorie ?? 'U13') as Kategorie,
     hraci: (existing?.hraci_soupere ?? []).map((h) => ({ ...h, cislo: normCislo(h.cislo) })),
+    zdrojUrl: existing?.zdroj_url ?? '',
   }));
 
   let nazev = $state(initial.nazev);
   let kategorie = $state<Kategorie>(initial.kategorie);
   let hraci = $state<SouperHrac[]>(initial.hraci);
+  let zdrojUrl = $state(initial.zdrojUrl);
+  let nacitaniZdroje = $state(false);
+  let importInfo = $state<string | null>(null);
 
   let chyba = $state<string | null>(null);
   let ukladani = $state(false);
@@ -32,6 +36,60 @@
   let hromadnyChyba = $state<string | null>(null);
 
   let nactenoZeZapasuInfo = $state<string | null>(null);
+
+  async function nacistZCzBasketball() {
+    chyba = null;
+    importInfo = null;
+    let url: URL;
+    try { url = new URL(zdrojUrl.trim()); } catch { chyba = 'Vlož odkaz na týmovou stránku CZ.BASKETBALL.'; return; }
+    if (url.hostname !== 'cz.basketball' && url.hostname !== 'www.cz.basketball') {
+      chyba = 'Použij odkaz z webu cz.basketball.'; return;
+    }
+    if (!/^\/tym\/\d+\/?$/.test(url.pathname)) {
+      chyba = 'Odkaz musí vést na stránku konkrétního týmu, například https://cz.basketball/tym/15435?y=2026.'; return;
+    }
+    nacitaniZdroje = true;
+    try {
+      let response: Response;
+      try {
+        response = await fetch(`/api/cz-basketball/team?url=${encodeURIComponent(url.toString())}`);
+      } catch {
+        throw new Error('Server importu neběží. Zavři Coach-Box a spusť jej znovu příkazem npm run dev v terminálu projektu.');
+      }
+      let data: { error?: string; teamName?: string; players?: SouperHrac[]; playerCount?: number; sourceUrl?: string };
+      try {
+        data = await response.json() as typeof data;
+      } catch {
+        throw new Error(`Server importu vrátil neplatnou odpověď (HTTP ${response.status}). Zkontroluj, že spouštíš Coach-Box příkazem npm run dev a že server importu běží.`);
+      }
+      if (!response.ok) throw new Error(data.error || `Import se nezdařil (HTTP ${response.status}).`);
+      if (!data.players?.length) throw new Error('Na stránce nebyla nalezena žádná rozpoznaná soupiska.');
+      if (!nazev.trim() && data.teamName) nazev = data.teamName;
+      const merged = [...hraci].map(h => ({ ...h, cislo: normCislo(h.cislo) }));
+      let pridano = 0;
+      let aktualizovano = 0;
+      for (const incoming of data.players) {
+        const cislo = normCislo(incoming.cislo);
+        const jmeno = incoming.jmeno?.trim() || '';
+        const prijmeni = incoming.prijmeni?.trim() || '';
+        if (!jmeno && !prijmeni) continue;
+        const oldIndex = merged.findIndex(h => cislo ? normCislo(h.cislo) === cislo : (!normCislo(h.cislo) && (h.jmeno || '').trim().toLocaleLowerCase('cs') === jmeno.toLocaleLowerCase('cs') && (h.prijmeni || '').trim().toLocaleLowerCase('cs') === prijmeni.toLocaleLowerCase('cs')));
+        if (oldIndex < 0) { merged.push({ ...incoming, cislo }); pridano++; }
+        else {
+          const old = merged[oldIndex];
+          const next = { ...old, cislo: cislo || normCislo(old.cislo), jmeno: jmeno || old.jmeno, prijmeni: prijmeni || old.prijmeni };
+          if (next.jmeno !== old.jmeno || next.prijmeni !== old.prijmeni) aktualizovano++;
+          merged[oldIndex] = next;
+        }
+      }
+      hraci = merged.sort((a, b) => Number(a.cislo || 999) - Number(b.cislo || 999) || (a.prijmeni || '').localeCompare(b.prijmeni || '', 'cs'));
+      zdrojUrl = data.sourceUrl || url.toString();
+      if (data.teamName && !nazev.trim()) nazev = data.teamName;
+      importInfo = `Načteno ${data.playerCount} hráčů. Nově přidáno: ${pridano}, doplněno jmen u existujících čísel: ${aktualizovano}. Zkontroluj soupisku a potom klikni na Uložit.`;
+    } catch (e) {
+      chyba = e instanceof Error ? e.message : 'Import se nezdařil.';
+    } finally { nacitaniZdroje = false; }
+  }
 
   function pridejHrace() {
     hraci.push({ cislo: '', jmeno: '', prijmeni: '' });
@@ -114,21 +172,18 @@
       const h = hraci[i];
       const c = normCislo(h.cislo);
       if (!c && !h.jmeno?.trim() && !h.prijmeni?.trim()) continue;
-      if (!c) {
-        chyba = `Řádek ${i + 1}: číslo musí být vyplněné`;
-        return;
-      }
-      if (!CISLO_RE.test(c)) {
+      if (!c && !(h.jmeno?.trim() || h.prijmeni?.trim())) continue;
+      if (c && !CISLO_RE.test(c)) {
         chyba = `Řádek ${i + 1}: číslo dresu jen číslice (0-99, lze i "00")`;
         return;
       }
-      if (videnaCisla.has(c)) {
+      if (c && videnaCisla.has(c)) {
         chyba = `Číslo #${c} je v soupisce dvakrát`;
         return;
       }
-      videnaCisla.add(c);
+      if (c) videnaCisla.add(c);
       cisteniHraci.push({
-        cislo: c,
+        cislo: c || '',
         jmeno: h.jmeno?.trim() || undefined,
         prijmeni: h.prijmeni?.trim() || undefined,
       });
@@ -142,6 +197,7 @@
           nazev: nazev.trim(),
           kategorie,
           hraci_soupere: cisteniHraci.length > 0 ? cisteniHraci : undefined,
+          zdroj_url: zdrojUrl.trim() || undefined,
           updated_at: now,
         });
       } else {
@@ -150,6 +206,7 @@
           nazev: nazev.trim(),
           kategorie,
           hraci_soupere: cisteniHraci.length > 0 ? cisteniHraci : undefined,
+          zdroj_url: zdrojUrl.trim() || undefined,
           vytvoreno_at: now,
           updated_at: now,
         };
@@ -197,6 +254,18 @@
             <button type="button" class="small" onclick={pridejHrace}>+ Přidat hráče</button>
           </div>
         </div>
+
+        <div class="import-box">
+          <label class="import-label">
+            <span>Odkaz na tým CZ.BASKETBALL (české soutěže)</span>
+            <input bind:value={zdrojUrl} type="url" placeholder="https://cz.basketball/tym/15435?y=2026" />
+          </label>
+          <button type="button" class="small" onclick={nacistZCzBasketball} disabled={nacitaniZdroje}>
+            {nacitaniZdroje ? 'Načítám…' : '↻ Načíst / aktualizovat soupisku'}
+          </button>
+          <div class="import-hint">Pro ČEYBL a zahraniční turnaje pokračuj ručním zadáním. Import nejprve zobrazí změny v tomto formuláři; do databáze se uloží až po kliknutí na Uložit.</div>
+        </div>
+        {#if importInfo}<div class="info">{importInfo}</div>{/if}
 
         {#if nactenoZeZapasuInfo}
           <div class="info">{nactenoZeZapasuInfo}</div>
@@ -398,4 +467,9 @@
     .player-row { grid-template-columns: 48px 1fr 1fr auto; gap: 6px; }
     .buttons button:not(.small) { flex: 1; padding: 12px; }
   }
+
+  .import-box { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-2); margin: 10px 0; }
+  .import-label { display: grid; gap: 6px; font-size: 12px; color: var(--text-muted); }
+  .import-label input { width: 100%; min-width: 0; box-sizing: border-box; }
+  .import-hint { font-size: 12px; color: var(--text-muted); line-height: 1.45; }
 </style>

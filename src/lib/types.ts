@@ -8,6 +8,7 @@ export type Kategorie =
   | 'U15B'
   | 'U15'
   | 'U17B'
+  | 'U17C'
   | 'U17'
   | 'U19B'
   | 'U19'
@@ -24,6 +25,7 @@ export const KATEGORIE_PORADI: Kategorie[] = [
   'U15B',
   'U15',
   'U17B',
+  'U17C',
   'U17',
   'U19B',
   'U19',
@@ -41,6 +43,7 @@ export const KATEGORIE_LABEL: Record<Kategorie, string> = {
   U15B: 'U15 B',
   U15: 'U15',
   U17B: 'U17 B',
+  U17C: 'U17 C',
   U17: 'U17',
   U19B: 'U19 B',
   U19: 'U19',
@@ -136,6 +139,8 @@ export interface Hrac {
   jmeno: string;
   prijmeni: string;
   cislo_dresu?: number;
+  // Cisla pro jednotlive kategorie; cislo_dresu zustava zpetne kompatibilni pro kmenovou kategorii.
+  cisla_dresu_kategorie?: Partial<Record<Kategorie, number>>;
   pozice?: Pozice;
   datum_narozeni?: string;
   rocnik_narozeni?: number;
@@ -197,6 +202,8 @@ export interface Souper {
   nazev: string;
   kategorie: Kategorie;
   hraci_soupere?: SouperHrac[];
+  // Odkaz na veřejnou stránku týmu CZ.BASKETBALL, pokud byl importován.
+  zdroj_url?: string;
   vytvoreno_at: number;
   updated_at: number;
 }
@@ -216,6 +223,8 @@ export interface Zapas {
   sezona: string;
   nase_strana: NaseStrana;
   nasazeni_hraci: string[];
+  // Cisla dresu platna pro konkretni zapas; historicke zapasy zustavaji nemenne.
+  cisla_dresu?: Record<string, number>;
   delka_ctvrtiny_min: number;
   pocet_ctvrtin?: number;
   status: ZapasStatus;
@@ -287,6 +296,7 @@ export const VEKOVA_SKUPINA: Record<Kategorie, number> = {
   U15B: 6,
   U15: 6,
   U17B: 7,
+  U17C: 7,
   U17: 7,
   U19B: 8,
   U19: 8,

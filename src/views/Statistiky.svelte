@@ -38,6 +38,8 @@
   const DECIMALS_PER_GAME = 1;
   const PRESETY_KLIC = 'statistiky_presety';
   const AKTIVNI_SEZONA_KLIC = 'aktivni_sezona';
+  const SEZNAM_SEZON_KLIC = 'seznam_sezon';
+  let ulozeneSezony = $state<string[]>([]);
 
   let zapasy = $state<Zapas[]>([]);
   let udalosti = $state<Udalost[]>([]);
@@ -67,6 +69,8 @@
     hraci = await db.hraci.toArray();
     souteze = await db.souteze.toArray();
     souperi = await db.souperi.toArray();
+    const sezonyRow = await db.nastaveni.get(SEZNAM_SEZON_KLIC);
+    ulozeneSezony = Array.isArray(sezonyRow?.hodnota) ? sezonyRow.hodnota.filter((x): x is string => typeof x === 'string') : [];
     await nactiPresety();
     await aplikovatAktivniSezonu();
   });
@@ -76,7 +80,6 @@
     const aktivni = typeof row?.hodnota === 'string' ? row.hodnota.trim() : '';
     if (!aktivni) return;
     if (selectedSezony.length > 0) return;
-    if (!zapasy.some((z) => z.sezona === aktivni)) return;
     selectedSezony = [aktivni];
   }
 
@@ -161,7 +164,7 @@
     selectedZapasId = null;
   }
 
-  const allSezony = $derived([...new Set(zapasy.map((z) => z.sezona))].sort().reverse());
+  const allSezony = $derived([...new Set([...ulozeneSezony, ...zapasy.map((z) => z.sezona)])].sort().reverse());
   const allKategorie = $derived(
     [...new Set(zapasy.map((z) => z.nase_kategorie))].sort(
       (a, b) => KATEGORIE_PORADI.indexOf(a) - KATEGORIE_PORADI.indexOf(b),

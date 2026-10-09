@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { db, najdiDuplicitniHrace, slucDuplicitniHrace, type DuplicitniSkupina } from '../lib/db';
+  import { db, najdiDuplicitniHrace, slucDuplicitniHrace, synchronizovatHraceZCzBasketball, type DuplicitniSkupina } from '../lib/db';
   import { KATEGORIE_PORADI, kategorieLabel, vypoctiVek, type Hrac, type Kategorie } from '../lib/types';
   import HracForm from '../components/HracForm.svelte';
   import Avatar from '../components/Avatar.svelte';
@@ -21,6 +21,25 @@
     hraci = await db.hraci.orderBy('prijmeni').toArray();
   }
 
+  async function synchronizovatCZBasketball() {
+    if (syncBezi) return;
+    syncBezi = true;
+    syncZprava = 'Načítám soupisky Jižních Supů z CZ.BASKETBALL…';
+    try {
+      const result = await synchronizovatHraceZCzBasketball();
+      const springYear = new Date().getMonth() >= 7 ? new Date().getFullYear() + 1 : new Date().getFullYear();
+      localStorage.setItem('czbasketball_sync_sezona', `${springYear - 1}/${String(springYear).slice(-2)}`);
+      syncZprava = `Synchronizace dokončena: načteno ${result.playersLoaded} hráčů, aktualizováno ${result.updated} záznamů${result.ambiguous ? `, nejednoznačných shod ${result.ambiguous}` : ''}.`;
+      await reload();
+      alert(syncZprava);
+    } catch (e) {
+      syncZprava = e instanceof Error ? e.message : 'Synchronizace se nezdařila.';
+      alert(syncZprava + '\n\nZkontroluj, že aplikaci spouštíš příkazem npm run dev a běží její importní server.');
+    } finally {
+      syncBezi = false;
+    }
+  }
+
   function novy() {
     editovany = undefined;
     zobrazFormular = true;
@@ -32,8 +51,10 @@
   }
 
   async function smazat(h: Hrac) {
-    if (!confirm(`Smazat hráče #${h.cislo_dresu} ${h.jmeno} ${h.prijmeni}?`)) return;
-    await db.hraci.delete(h.id);
+    // Hráče fyzicky nemažeme: události a historické zápasy odkazují na jeho ID.
+    const akce = h.aktivni ? 'deaktivovat' : 'znovu aktivovat';
+    if (!confirm(`${akce === 'deaktivovat' ? 'Vyřadit' : 'Znovu zařadit'} hráče ${h.jmeno} ${h.prijmeni}? Historické zápasy a statistiky zůstanou zachované.`)) return;
+    await db.hraci.update(h.id, { aktivni: !h.aktivni, updated_at: Date.now() });
     await reload();
   }
 
@@ -53,6 +74,8 @@
   let dupKeeper = $state<Record<number, string>>({});
   let dupHledam = $state(false);
   let dupBezi = $state(false);
+  let syncBezi = $state(false);
+  let syncZprava = $state('');
 
   const dupPocetVybranych = $derived(dupSkupiny ? dupSkupiny.filter((_, i) => dupVybrane[i]).length : 0);
 
@@ -116,10 +139,12 @@
 <div class="toolbar">
   <h2>Hráči ({filtrovani.length}{filtrovani.length !== hraci.length ? ` z ${hraci.length}` : ''})</h2>
   <div class="toolbar-akce">
+    <button onclick={synchronizovatCZBasketball} disabled={syncBezi}>{syncBezi ? 'Aktualizuji…' : '↻ Aktualizovat z CZ.BASKETBALL'}</button>
     <button onclick={najdiDuplicity} disabled={dupHledam}>{dupHledam ? 'Hledám…' : '🧹 Sloučit duplikáty'}</button>
     <button class="primary" onclick={novy}>+ Nový hráč</button>
   </div>
 </div>
+{#if syncZprava}<p class="sync-status">{syncZprava}</p>{/if}
 
 <div class="filters">
   <input bind:value={hledat} type="text" placeholder="Hledat jméno / číslo…" />
@@ -176,7 +201,7 @@
           <td>{h.aktivni ? '✓' : '-'}</td>
           <td class="actions">
             <button onclick={() => upravit(h)}>Upravit</button>
-            <button class="danger" onclick={() => smazat(h)}>Smazat</button>
+            <button class="danger" onclick={() => smazat(h)}>Vyřadit</button>
           </td>
         </tr>
       {/each}
@@ -254,6 +279,7 @@
     gap: 10px;
   }
   .toolbar h2 { font-size: 22px; color: var(--text); }
+  .sync-status { margin: -6px 0 12px; color: var(--text-muted); font-size: 13px; }
   .toolbar-akce { display: flex; gap: 8px; align-items: center; }
   .toolbar-akce > button:not(.primary) {
     background: var(--surface);

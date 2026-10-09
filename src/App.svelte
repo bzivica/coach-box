@@ -1,7 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { registerSW } from 'virtual:pwa-register';
-  import { seedAll } from './lib/db';
+  import { seedAll, synchronizovatHraceZCzBasketball } from './lib/db';
+  import { aktualniSezonaSpringYear } from './lib/types';
   import Home from './views/Home.svelte';
   import Hraci from './views/Hraci.svelte';
   import Souperi from './views/Souperi.svelte';
@@ -31,7 +32,7 @@
     } else {
       theme = 'light';
     }
-    seedAll();
+    void inicializovatDataASynchronizovat();
     void requestPersistentStorage();
 
     updateSW = registerSW({
@@ -39,6 +40,22 @@
       onOfflineReady() { console.log('[pwa] ready to work offline'); },
     });
   });
+
+  async function inicializovatDataASynchronizovat() {
+    await seedAll();
+    const springYear = aktualniSezonaSpringYear();
+    const season = `${springYear - 1}/${String(springYear).slice(-2)}`;
+    const key = 'czbasketball_sync_sezona';
+    if (localStorage.getItem(key) === season) return;
+    try {
+      await synchronizovatHraceZCzBasketball();
+      localStorage.setItem(key, season);
+      console.info(`[CZ.BASKETBALL] synchronizace sezóny ${season} dokončena`);
+    } catch (e) {
+      // Aplikace musí fungovat i bez internetu; synchronizaci lze spustit ručně v Hráčích.
+      console.warn('[CZ.BASKETBALL] automatická synchronizace se nezdařila; lze ji zopakovat v Hráčích.', e);
+    }
+  }
 
   async function requestPersistentStorage() {
     if (!navigator.storage?.persist) return;

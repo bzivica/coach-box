@@ -3,6 +3,8 @@
   import { db, exportAll, importReplace, importMerge, type ExportData, type MergeResult } from '../lib/db';
 
   const AKTIVNI_SEZONA_KLIC = 'aktivni_sezona';
+  const SEZNAM_SEZON_KLIC = 'seznam_sezon';
+  let novaSezona = $state('');
 
   let pocetHracu = $state(0);
   let pocetSoutezi = $state(0);
@@ -25,9 +27,28 @@
     pocetZapasu = await db.zapasy.count();
     pocetSouperu = await db.souperi.count();
     const zapasy = await db.zapasy.toArray();
-    aktivniSezony = [...new Set(zapasy.map((z) => z.sezona))].sort().reverse();
+    const ulozene = await db.nastaveni.get(SEZNAM_SEZON_KLIC);
+    const seznam = Array.isArray(ulozene?.hodnota) ? ulozene.hodnota.filter((x): x is string => typeof x === 'string') : [];
+    aktivniSezony = [...new Set([...seznam, ...zapasy.map((z) => z.sezona)])].sort().reverse();
     const row = await db.nastaveni.get(AKTIVNI_SEZONA_KLIC);
     aktivniSezona = typeof row?.hodnota === 'string' ? row.hodnota : '';
+  }
+
+  async function pridejSezonu() {
+    const s = novaSezona.trim();
+    if (!/^\d{4}\/\d{2}$/.test(s)) {
+      showMsg('Zadej sezonu ve formátu 2026/27.', 'err');
+      return;
+    }
+    if (aktivniSezony.includes(s)) {
+      showMsg(`Sezona ${s} už existuje.`, 'err');
+      return;
+    }
+    aktivniSezony = [...aktivniSezony, s].sort().reverse();
+    await db.nastaveni.put({ klic: SEZNAM_SEZON_KLIC, hodnota: aktivniSezony });
+    novaSezona = '';
+    await ulozAktivniSezonu(s);
+    showMsg(`Sezona ${s} byla založena a nastavena jako aktivní.`);
   }
 
   async function ulozAktivniSezonu(s: string) {
@@ -159,6 +180,10 @@
     {#if aktivniSezona}
       <span class="sezona-cur">Současná: <strong>{aktivniSezona}</strong></span>
     {/if}
+  </div>
+  <div class="sezona-row" style="margin-top: 12px;">
+    <input bind:value={novaSezona} type="text" placeholder="Nová sezona (např. 2026/27)" />
+    <button type="button" onclick={pridejSezonu}>Založit a aktivovat sezonu</button>
   </div>
 </section>
 

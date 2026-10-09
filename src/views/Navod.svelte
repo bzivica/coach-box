@@ -342,6 +342,16 @@
       </section>
 
       <section class="step">
+        <h4>Čísla dresů, sezona a historie hráčů</h4>
+        <ul>
+          <li><strong>Číslo dresu je podle kategorie.</strong> Hráč může mít jiné číslo v kmenové a jiné v hostující kategorii. Změna čísla v jedné kategorii nemá přepsat druhou.</li>
+          <li><strong>Konkrétní zápas:</strong> při výběru hráče se použije číslo dané kategorie jako výchozí. Pokud hráč nastoupí s jiným číslem, uprav číslo pro tento zápas. Číslo uložené u zápasu má přednost a pozdější změna profilu nemá přepsat historický zápas.</li>
+          <li><strong>Nová sezona a kategorie:</strong> kategorie se může přepočítat podle ročníku narození. Kmenovou kategorii, kterou trenér nastavil ručně, je potřeba zachovat; hráč může zároveň nastupovat za další kategorie.</li>
+          <li><strong>Odchod hráče:</strong> hráče vyřaď/deaktivuj místo fyzického smazání. V seznamu zvol filtr <em>Jen neaktivní</em>, pokud ho potřebuješ znovu najít. Zachová se tak vazba na starší zápasy a statistiky.</li>
+        </ul>
+      </section>
+
+      <section class="step">
         <h4>2.2 Eligibility - kdo smí hrát kterou kategorii</h4>
         <p>Pravidlo: <strong>hráč hraje svou domácí kategorii + všechny starší v obou liniích A i B</strong>.</p>
         <div class="kategorie-poradi">

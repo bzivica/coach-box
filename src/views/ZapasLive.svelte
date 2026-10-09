@@ -73,6 +73,12 @@
 
   let { zapasId, onBack }: Props = $props();
 
+  // Cislo z konkretniho zapasu ma prednost pred aktualnim profilem hrace.
+  function cisloDresu(h: Hrac | null | undefined): number | undefined {
+    if (!h) return undefined;
+    return zapas?.cisla_dresu?.[h.id] ?? h.cisla_dresu_kategorie?.[zapas?.nase_kategorie ?? h.domaci_kategorie] ?? h.cislo_dresu;
+  }
+
   type Mode = 'pickLineup' | 'inProgress' | 'quarterEndPrompt' | 'matchEnd' | 'loading';
 
   let mode = $state<Mode>('loading');
@@ -344,6 +350,12 @@
     if (!z) {
       mode = 'matchEnd';
       return;
+    }
+    if (!z.cisla_dresu) {
+      const loadedPlayers = await db.hraci.bulkGet(z.nasazeni_hraci);
+      const snapshot = Object.fromEntries(loadedPlayers.flatMap((h) => h && (h.cisla_dresu_kategorie?.[z.nase_kategorie] ?? h.cislo_dresu) !== undefined ? [[h.id, h.cisla_dresu_kategorie?.[z.nase_kategorie] ?? h.cislo_dresu!]] : []));
+      await db.zapasy.update(z.id, { cisla_dresu: snapshot });
+      z.cisla_dresu = snapshot;
     }
     zapas = z;
     ctvrtiny = await db.ctvrtiny.where('zapas_id').equals(zapasId).toArray();
@@ -720,7 +732,7 @@
     udalosti = udalosti.map((u) => (u.id === ev.id ? { ...u, typ: novyTyp, hrac_id: newPlayerId } : u));
     await updateZapasCache();
     const kdo = newPlayerId
-      ? (() => { const h = hraci.find((x) => x.id === newPlayerId); return h ? `#${h.cislo_dresu ?? '?'} ${h.prijmeni}` : 'hráč'; })()
+      ? (() => { const h = hraci.find((x) => x.id === newPlayerId); return h ? `#${cisloDresu(h) ?? '?'} ${h.prijmeni}` : 'hráč'; })()
       : 'bez hráče';
     toast(`${reassignPopis(novyTyp)} → ${kdo}`);
   }
@@ -781,7 +793,7 @@
     pushUndo({ kind: 'event', eventId: ev.id });
 
     const label = popisAkce(typ);
-    toast(`#${hrac.cislo_dresu ?? '?'} ${hrac.prijmeni} - ${label}`);
+    toast(`#${cisloDresu(hrac) ?? '?'} ${hrac.prijmeni} - ${label}`);
 
     if (typ === 'foul' && jeFouledOut(udalosti, hrac.id)) {
       foulOutPrompt = { playerId: hrac.id };
@@ -917,7 +929,7 @@
     await db.udalosti.add(ev);
     udalosti = [...udalosti, ev];
     pushUndo({ kind: 'event', eventId: ev.id });
-    toast(`#${hrac.cislo_dresu ?? '?'} ${hrac.prijmeni} - Faul (${foulSubtypLabel(subtyp)})`);
+    toast(`#${cisloDresu(hrac) ?? '?'} ${hrac.prijmeni} - Faul (${foulSubtypLabel(subtyp)})`);
     if (jeFouledOut(udalosti, hrac.id)) {
       foulOutPrompt = { playerId: hrac.id };
     }
@@ -1203,7 +1215,7 @@
       : popisAkce(ev.typ);
     if (ev.hrac_id) {
       const h = hraci.find((x) => x.id === ev.hrac_id);
-      return h ? `#${h.cislo_dresu ?? '?'} ${h.prijmeni} - ${akce}` : akce;
+      return h ? `#${cisloDresu(h) ?? '?'} ${h.prijmeni} - ${akce}` : akce;
     }
     if (ev.typ.startsWith('opp_')) {
       const c = normCislo(ev.opp_hrac_cislo);
@@ -1265,7 +1277,7 @@
     const vyloucenyIn = inHraci.find((h) => jeFouledOut(udalosti, h.id));
     if (vyloucenyIn) {
       warning = {
-        msg: `#${vyloucenyIn.cislo_dresu ?? '?'} ${vyloucenyIn.prijmeni} je vyloučen (${vylouceniText(vyloucenyIn.id)}). Nemůže nastoupit.`,
+        msg: `#${cisloDresu(vyloucenyIn) ?? '?'} ${vyloucenyIn.prijmeni} je vyloučen (${vylouceniText(vyloucenyIn.id)}). Nemůže nastoupit.`,
       };
       return;
     }
@@ -1306,7 +1318,7 @@
         .map((outId, i) => {
           const outH = hraci.find((h) => h.id === outId);
           const inH = inHraci[i];
-          return `#${outH?.cislo_dresu ?? '?'}↔#${inH?.cislo_dresu ?? '?'}`;
+          return `#${cisloDresu(outH) ?? '?'}↔#${cisloDresu(inH) ?? '?'}`;
         })
         .join(', ');
       closeSub();
@@ -1317,7 +1329,7 @@
     };
 
     if (porusene.length > 0) {
-      const popis = porusene.map((p) => `#${p.h.cislo_dresu ?? '?'} ${p.h.prijmeni}: ${p.porus.popis}`).join('\n');
+      const popis = porusene.map((p) => `#${cisloDresu(p.h) ?? '?'} ${p.h.prijmeni}: ${p.porus.popis}`).join('\n');
       warning = {
         msg: `⚠️ ${popis}\n\nPokračovat = porušit pravidlo.`,
         onConfirm: doSub,
@@ -2138,20 +2150,20 @@
               <tr>
                 <th class="th-sticky" colspan="2">Hráč</th>
                 <th title="Minuty na hřišti">Min</th>
-                <th class="col-key" title="Body">PTS</th>
+                <th class="col-key" title="Body">BODY</th>
                 <th title="2 body daný/pokus">2P</th>
                 <th title="3 body daný/pokus">3P</th>
                 <th title="Trestné daný/pokus">FT</th>
                 <th title="Doskok útočný">OFF</th>
                 <th title="Doskok obranný">DEF</th>
-                <th class="col-key" title="Doskoky celkem (OFF+DEF)">REB</th>
-                <th class="col-key" title="Asistence">AST</th>
-                <th class="col-key" title="Zisky / steals">STL</th>
-                <th title="Ztráty / turnovers">TO</th>
-                <th title="Bloky">BLK</th>
-                <th title="Osobní fauly - celkem za zápas (cesta k vyloučení = 5)">PF</th>
+                <th class="col-key" title="Doskoky celkem (útočné + obranné)">DOS</th>
+                <th class="col-key" title="Asistence">AS</th>
+                <th class="col-key" title="Získané míče">ZISK</th>
+                <th title="Ztráty míče">ZTR</th>
+                <th title="Bloky">BLOK</th>
+                <th title="Osobní fauly - celkem za zápas (cesta k vyloučení = 5)">FAUL</th>
                 <th title="Plus/minus">+/-</th>
-                <th title="Efficiency = PTS + REB + AST + STL + BLK − miss − TO">EFF</th>
+                <th title="Efektivita: body + doskoky + asistence + zisky + bloky − neproměněné střely − ztráty">EFEKT</th>
               </tr>
             </thead>
             <tbody>
@@ -2161,7 +2173,7 @@
                 {@const faulyCelkem = pocetFaulu(udalosti, h.id)}
                 {@const reb = s.doskoky_off + s.doskoky_def}
                 <tr class:foulout={fo}>
-                  <td class="td-num">{h.cislo_dresu ?? '?'}</td>
+                  <td class="td-num">{cisloDresu(h) ?? '?'}</td>
                   <td class="td-name">
                     <span class="bs-name">{h.prijmeni} {h.jmeno}</span>
                     {#if fo}<span class="bs-tag-fo">FO</span>{/if}
@@ -2299,8 +2311,8 @@
               {@const idx = subOuts.indexOf(h.id)}
               {@const fauly = pocetFauluZobr(h.id)}
               <button class="sub-card" class:selected={idx >= 0} onclick={() => toggleSubOut(h.id)}>
-                <Avatar foto={h.foto} cislo={h.cislo_dresu} size={SUB_AVATAR_SIZE} alt={`${h.jmeno} ${h.prijmeni}`} tmavy={zapas?.nase_strana === 'away'} />
-                <span class="name">#{h.cislo_dresu ?? '?'} {h.prijmeni}</span>
+                <Avatar foto={h.foto} cislo={cisloDresu(h)} size={SUB_AVATAR_SIZE} alt={`${h.jmeno} ${h.prijmeni}`} tmavy={zapas?.nase_strana === 'away'} />
+                <span class="name">#{cisloDresu(h) ?? '?'} {h.prijmeni}</span>
                 <span class="sub-fauly" class:fauly-high={fauly >= MAX_FAULU - 1}>{fauly}F</span>
                 {#if idx >= 0}<span class="sub-order">{idx + 1}</span>{/if}
               </button>
@@ -2323,8 +2335,8 @@
                 disabled={fouledOut}
                 onclick={() => toggleSubIn(h.id)}
               >
-                <Avatar foto={h.foto} cislo={h.cislo_dresu} size={SUB_AVATAR_SIZE} alt={`${h.jmeno} ${h.prijmeni}`} tmavy={zapas?.nase_strana === 'away'} />
-                <span class="name">#{h.cislo_dresu ?? '?'} {h.prijmeni}</span>
+                <Avatar foto={h.foto} cislo={cisloDresu(h)} size={SUB_AVATAR_SIZE} alt={`${h.jmeno} ${h.prijmeni}`} tmavy={zapas?.nase_strana === 'away'} />
+                <span class="name">#{cisloDresu(h) ?? '?'} {h.prijmeni}</span>
                 {#if !fouledOut}<span class="sub-fauly" class:fauly-high={fauly >= MAX_FAULU - 1}>{fauly}F</span>{/if}
                 {#if idx >= 0}<span class="sub-order">{idx + 1}</span>{/if}
                 {#if fouledOut}<span class="fouled-tag">VYLOUČEN</span>{:else if limitQ}<span class="limit-tag" title={`Limit mládeže - nesmí do ${fmtQ(aktualniCtvrtinaCislo)}`}>LIMIT {fmtQ(aktualniCtvrtinaCislo)}</span>{/if}
@@ -2369,7 +2381,7 @@
               disabled={fouledOut}
               onclick={() => togglePick(h.id)}
             >
-              <Avatar foto={h.foto} cislo={h.cislo_dresu} size={PICK_AVATAR_SIZE} alt={`${h.jmeno} ${h.prijmeni}`} tmavy={zapas?.nase_strana === 'away'} />
+              <Avatar foto={h.foto} cislo={cisloDresu(h)} size={PICK_AVATAR_SIZE} alt={`${h.jmeno} ${h.prijmeni}`} tmavy={zapas?.nase_strana === 'away'} />
               <div class="name">{h.prijmeni}</div>
               <div class="meta">
                 {kategorieLabel(h.domaci_kategorie)}{h.pozice ? ` · ${h.pozice}` : ''}
@@ -2495,7 +2507,7 @@
           <div class="actions-label">
             {#if selectedPlayer}
               {@const sp = hraci.find(h => h.id === selectedPlayer)}
-              Akce: #{sp?.cislo_dresu ?? '?'} {sp?.prijmeni}
+              Akce: #{cisloDresu(sp) ?? '?'} {sp?.prijmeni}
             {:else}
               Akce našeho hráče (vyber hráče vpravo)
             {/if}
@@ -2605,9 +2617,9 @@
                 onpointercancel={gesturePointerCancel}
                 onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectPlayer(h.id); } }}
               >
-                <Avatar foto={h.foto} cislo={h.cislo_dresu} size={PC_AVATAR_SIZE} alt={`${h.jmeno} ${h.prijmeni}`} tmavy={zapas?.nase_strana === 'away'} />
+                <Avatar foto={h.foto} cislo={cisloDresu(h)} size={PC_AVATAR_SIZE} alt={`${h.jmeno} ${h.prijmeni}`} tmavy={zapas?.nase_strana === 'away'} />
                 <div class="pc-info">
-                  <div class="pc-num">#{h.cislo_dresu ?? '?'}</div>
+                  <div class="pc-num">#{cisloDresu(h) ?? '?'}</div>
                   <div class="pc-name">{h.prijmeni}</div>
                 </div>
                 {#if fauly > 0}<div class="pc-fauly" class:fauly-high={fauly >= MAX_FAULU - 1}>{fauly}<span class="pcf-f">F</span></div>{/if}
@@ -2816,7 +2828,7 @@
                 class:limit-q={limitQ}
                 title={`${h.jmeno} ${h.prijmeni}${fouledOut ? ` - VYLOUČEN (${vylouceniText(h.id)})` : limitQ ? ` - nesmí do ${fmtQ(aktualniCtvrtinaCislo)} (limit mládeže)` : ''}`}
               >
-                {#if fouledOut}<span class="bs-stop">⛔</span>{:else if limitQ}<span class="bs-lock">🔒</span>{/if}#{h.cislo_dresu ?? '?'} {h.prijmeni}{#if fouledOut}<span class="bs-f"> DQ</span>{:else if fauly > 0}<span class="bs-f"> {fauly}F</span>{/if}
+                {#if fouledOut}<span class="bs-stop">⛔</span>{:else if limitQ}<span class="bs-lock">🔒</span>{/if}#{cisloDresu(h) ?? '?'} {h.prijmeni}{#if fouledOut}<span class="bs-f"> DQ</span>{:else if fauly > 0}<span class="bs-f"> {fauly}F</span>{/if}
               </span>
             {/each}
           </span>
@@ -2963,7 +2975,7 @@
                     >
                       <option value="">- bez hráče -</option>
                       {#each hraciSerazeni as h (h.id)}
-                        <option value={h.id}>#{h.cislo_dresu ?? '?'} {h.prijmeni}</option>
+                        <option value={h.id}>#{cisloDresu(h) ?? '?'} {h.prijmeni}</option>
                       {/each}
                     </select>
                   </div>
@@ -3158,7 +3170,7 @@
         <div class="modal warning" role="presentation">
           <h2>🟥 Vyloučení ({fpDuvod === 'technicke' ? '2 technické/nesportovní' : '5 osobních faulů'})</h2>
           <p class="warning-msg">
-            #{fp?.cislo_dresu ?? '?'} {fp?.prijmeni} je vyloučen ({vylouceniText(foulOutPrompt!.playerId)}) a musí být vystřídán.
+            #{cisloDresu(fp) ?? '?'} {fp?.prijmeni} je vyloučen ({vylouceniText(foulOutPrompt!.playerId)}) a musí být vystřídán.
             Nemůže pokračovat v zápase.
           </p>
           <div class="modal-buttons">
@@ -3189,9 +3201,9 @@
                     checked={editRosterSelected.includes(h.id)}
                     onchange={() => toggleEditRoster(h.id)}
                   />
-                  <Avatar foto={h.foto} cislo={h.cislo_dresu} size={SUB_AVATAR_SIZE} alt={`${h.jmeno} ${h.prijmeni}`} tmavy={zapas?.nase_strana === 'away'} />
+                  <Avatar foto={h.foto} cislo={cisloDresu(h)} size={SUB_AVATAR_SIZE} alt={`${h.jmeno} ${h.prijmeni}`} tmavy={zapas?.nase_strana === 'away'} />
                   <div class="roster-info">
-                    <div class="roster-name">#{h.cislo_dresu ?? '?'} {h.jmeno} {h.prijmeni}</div>
+                    <div class="roster-name">#{cisloDresu(h) ?? '?'} {h.jmeno} {h.prijmeni}</div>
                     <div class="roster-meta">{kategorieLabel(h.domaci_kategorie)}{h.pozice ? ` · ${h.pozice}` : ''}</div>
                   </div>
                 </label>
@@ -3217,7 +3229,7 @@
       {@const fp = hraci.find((h) => h.id === foulSubtypePicker!.playerId)}
       <div class="modal-bg" onclick={() => (foulSubtypePicker = null)} role="presentation">
         <div class="modal foul-subtyp-modal" onclick={(e) => e.stopPropagation()} role="presentation">
-          <h2>Typ faulu - #{fp?.cislo_dresu ?? '?'} {fp?.prijmeni}</h2>
+          <h2>Typ faulu - #{cisloDresu(fp) ?? '?'} {fp?.prijmeni}</h2>
           <div class="foul-subtyp-buttons">
             <button class="primary" onclick={() => recordFoul('personal')}>Osobní</button>
             <button onclick={() => recordFoul('unsportsmanlike')}>Nesportovní</button>
@@ -3305,14 +3317,14 @@
           <g filter="url(#wedgeShadow)">
             {#each RADIAL_INNER_SEGMENTS as seg, i (seg.typ)}
               <path
-                class="wedge tone-{seg.tone}"
+                class="wedge tone-{seg.tone} action-{seg.typ}"
                 class:active={radialActive?.ring === 'inner' && radialActive.idx === i}
                 d={radialWedgePath(-90 + i * 45, 45, RADIAL_INNER_BAND_RIN, RADIAL_INNER_BAND_ROUT)}
               />
             {/each}
             {#each RADIAL_OUTER_SEGMENTS as seg, i (seg.typ)}
               <path
-                class="wedge tone-{seg.tone}"
+                class="wedge tone-{seg.tone} action-{seg.typ}"
                 class:active={radialActive?.ring === 'outer' && radialActive.idx === i}
                 d={radialWedgePath(-90 + i * 72, 72, RADIAL_OUTER_BAND_RIN, RADIAL_OUTER_BAND_ROUT)}
               />
@@ -3356,7 +3368,7 @@
               class:active={actionRadialActiveIdx === i}
               style="transform: translate({pos.x}px, {pos.y}px);"
             >
-              <div class="player-seg-num">#{h.cislo_dresu ?? '?'}</div>
+              <div class="player-seg-num">#{cisloDresu(h) ?? '?'}</div>
               <div class="player-seg-name">{h.prijmeni}</div>
             </div>
           {/each}
@@ -4520,6 +4532,11 @@
     min-height: 0;
   }
   .sub-grid > div { display: flex; flex-direction: column; min-height: 0; }
+  .sub-grid > div + div {
+    border-left: 3px solid var(--border-strong, #64748b);
+    padding-left: 12px;
+    box-shadow: inset 2px 0 0 rgba(15, 23, 42, 0.08);
+  }
   .sub-grid h3 {
     font-size: 12px;
     color: var(--text-muted);
@@ -5643,6 +5660,17 @@
   .wedge.tone-reb { fill: var(--accent-soft); }
   .wedge.tone-pozit { fill: #7c3aed; }
   .wedge.tone-negat { fill: var(--danger); }
+  /* Rozlisitelne odstiny pro jednotlive typy akci v radialu. */
+  .wedge.action-shot_2_made { fill: #16a34a; }
+  .wedge.action-shot_3_made { fill: #15803d; }
+  .wedge.action-ft_made { fill: #22c55e; }
+  .wedge.action-shot_2_miss { fill: #dc2626; }
+  .wedge.action-shot_3_miss { fill: #b91c1c; }
+  .wedge.action-ft_miss { fill: #ef4444; }
+  .wedge.action-assist { fill: #7c3aed; }
+  .wedge.action-steal { fill: #6d28d9; }
+  .wedge.action-block { fill: #8b5cf6; }
+
   .wedge.active {
     stroke: #ffffff;
     stroke-width: 3.5;

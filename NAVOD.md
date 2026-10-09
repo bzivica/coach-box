@@ -309,3 +309,11 @@ EFF je univerzální box-stat ukazatel celkového přínosu hráče.
 | **DNP** | Did Not Play (= GP započítáno, ale Min 0:00) |
 | **FO** | Fouled Out - vyloučen po 5 osobních faulech |
 | **OT** | Overtime - prodloužení |
+
+
+## Čísla dresů podle kategorie a zápasu
+
+- V kartě hráče zadej běžné číslo dresu pro kmenovou kategorii.
+- V části „Obvykle hraje i za“ vyber hostující kategorii; následně můžeš v části „Čísla dresů v dalších kategoriích“ nastavit její vlastní číslo.
+- Při zakládání zápasu se hráčům předvyplní číslo z právě vybrané kategorie (při starších datech se použije původní číslo hráče).
+- V části „Čísla dresů pro tento zápas“ lze číslo změnit jen pro toto utkání. Tato hodnota se uloží k zápasu a pozdější úprava profilu hráče ji zpětně nepřepíše.

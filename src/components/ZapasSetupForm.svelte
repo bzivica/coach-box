@@ -21,6 +21,9 @@
   } from '../lib/types';
   import Avatar from './Avatar.svelte';
 
+  const AKTIVNI_SEZONA_KLIC = 'aktivni_sezona';
+  let aktivniSezona = $state('');
+
   const CARD_AVATAR_SIZE = 56;
   const MIN_Q_LENGTH = 4;
   const MAX_Q_LENGTH = 15;
@@ -52,6 +55,7 @@
   let souper_nas_tym = $state(false);
   let souper_nas_kategorie = $state<Kategorie>('U14');
   let nasazeni = $state<string[]>([]);
+  let cislaDresuZapasu = $state<Record<string, string>>({});
   let pridani = $state<string[]>([]); // jednotlivci pridani rucne pres "+ Pridat hrace"
   let hledani = $state('');
   let pickerOtevren = $state(false);
@@ -71,6 +75,12 @@
     souteze = await db.souteze.toArray();
     souteze = souteze.filter((s) => s.aktivni);
     zapasy = await db.zapasy.toArray();
+    const aktivniRow = await db.nastaveni.get(AKTIVNI_SEZONA_KLIC);
+    aktivniSezona = typeof aktivniRow?.hodnota === 'string' ? aktivniRow.hodnota.trim() : '';
+    if (aktivniSezona) {
+      sezona = aktivniSezona;
+      sezonaRucne = true;
+    }
   });
 
   // Kategorie, ve kterych uz hrac nekdy byl v soupisce zapasu (historie) - pro auto-nabidku.
@@ -86,7 +96,17 @@
     return map;
   });
 
-  const filtrovani_souperi = $derived(souperi.filter((s) => s.kategorie === nase_kategorie));
+  // Nabidni soupere stejne vekove kategorie bez ohledu na tymovou variantu A/B/C.
+  function zakladniVekovaKategorie(k: Kategorie): string {
+    // Normalizace kategorie soupeře: U17, U17A/B/C a oficiální U17M
+    // patří do stejné věkové skupiny. Písmeno týmu ani označení M nemění věk.
+    const value = String(k).trim().replace(/\s+/g, '').toUpperCase();
+    const match = value.match(/^U(\d+)M?[ABC]?$/);
+    return match ? `U${match[1]}` : value;
+  }
+  const filtrovani_souperi = $derived(souperi.filter((s) =>
+    zakladniVekovaKategorie(s.kategorie) === zakladniVekovaKategorie(nase_kategorie)
+  ));
   const vybrana_soutez = $derived(souteze.find((s) => s.id === soutez_id));
   const je_pratelak = $derived(vybrana_soutez?.typ === 'pratelak');
   const souper_nas_kategorie_moznosti = $derived(souperiZNasichKategorie(nase_kategorie));
@@ -197,7 +217,18 @@
       nasazeni = nasazeni.filter((x) => x !== id);
     } else {
       nasazeni = [...nasazeni, id];
+      const h = hraci.find((x) => x.id === id);
+      if (h && cislaDresuZapasu[id] === undefined && h.cislo_dresu !== undefined) {
+        cislaDresuZapasu = { ...cislaDresuZapasu, [id]: String(h.cisla_dresu_kategorie?.[nase_kategorie] ?? h.cislo_dresu) };
+      }
     }
+  }
+
+  function cisloProZapas(id: string): string {
+    if (cislaDresuZapasu[id] !== undefined) return cislaDresuZapasu[id];
+    const h = hraci.find((x) => x.id === id);
+    const n = h?.cisla_dresu_kategorie?.[nase_kategorie] ?? h?.cislo_dresu;
+    return n === undefined ? '' : String(n);
   }
 
   function vybratVse() {
@@ -231,7 +262,14 @@
     if (!datum) { chyba = 'Datum je povinný'; return; }
     if (!interni_pratelak && !souper_id) { chyba = 'Vyber soupeře (nebo přidej v sekci Soupeři)'; return; }
     if (!soutez_id) { chyba = 'Vyber soutěž'; return; }
-    if (!sezona.trim()) { chyba = 'Sezona je povinná'; return; }
+    if (!aktivniSezona) {
+      chyba = 'Nejdřív na hlavní stránce založ a nastav aktivní sezonu.';
+      return;
+    }
+    if (sezona.trim() !== aktivniSezona) {
+      chyba = `Nové zápasy lze přidávat pouze do aktivní sezony ${aktivniSezona}.`;
+      return;
+    }
     const delkaParsed = Number(delka_ctvrtiny);
     if (!Number.isFinite(delkaParsed) || delkaParsed < MIN_Q_LENGTH || delkaParsed > MAX_Q_LENGTH) {
       chyba = `Délka čtvrtiny musí být ${MIN_Q_LENGTH}-${MAX_Q_LENGTH} minut`;
@@ -254,6 +292,11 @@
         sezona: sezona.trim(),
         nase_strana,
         nasazeni_hraci: [...nasazeni],
+        cisla_dresu: Object.fromEntries(nasazeni.flatMap((id) => {
+          const raw = cislaDresuZapasu[id] !== undefined ? cislaDresuZapasu[id] : String(hraci.find((h) => h.id === id)?.cisla_dresu_kategorie?.[nase_kategorie] ?? hraci.find((h) => h.id === id)?.cislo_dresu ?? '');
+          const n = raw.trim() === '' ? NaN : Number(raw);
+          return Number.isInteger(n) && n >= 0 && n <= 99 ? [[id, n]] : [];
+        })),
         delka_ctvrtiny_min: delkaParsed,
         pocet_ctvrtin: DEFAULT_POCET_CTVRTIN,
         status: 'rozehrany',
@@ -348,7 +391,12 @@
       <div class="row3">
         <label>
           <span>Sezona *</span>
-          <input bind:value={sezona} oninput={() => (sezonaRucne = true)} type="text" placeholder="např. 2025/26" />
+          <input bind:value={sezona} readonly={!!aktivniSezona} oninput={() => (sezonaRucne = true)} type="text" placeholder="Nejdřív nastav aktivní sezonu" />
+          {#if aktivniSezona}
+            <small>Nové zápasy lze přidávat pouze do aktivní sezony {aktivniSezona}.</small>
+          {:else}
+            <small>Nejdřív založ a nastav aktivní sezonu na hlavní stránce.</small>
+          {/if}
         </label>
         <label>
           <span>Délka čtvrtiny (min) *</span>
@@ -423,6 +471,19 @@
                 ⚠ Vybraná sestava obsahuje skupinu s {VAROVANI_LIMIT_PER_GROUP}+ hráči mimo hlavní ročník/kategorii. Ověřte si limit federace pro tuto soutěž.
               </div>
             {/if}
+          </div>
+        {/if}
+
+        {#if nasazeniHraci.length > 0}
+          <div class="match-numbers">
+            <strong>Čísla dresů pro tento zápas</strong>
+            <small>Číslo se předvyplní z hráčova profilu. Úprava platí jen pro toto utkání.</small>
+            {#each nasazeniHraci as h (h.id)}
+              <label class="match-number-row">
+                <span>{h.prijmeni} {h.jmeno}</span>
+                <input aria-label={`Číslo dresu pro zápas: ${h.prijmeni}`} type="number" min="0" max="99" step="1" value={cisloProZapas(h.id)} oninput={(e) => { cislaDresuZapasu = { ...cislaDresuZapasu, [h.id]: e.currentTarget.value }; }} />
+              </label>
+            {/each}
           </div>
         {/if}
 
@@ -508,6 +569,10 @@
     padding: 12px;
   }
 
+  .match-numbers { display: grid; gap: 8px; margin: 12px 0; padding: 12px; border: 1px solid var(--border, #d4d4d8); border-radius: 10px; }
+  .match-numbers > small { color: var(--muted, #71717a); }
+  .match-number-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .match-number-row input { width: 84px; }
   .roster-section {
     background: var(--surface-2);
     border-radius: 6px;
