@@ -48,12 +48,19 @@
     await db.nastaveni.put({ klic: SEZNAM_SEZON_KLIC, hodnota: aktivniSezony });
     novaSezona = '';
     await ulozAktivniSezonu(s);
+    // Znovu načti seznam z IndexedDB po uložení, aby select hned ukazoval novou sezonu.
+    await reload();
+    aktivniSezona = s;
     showMsg(`Sezona ${s} byla založena a nastavena jako aktivní.`);
   }
 
   async function ulozAktivniSezonu(s: string) {
     aktivniSezona = s;
     await db.nastaveni.put({ klic: AKTIVNI_SEZONA_KLIC, hodnota: s });
+    if (s && !aktivniSezony.includes(s)) {
+      aktivniSezony = [...new Set([...aktivniSezony, s])].sort().reverse();
+      await db.nastaveni.put({ klic: SEZNAM_SEZON_KLIC, hodnota: aktivniSezony });
+    }
     if (s) {
       showMsg(`Aktivní sezona nastavena na ${s}. Statistiky se nyní defaultně filtrují na tuto sezonu.`);
     } else {

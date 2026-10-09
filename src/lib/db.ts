@@ -253,7 +253,12 @@ function normalizePlayerName(value: string): string {
  * Kategorie přepočítává jen u hráčů, jejichž kategorie není ručně uzamčena.
  */
 export async function synchronizovatHraceZCzBasketball(): Promise<CzBasketballSyncResult> {
-  const response = await fetch('http://127.0.0.1:4179/api/cz-basketball/jizni-supi-sync');
+  const configuredApi = (import.meta.env.VITE_CZ_BASKETBALL_API_URL as string | undefined)?.trim().replace(/\/$/, '');
+  // Produkční PWA používá veřejné HTTPS API; lokální vývoj dál obsluhuje Vite proxy.
+  const endpoint = configuredApi
+    ? `${configuredApi}/api/cz-basketball/jizni-supi-sync`
+    : '/api/cz-basketball/jizni-supi-sync';
+  const response = await fetch(endpoint, { signal: AbortSignal.timeout(25000) });
   const data = await response.json() as { error?: string; players?: { jmeno?: string; prijmeni?: string; rocnik_narozeni?: number }[] };
   if (!response.ok) throw new Error(data.error || `Chyba HTTP ${response.status}`);
   const remote = (data.players ?? []).filter((p): p is { jmeno: string; prijmeni: string; rocnik_narozeni: number } =>
@@ -278,8 +283,10 @@ export async function synchronizovatHraceZCzBasketball(): Promise<CzBasketballSy
     const year = years[0];
     matched++;
     const patch: Partial<Hrac> = {};
-    if (h.rocnik_narozeni !== year) patch.rocnik_narozeni = year;
-    if (!h.kategorie_rucne) {
+    const doplnenyRocnik = !Number.isInteger(h.rocnik_narozeni);
+    if (doplnenyRocnik) patch.rocnik_narozeni = year;
+    // Již zadaný ročník nepřepisujeme automatickou synchronizací.
+    if (!h.kategorie_rucne && (doplnenyRocnik || !h.rocnik_narozeni)) {
       let target = kategorieZRocniku(year);
       const bVariant: Partial<Record<Kategorie, Kategorie>> = { U15: 'U15B', U17: 'U17B', U19: 'U19B', MuziA: 'MuziB' };
       const wasB = ['U15B', 'U17B', 'U19B', 'MuziB'].includes(h.domaci_kategorie);
