@@ -249,33 +249,48 @@ function normalizePlayerName(value: string): string {
   return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('cs').replace(/[^a-z0-9]+/g, ' ').trim();
 }
 
+// Druhý klíč ignoruje pořadí částí jména. Některé zdroje/databáze mohou mít
+// jméno a příjmení prohozené; přednost má vždy přesná shoda v původním pořadí.
+function normalizePlayerNameUnordered(value: string): string {
+  return normalizePlayerName(value).split(/\s+/).filter(Boolean).sort().join(' ');
+}
+
 /** Načte oficiální soupisky Jižních Supů a bezpečně doplní ročníky hráčů.
  * Kategorie přepočítává jen u hráčů, jejichž kategorie není ručně uzamčena.
  */
 export async function synchronizovatHraceZCzBasketball(): Promise<CzBasketballSyncResult> {
   const configuredApi = (import.meta.env.VITE_CZ_BASKETBALL_API_URL as string | undefined)?.trim().replace(/\/$/, '');
-  // Veřejný Worker je výchozí pro instalovanou PWA; proměnná prostředí jej může přepsat.
-  // Lokální vývoj může stále použít Vite proxy nastavením VITE_CZ_BASKETBALL_API_URL na prázdno
-  // pouze po explicitní lokální konfiguraci; produkce nikdy nesmí volat localhost zařízení.
-  const apiBase = configuredApi || 'https://coach-box-api.dimitrije-pantic43.workers.dev';
+  // Lokální vývoj používá Vite proxy a lokální import server; nasazená PWA používá veřejný Worker.
+  // Tím se vyhneme CORS chybě při otevření localhost:5173 na notebooku.
+  const apiBase = import.meta.env.DEV ? '' : (configuredApi || 'https://coach-box-api.dimitrije-pantic43.workers.dev');
   const endpoint = `${apiBase}/api/cz-basketball/jizni-supi-sync`;
-  const response = await fetch(endpoint, { signal: AbortSignal.timeout(25000) });
+  let response: Response;
+  try {
+    response = await fetch(endpoint, { signal: AbortSignal.timeout(25000) });
+  } catch {
+    throw new Error('Nepodařilo se připojit k API CZ.BASKETBALL. V lokálním vývoji ověř, že běží npm run dev včetně importního serveru; v nasazené aplikaci ověř dostupnost veřejného API.');
+  }
   const data = await response.json() as { error?: string; players?: { jmeno?: string; prijmeni?: string; rocnik_narozeni?: number }[] };
   if (!response.ok) throw new Error(data.error || `Chyba HTTP ${response.status}`);
   const remote = (data.players ?? []).filter((p): p is { jmeno: string; prijmeni: string; rocnik_narozeni: number } =>
     typeof p.jmeno === 'string' && typeof p.prijmeni === 'string' && Number.isInteger(p.rocnik_narozeni));
   if (!remote.length) throw new Error('CZ.BASKETBALL nevrátil žádné hráče s rokem narození.');
   const byName = new Map<string, typeof remote>();
+  const byNameUnordered = new Map<string, typeof remote>();
   for (const p of remote) {
     const key = normalizePlayerName(`${p.jmeno} ${p.prijmeni}`);
     byName.set(key, [...(byName.get(key) ?? []), p]);
+    const unorderedKey = normalizePlayerNameUnordered(`${p.jmeno} ${p.prijmeni}`);
+    byNameUnordered.set(unorderedKey, [...(byNameUnordered.get(unorderedKey) ?? []), p]);
   }
   const local = await db.hraci.toArray();
   let updated = 0;
   let ambiguous = 0;
   let matched = 0;
   for (const h of local) {
-    const matches = byName.get(normalizePlayerName(`${h.jmeno} ${h.prijmeni}`)) ?? [];
+    const exactKey = normalizePlayerName(`${h.jmeno} ${h.prijmeni}`);
+    const exactMatches = byName.get(exactKey) ?? [];
+    const matches = exactMatches.length ? exactMatches : (byNameUnordered.get(normalizePlayerNameUnordered(`${h.jmeno} ${h.prijmeni}`)) ?? []);
     const years = [...new Set(matches.map((m) => m.rocnik_narozeni))];
     if (years.length !== 1) {
       if (years.length > 1) ambiguous++;
@@ -287,7 +302,10 @@ export async function synchronizovatHraceZCzBasketball(): Promise<CzBasketballSy
     const doplnenyRocnik = !Number.isInteger(h.rocnik_narozeni);
     if (doplnenyRocnik) patch.rocnik_narozeni = year;
     // Již zadaný ročník nepřepisujeme automatickou synchronizací.
-    if (!h.kategorie_rucne && (doplnenyRocnik || !h.rocnik_narozeni)) {
+    // Pokud ročník chyběl, je kategorie v lokální databázi potenciálně zastaralá.
+    // V takovém případě ji odvodíme z právě doplněného ročníku i tehdy,
+    // když je dosavadní kategorie označená jako ručně upravená.
+    if (doplnenyRocnik || (!h.kategorie_rucne && !h.rocnik_narozeni)) {
       let target = kategorieZRocniku(year);
       const bVariant: Partial<Record<Kategorie, Kategorie>> = { U15: 'U15B', U17: 'U17B', U19: 'U19B', MuziA: 'MuziB' };
       const wasB = ['U15B', 'U17B', 'U19B', 'MuziB'].includes(h.domaci_kategorie);
