@@ -34,7 +34,7 @@
       alert(syncZprava);
     } catch (e) {
       syncZprava = e instanceof Error ? e.message : 'Synchronizace se nezdařila.';
-      alert(syncZprava + '\n\nZkontroluj, že aplikaci spouštíš příkazem npm run dev a běží její importní server.');
+      alert(syncZprava + '\n\nZkontroluj připojení k internetu a dostupnost veřejného API CZ.BASKETBALL.');
     } finally {
       syncBezi = false;
     }

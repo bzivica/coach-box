@@ -254,10 +254,11 @@ function normalizePlayerName(value: string): string {
  */
 export async function synchronizovatHraceZCzBasketball(): Promise<CzBasketballSyncResult> {
   const configuredApi = (import.meta.env.VITE_CZ_BASKETBALL_API_URL as string | undefined)?.trim().replace(/\/$/, '');
-  // Produkční PWA používá veřejné HTTPS API; lokální vývoj dál obsluhuje Vite proxy.
-  const endpoint = configuredApi
-    ? `${configuredApi}/api/cz-basketball/jizni-supi-sync`
-    : '/api/cz-basketball/jizni-supi-sync';
+  // Veřejný Worker je výchozí pro instalovanou PWA; proměnná prostředí jej může přepsat.
+  // Lokální vývoj může stále použít Vite proxy nastavením VITE_CZ_BASKETBALL_API_URL na prázdno
+  // pouze po explicitní lokální konfiguraci; produkce nikdy nesmí volat localhost zařízení.
+  const apiBase = configuredApi || 'https://coach-box-api.dimitrije-pantic43.workers.dev';
+  const endpoint = `${apiBase}/api/cz-basketball/jizni-supi-sync`;
   const response = await fetch(endpoint, { signal: AbortSignal.timeout(25000) });
   const data = await response.json() as { error?: string; players?: { jmeno?: string; prijmeni?: string; rocnik_narozeni?: number }[] };
   if (!response.ok) throw new Error(data.error || `Chyba HTTP ${response.status}`);
