@@ -2060,7 +2060,7 @@
       </div>
     {/if}
 
-    <div class="score-bar" class:lp-hidden={pgHidden('akce')}>
+    <div class="score-bar" class:in-progress={mode === 'inProgress'} class:lp-hidden={pgHidden('akce')}>
       <div class="sb-cluster">
         <div class="sb-roles">
           <span class="sb-role" class:us={naseDoma}>Domácí</span>
@@ -2101,7 +2101,7 @@
       </div>
     </div>
 
-    {#if skorePoCtvrtinach.length > 0}
+    {#if skorePoCtvrtinach.length > 0 && mode !== 'inProgress'}
       <div class="quarter-scores" class:lp-hidden={pgHidden('stats')}>
         {#each skorePoCtvrtinach as qs}
           <div class="qs">
@@ -3395,7 +3395,7 @@
 
   .head {
     display: grid;
-    grid-template-columns: auto 1fr;
+    grid-template-columns: minmax(90px, 1fr) auto minmax(90px, 1fr);
     align-items: center;
     gap: 16px;
     background: var(--surface);
@@ -3441,7 +3441,17 @@
     font-weight: 600;
   }
   .back:hover { background: var(--border-strong); color: var(--accent-fg); }
-  .teams { font-size: 18px; font-weight: 700; }
+  .teams {
+    grid-column: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    text-align: center;
+    font-size: 18px;
+    font-weight: 700;
+  }
+  .head .back { grid-column: 1; justify-self: start; }
   .teams .us { color: var(--us-color); }
   .teams .them { color: var(--them-color); }
   .teams .vs { color: var(--text-muted); margin: 0 8px; }
@@ -4628,10 +4638,18 @@
   }
   button.primary:hover:not(:disabled) { background: var(--accent-hover); color: var(--accent-fg); }
 
+  /* Pri zapase je skore soucasti panelu casomiry, aby vsechno ovladani bylo pohromade. */
+  .score-bar.in-progress { display: none; }
+  .clock-bar .clock-score { display: flex; }
+
   .clock-bar {
-    display: flex;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    display: grid;
+    grid-template-columns: auto auto minmax(150px, 1fr) auto;
     align-items: center;
-    gap: 18px;
+    gap: 12px;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 8px;
@@ -4645,6 +4663,7 @@
   .clock-score {
     display: none;
     align-items: baseline;
+    justify-content: center;
     gap: 4px;
     font-family: "Consolas", monospace;
     font-weight: 700;
@@ -4736,8 +4755,41 @@
   .clock-buttons {
     display: flex;
     gap: 6px;
-    margin-left: auto;
+    justify-content: flex-end;
     flex-wrap: wrap;
+  }
+  @media (max-width: 1100px) {
+    .clock-bar {
+      grid-template-columns: auto auto 1fr;
+      gap: 10px;
+    }
+    .clock-score { grid-column: 3; justify-self: center; }
+    .clock-buttons { grid-column: 1 / -1; justify-content: center; }
+  }
+  @media (max-width: 700px) {
+    .head {
+      grid-template-columns: auto 1fr;
+      gap: 10px;
+      padding: 10px 12px;
+    }
+    .head .back { grid-column: 1; }
+    .teams {
+      grid-column: 2;
+      font-size: 15px;
+      justify-content: center;
+    }
+    .teams .vs { margin: 0 5px; }
+    .clock-bar {
+      grid-template-columns: 1fr 1fr;
+      gap: 8px 12px;
+      padding: 9px 10px;
+    }
+    .clock-cislo { grid-column: 1; }
+    .clock-total { grid-column: 2; justify-self: end; }
+    .clock-score { grid-column: 1 / -1; grid-row: 2; }
+    .clock-buttons { grid-column: 1 / -1; grid-row: 3; justify-content: center; }
+    .clock-btn { padding: 7px 10px; font-size: 12px; }
+    .clock-display { font-size: 28px; min-width: 72px; }
   }
   .clock-btn {
     background: var(--surface-hover);
