@@ -22,7 +22,6 @@
   import Avatar from './Avatar.svelte';
 
   const AKTIVNI_SEZONA_KLIC = 'aktivni_sezona';
-  let aktivniSezona = $state('');
 
   const CARD_AVATAR_SIZE = 56;
   const MIN_Q_LENGTH = 4;
@@ -36,7 +35,9 @@
 
   let { onClose, onSaved }: Props = $props();
 
-  const today = new Date().toISOString().slice(0, 10);
+  // Datum formuláře počítej v místním čase; toISOString() může v některých pásmech vrátit předchozí den.
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
   function sezonaZData(d: string): string | null {
     const [y, m] = d.split('-').map(Number);
@@ -50,7 +51,6 @@
   let souper_id = $state('');
   let soutez_id = $state('');
   let sezona = $state(sezonaZData(today) ?? '');
-  let sezonaRucne = $state(false);
   let nase_strana = $state<NaseStrana>('home');
   let souper_nas_tym = $state(false);
   let souper_nas_kategorie = $state<Kategorie>('U14');
@@ -75,12 +75,6 @@
     souteze = await db.souteze.toArray();
     souteze = souteze.filter((s) => s.aktivni);
     zapasy = await db.zapasy.toArray();
-    const aktivniRow = await db.nastaveni.get(AKTIVNI_SEZONA_KLIC);
-    aktivniSezona = typeof aktivniRow?.hodnota === 'string' ? aktivniRow.hodnota.trim() : '';
-    if (aktivniSezona) {
-      sezona = aktivniSezona;
-      sezonaRucne = true;
-    }
   });
 
   // Kategorie, ve kterych uz hrac nekdy byl v soupisce zapasu (historie) - pro auto-nabidku.
@@ -117,8 +111,9 @@
     }
   });
 
+  // Sezona zápasu se vždy odvozuje od jeho data. Aktivní sezona slouží
+  // pouze jako výchozí filtr statistik, nikoli jako omezení pro nový zápas.
   $effect(() => {
-    if (sezonaRucne) return;
     const s = sezonaZData(datum);
     if (s) sezona = s;
   });
@@ -176,6 +171,54 @@
       .map((id) => hraci.find((h) => h.id === id))
       .filter((h): h is Hrac => !!h),
   );
+
+  // Jediný zdroj pravdy pro kontrolu čísel: skutečné číslo každého nasazeného
+  // hráče, tedy přednostně číslo pro tento zápas a jinak číslo z hráčova profilu.
+  // Funkci volá jak reaktivní náhled, tak znovu samotné ukládání (bez závislosti
+  // na tom, zda se uživatelské rozhraní stihlo překreslit).
+  function spocitejKontroluSoupisky() {
+    let chybiCislo = 0;
+    let neplatneCislo = 0;
+    const hraciPodleCisla = new Map<number, string[]>();
+    const vybrani = nasazeni
+      .map((id) => ({ id, hrac: hraci.find((h) => h.id === id) }))
+      .filter((x): x is { id: string; hrac: Hrac } => !!x.hrac);
+
+    for (const { id, hrac } of vybrani) {
+      const cisloZProfiu = hrac.cisla_dresu_kategorie?.[nase_kategorie] ?? hrac.cislo_dresu;
+      const raw = String(cislaDresuZapasu[id] !== undefined ? cislaDresuZapasu[id] : (cisloZProfiu ?? '')).trim();
+      if (!raw) {
+        chybiCislo++;
+        continue;
+      }
+      const cislo = Number(raw);
+      if (!Number.isInteger(cislo) || cislo < 0 || cislo > 99) {
+        neplatneCislo++;
+        continue;
+      }
+      const jmena = hraciPodleCisla.get(cislo) ?? [];
+      jmena.push(`${hrac.jmeno} ${hrac.prijmeni}`.trim());
+      hraciPodleCisla.set(cislo, jmena);
+    }
+
+    const duplicitniCisla = [...hraciPodleCisla.entries()]
+      .filter(([, jmena]) => jmena.length > 1)
+      .map(([cislo]) => cislo)
+      .sort((a, b) => a - b);
+
+    return {
+      pocet: vybrani.length,
+      chybiCislo,
+      neplatneCislo,
+      duplicitniCisla,
+      duplicitniHrace: duplicitniCisla.map((cislo) => ({ cislo, jmena: hraciPodleCisla.get(cislo) ?? [] })),
+      vyplnenaCisla: vybrani.length - chybiCislo - neplatneCislo,
+      dostHrace: vybrani.length >= 5,
+      bezProblemu: vybrani.length >= 5 && chybiCislo === 0 && neplatneCislo === 0 && duplicitniCisla.length === 0,
+    };
+  }
+
+  const kontrolaSoupisky = $derived.by(() => spocitejKontroluSoupisky());
 
   const breakdownRocnik = $derived.by(() => {
     const map = new Map<string, number>();
@@ -262,20 +305,25 @@
     if (!datum) { chyba = 'Datum je povinný'; return; }
     if (!interni_pratelak && !souper_id) { chyba = 'Vyber soupeře (nebo přidej v sekci Soupeři)'; return; }
     if (!soutez_id) { chyba = 'Vyber soutěž'; return; }
-    if (!aktivniSezona) {
-      chyba = 'Nejdřív na hlavní stránce založ a nastav aktivní sezonu.';
-      return;
-    }
-    if (sezona.trim() !== aktivniSezona) {
-      chyba = `Nové zápasy lze přidávat pouze do aktivní sezony ${aktivniSezona}.`;
-      return;
-    }
+    const sezonaDleData = sezonaZData(datum);
+    if (!sezonaDleData) { chyba = 'Z data zápasu nelze určit sezonu.'; return; }
     const delkaParsed = Number(delka_ctvrtiny);
     if (!Number.isFinite(delkaParsed) || delkaParsed < MIN_Q_LENGTH || delkaParsed > MAX_Q_LENGTH) {
       chyba = `Délka čtvrtiny musí být ${MIN_Q_LENGTH}-${MAX_Q_LENGTH} minut`;
       return;
     }
     if (nasazeni.length < 5) { chyba = `Musíš vybrat alespoň 5 hráčů (vybrali jsme ${nasazeni.length})`; return; }
+
+    // Závěrečná kontrola přímo při ukládání. Platí stejně pro čísla v profilech
+    // i pro ruční přepisy pouze pro tento zápas.
+    const kontrolaPredUlozenim = spocitejKontroluSoupisky();
+    if (kontrolaPredUlozenim.duplicitniCisla.length > 0) {
+      const podrobnosti = kontrolaPredUlozenim.duplicitniHrace
+        .map(({ cislo, jmena }) => `#${cislo}: ${jmena.join(' a ')}`)
+        .join('; ');
+      chyba = `Zápas nelze uložit. Duplicitní čísla dresů: ${podrobnosti}. Oprav čísla hráčů v soupisce.`;
+      return;
+    }
 
     ukladani = true;
     try {
@@ -305,7 +353,34 @@
         skore_po_ctvrtinach: [],
         vytvoreno_at: now,
       };
-      await db.zapasy.add(zapas);
+      // Sezona se odvozuje od data zápasu. Pokud jde o první zápas nové sezony,
+      // založíme ji a nastavíme jako aktivní současně s uložením zápasu.
+      // Zápis nastavení a zápasu proběhne v jedné IndexedDB transakci.
+      await db.transaction('rw', db.nastaveni, db.zapasy, async () => {
+        const seznamRow = await db.nastaveni.get('seznam_sezon');
+        const ulozeneSezony = Array.isArray(seznamRow?.hodnota)
+          ? seznamRow.hodnota.filter((x): x is string => typeof x === 'string')
+          : [];
+        const sezony = [...new Set([...ulozeneSezony, ...(await db.zapasy.toArray()).map((z) => z.sezona)])];
+        const aktivniRow = await db.nastaveni.get(AKTIVNI_SEZONA_KLIC);
+        const aktualniAktivni = typeof aktivniRow?.hodnota === 'string' ? aktivniRow.hodnota.trim() : '';
+        const novaSezona = !sezony.includes(sezonaDleData);
+
+        if (novaSezona) {
+          sezony.push(sezonaDleData);
+          await db.nastaveni.put({ klic: 'seznam_sezon', hodnota: sezony.sort().reverse() });
+        } else if (!seznamRow || !Array.isArray(seznamRow.hodnota)) {
+          await db.nastaveni.put({ klic: 'seznam_sezon', hodnota: sezony.sort().reverse() });
+        }
+
+        if (!aktualniAktivni || novaSezona) {
+          await db.nastaveni.put({ klic: AKTIVNI_SEZONA_KLIC, hodnota: sezonaDleData });
+        }
+
+        zapas.sezona = sezonaDleData;
+        await db.zapasy.add(zapas);
+      });
+      sezona = sezonaDleData;
       onSaved(zapas.id);
     } catch (e) {
       chyba = (e as Error).message ?? 'Chyba při ukládání';
@@ -391,12 +466,8 @@
       <div class="row3">
         <label>
           <span>Sezona *</span>
-          <input bind:value={sezona} readonly={!!aktivniSezona} oninput={() => (sezonaRucne = true)} type="text" placeholder="Nejdřív nastav aktivní sezonu" />
-          {#if aktivniSezona}
-            <small>Nové zápasy lze přidávat pouze do aktivní sezony {aktivniSezona}.</small>
-          {:else}
-            <small>Nejdřív založ a nastav aktivní sezonu na hlavní stránce.</small>
-          {/if}
+          <input bind:value={sezona} readonly type="text" aria-label="Sezona odvozená z data zápasu" />
+          <small>Sezona se určí automaticky podle data zápasu. Pokud jde o první zápas nové sezony, sezona se založí a nastaví jako aktivní.</small>
         </label>
         <label>
           <span>Délka čtvrtiny (min) *</span>
@@ -412,6 +483,42 @@
             <button type="button" class="small" onclick={vybratVse}>Vybrat všechny</button>
             <button type="button" class="small" onclick={odznacitVse}>Odznačit</button>
           </div>
+        </div>
+
+        <div class="readiness" class:ready={kontrolaSoupisky.bezProblemu}>
+          <div class="readiness-heading">
+            <strong>Kontrola připravenosti</strong>
+            <span class:status-ok={kontrolaSoupisky.bezProblemu} class:status-warn={!kontrolaSoupisky.bezProblemu}>
+              {kontrolaSoupisky.bezProblemu ? 'Vše v pořádku' : 'Zkontroluj soupisku'}
+            </span>
+          </div>
+          <div class="readiness-stats">
+            <div class="readiness-stat">
+              <strong>{kontrolaSoupisky.pocet}</strong>
+              <span>vybraných hráčů</span>
+            </div>
+            <div class="readiness-stat">
+              <strong>{kontrolaSoupisky.vyplnenaCisla}/{kontrolaSoupisky.pocet}</strong>
+              <span>platných čísel dresů</span>
+            </div>
+          </div>
+          <ul class="readiness-checks">
+            <li class:check-ok={kontrolaSoupisky.dostHrace} class:check-warn={!kontrolaSoupisky.dostHrace}>
+              <span aria-hidden="true">{kontrolaSoupisky.dostHrace ? '✓' : '!'}</span>
+              {kontrolaSoupisky.dostHrace ? 'Je vybráno alespoň 5 hráčů.' : `Vyber alespoň 5 hráčů (zatím ${kontrolaSoupisky.pocet}).`}
+            </li>
+            <li class:check-ok={kontrolaSoupisky.chybiCislo === 0} class:check-warn={kontrolaSoupisky.chybiCislo > 0}>
+              <span aria-hidden="true">{kontrolaSoupisky.chybiCislo === 0 ? '✓' : '!'}</span>
+              {kontrolaSoupisky.chybiCislo === 0 ? 'Všichni vybraní hráči mají číslo dresu.' : `Chybí číslo dresu u ${kontrolaSoupisky.chybiCislo} hráčů.`}
+            </li>
+            {#if kontrolaSoupisky.neplatneCislo > 0}
+              <li class="check-warn"><span aria-hidden="true">!</span>Neplatné číslo dresu u {kontrolaSoupisky.neplatneCislo} hráčů (povolený rozsah 0–99).</li>
+            {/if}
+            {#if kontrolaSoupisky.duplicitniCisla.length > 0}
+              <li class="check-warn"><span aria-hidden="true">!</span>Duplicitní čísla dresů: {kontrolaSoupisky.duplicitniHrace.map(({ cislo, jmena }) => `#${cislo} (${jmena.join(' a ')})`).join('; ')}.</li>
+            {/if}
+          </ul>
+          <small>Duplicitní čísla blokují uložení zápasu. Chybějící nebo neplatná čísla můžeš opravit přímo u hráčů níže.</small>
         </div>
 
         {#if pickerOtevren}
@@ -588,6 +695,28 @@
     flex-wrap: wrap;
     gap: 8px;
   }
+  .readiness {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .readiness.ready { border-color: var(--selected-border, var(--border)); }
+  .readiness-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; color: var(--text); font-size: 13px; }
+  .readiness-heading > span { font-size: 12px; font-weight: 700; }
+  .status-ok, .check-ok { color: var(--success, #16834a); }
+  .status-warn, .check-warn { color: var(--warn, #b7791f); }
+  .readiness-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .readiness-stat { background: var(--surface-2); border-radius: 6px; padding: 9px 11px; display: flex; flex-direction: column; gap: 2px; }
+  .readiness-stat strong { color: var(--text); font-size: 20px; line-height: 1.2; font-variant-numeric: tabular-nums; }
+  .readiness-stat span { color: var(--text-muted); font-size: 11px; }
+  .readiness-checks { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  .readiness-checks li { display: flex; align-items: flex-start; gap: 7px; font-size: 12px; line-height: 1.4; }
+  .readiness-checks li > span { font-weight: 800; min-width: 13px; }
+  .readiness > small { color: var(--text-muted); font-size: 11px; line-height: 1.4; }
   .label { font-size: 13px; color: var(--text-muted); font-weight: 500; }
   .roster-buttons { display: flex; gap: 6px; }
   .empty { color: var(--text-dim); text-align: center; padding: 16px; font-size: 13px; }
