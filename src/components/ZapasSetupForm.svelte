@@ -22,7 +22,6 @@
   import Avatar from './Avatar.svelte';
 
   const AKTIVNI_SEZONA_KLIC = 'aktivni_sezona';
-  let aktivniSezona = $state('');
 
   const CARD_AVATAR_SIZE = 56;
   const MIN_Q_LENGTH = 4;
@@ -36,7 +35,9 @@
 
   let { onClose, onSaved }: Props = $props();
 
-  const today = new Date().toISOString().slice(0, 10);
+  // Datum formuláře počítej v místním čase; toISOString() může v některých pásmech vrátit předchozí den.
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
   function sezonaZData(d: string): string | null {
     const [y, m] = d.split('-').map(Number);
@@ -50,7 +51,6 @@
   let souper_id = $state('');
   let soutez_id = $state('');
   let sezona = $state(sezonaZData(today) ?? '');
-  let sezonaRucne = $state(false);
   let nase_strana = $state<NaseStrana>('home');
   let souper_nas_tym = $state(false);
   let souper_nas_kategorie = $state<Kategorie>('U14');
@@ -75,12 +75,6 @@
     souteze = await db.souteze.toArray();
     souteze = souteze.filter((s) => s.aktivni);
     zapasy = await db.zapasy.toArray();
-    const aktivniRow = await db.nastaveni.get(AKTIVNI_SEZONA_KLIC);
-    aktivniSezona = typeof aktivniRow?.hodnota === 'string' ? aktivniRow.hodnota.trim() : '';
-    if (aktivniSezona) {
-      sezona = aktivniSezona;
-      sezonaRucne = true;
-    }
   });
 
   // Kategorie, ve kterych uz hrac nekdy byl v soupisce zapasu (historie) - pro auto-nabidku.
@@ -117,8 +111,9 @@
     }
   });
 
+  // Sezona zápasu se vždy odvozuje od jeho data. Aktivní sezona slouží
+  // pouze jako výchozí filtr statistik, nikoli jako omezení pro nový zápas.
   $effect(() => {
-    if (sezonaRucne) return;
     const s = sezonaZData(datum);
     if (s) sezona = s;
   });
@@ -262,14 +257,8 @@
     if (!datum) { chyba = 'Datum je povinný'; return; }
     if (!interni_pratelak && !souper_id) { chyba = 'Vyber soupeře (nebo přidej v sekci Soupeři)'; return; }
     if (!soutez_id) { chyba = 'Vyber soutěž'; return; }
-    if (!aktivniSezona) {
-      chyba = 'Nejdřív na hlavní stránce založ a nastav aktivní sezonu.';
-      return;
-    }
-    if (sezona.trim() !== aktivniSezona) {
-      chyba = `Nové zápasy lze přidávat pouze do aktivní sezony ${aktivniSezona}.`;
-      return;
-    }
+    const sezonaDleData = sezonaZData(datum);
+    if (!sezonaDleData) { chyba = 'Z data zápasu nelze určit sezonu.'; return; }
     const delkaParsed = Number(delka_ctvrtiny);
     if (!Number.isFinite(delkaParsed) || delkaParsed < MIN_Q_LENGTH || delkaParsed > MAX_Q_LENGTH) {
       chyba = `Délka čtvrtiny musí být ${MIN_Q_LENGTH}-${MAX_Q_LENGTH} minut`;
@@ -305,7 +294,34 @@
         skore_po_ctvrtinach: [],
         vytvoreno_at: now,
       };
-      await db.zapasy.add(zapas);
+      // Sezona se odvozuje od data zápasu. Pokud jde o první zápas nové sezony,
+      // založíme ji a nastavíme jako aktivní současně s uložením zápasu.
+      // Zápis nastavení a zápasu proběhne v jedné IndexedDB transakci.
+      await db.transaction('rw', db.nastaveni, db.zapasy, async () => {
+        const seznamRow = await db.nastaveni.get('seznam_sezon');
+        const ulozeneSezony = Array.isArray(seznamRow?.hodnota)
+          ? seznamRow.hodnota.filter((x): x is string => typeof x === 'string')
+          : [];
+        const sezony = [...new Set([...ulozeneSezony, ...(await db.zapasy.toArray()).map((z) => z.sezona)])];
+        const aktivniRow = await db.nastaveni.get(AKTIVNI_SEZONA_KLIC);
+        const aktualniAktivni = typeof aktivniRow?.hodnota === 'string' ? aktivniRow.hodnota.trim() : '';
+        const novaSezona = !sezony.includes(sezonaDleData);
+
+        if (novaSezona) {
+          sezony.push(sezonaDleData);
+          await db.nastaveni.put({ klic: 'seznam_sezon', hodnota: sezony.sort().reverse() });
+        } else if (!seznamRow || !Array.isArray(seznamRow.hodnota)) {
+          await db.nastaveni.put({ klic: 'seznam_sezon', hodnota: sezony.sort().reverse() });
+        }
+
+        if (!aktualniAktivni || novaSezona) {
+          await db.nastaveni.put({ klic: AKTIVNI_SEZONA_KLIC, hodnota: sezonaDleData });
+        }
+
+        zapas.sezona = sezonaDleData;
+        await db.zapasy.add(zapas);
+      });
+      sezona = sezonaDleData;
       onSaved(zapas.id);
     } catch (e) {
       chyba = (e as Error).message ?? 'Chyba při ukládání';
@@ -391,12 +407,8 @@
       <div class="row3">
         <label>
           <span>Sezona *</span>
-          <input bind:value={sezona} readonly={!!aktivniSezona} oninput={() => (sezonaRucne = true)} type="text" placeholder="Nejdřív nastav aktivní sezonu" />
-          {#if aktivniSezona}
-            <small>Nové zápasy lze přidávat pouze do aktivní sezony {aktivniSezona}.</small>
-          {:else}
-            <small>Nejdřív založ a nastav aktivní sezonu na hlavní stránce.</small>
-          {/if}
+          <input bind:value={sezona} readonly type="text" aria-label="Sezona odvozená z data zápasu" />
+          <small>Sezona se určí automaticky podle data zápasu. Pokud jde o první zápas nové sezony, sezona se založí a nastaví jako aktivní.</small>
         </label>
         <label>
           <span>Délka čtvrtiny (min) *</span>

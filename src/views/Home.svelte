@@ -5,6 +5,7 @@
   const AKTIVNI_SEZONA_KLIC = 'aktivni_sezona';
   const SEZNAM_SEZON_KLIC = 'seznam_sezon';
   let novaSezona = $state('');
+  let ukladaniSezony = $state(false);
 
   let pocetHracu = $state(0);
   let pocetSoutezi = $state(0);
@@ -44,27 +45,52 @@
       showMsg(`Sezona ${s} už existuje.`, 'err');
       return;
     }
-    aktivniSezony = [...aktivniSezony, s].sort().reverse();
-    await db.nastaveni.put({ klic: SEZNAM_SEZON_KLIC, hodnota: aktivniSezony });
-    novaSezona = '';
-    await ulozAktivniSezonu(s);
-    // Znovu načti seznam z IndexedDB po uložení, aby select hned ukazoval novou sezonu.
-    await reload();
-    aktivniSezona = s;
-    showMsg(`Sezona ${s} byla založena a nastavena jako aktivní.`);
+
+    ukladaniSezony = true;
+    try {
+      await db.transaction('rw', db.nastaveni, db.zapasy, async () => {
+        const row = await db.nastaveni.get(SEZNAM_SEZON_KLIC);
+        const ulozene = Array.isArray(row?.hodnota)
+          ? row.hodnota.filter((x): x is string => typeof x === 'string')
+          : [];
+        const sezony = [...new Set([...ulozene, ...aktivniSezony, ...(await db.zapasy.toArray()).map((z) => z.sezona), s])].sort().reverse();
+        await db.nastaveni.put({ klic: SEZNAM_SEZON_KLIC, hodnota: sezony });
+        await db.nastaveni.put({ klic: AKTIVNI_SEZONA_KLIC, hodnota: s });
+      });
+      novaSezona = '';
+      await reload();
+      aktivniSezona = s;
+      showMsg(`Sezona ${s} byla založena a nastavena jako aktivní.`);
+    } catch (e) {
+      showMsg(`Sezonu se nepodařilo uložit: ${(e as Error).message}`, 'err');
+    } finally {
+      ukladaniSezony = false;
+    }
   }
 
   async function ulozAktivniSezonu(s: string) {
-    aktivniSezona = s;
-    await db.nastaveni.put({ klic: AKTIVNI_SEZONA_KLIC, hodnota: s });
-    if (s && !aktivniSezony.includes(s)) {
-      aktivniSezony = [...new Set([...aktivniSezony, s])].sort().reverse();
-      await db.nastaveni.put({ klic: SEZNAM_SEZON_KLIC, hodnota: aktivniSezony });
-    }
-    if (s) {
-      showMsg(`Aktivní sezona nastavena na ${s}. Statistiky se nyní defaultně filtrují na tuto sezonu.`);
-    } else {
-      showMsg('Aktivní sezona zrušena. Statistiky zobrazí vše.');
+    try {
+      await db.transaction('rw', db.nastaveni, db.zapasy, async () => {
+        const row = await db.nastaveni.get(SEZNAM_SEZON_KLIC);
+        const ulozene = Array.isArray(row?.hodnota)
+          ? row.hodnota.filter((x): x is string => typeof x === 'string')
+          : [];
+        const sezony = [...new Set([...ulozene, ...aktivniSezony, ...(await db.zapasy.toArray()).map((z) => z.sezona), ...(s ? [s] : [])])].sort().reverse();
+        if (s && !sezony.includes(s)) sezony.push(s);
+        await db.nastaveni.put({ klic: AKTIVNI_SEZONA_KLIC, hodnota: s });
+        await db.nastaveni.put({ klic: SEZNAM_SEZON_KLIC, hodnota: sezony });
+      });
+      aktivniSezona = s;
+      await reload();
+      aktivniSezona = s;
+      if (s) {
+        showMsg(`Aktivní sezona nastavena na ${s}. Statistiky se nyní defaultně filtrují na tuto sezonu.`);
+      } else {
+        showMsg('Aktivní sezona zrušena. Statistiky zobrazí vše.');
+      }
+    } catch (e) {
+      await reload();
+      showMsg(`Aktivní sezonu se nepodařilo uložit: ${(e as Error).message}`, 'err');
     }
   }
 
@@ -190,7 +216,7 @@
   </div>
   <div class="sezona-row" style="margin-top: 12px;">
     <input bind:value={novaSezona} type="text" placeholder="Nová sezona (např. 2026/27)" />
-    <button type="button" onclick={pridejSezonu}>Založit a aktivovat sezonu</button>
+    <button type="button" onclick={pridejSezonu} disabled={ukladaniSezony}>{ukladaniSezony ? 'Ukládám…' : 'Založit a aktivovat sezonu'}</button>
   </div>
 </section>
 
@@ -271,6 +297,25 @@
     min-width: 220px;
   }
   .sezona-row select:focus { outline: none; border-color: var(--accent); }
+  .sezona-row input {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 6px;
+    padding: 9px 12px;
+    font: inherit;
+    font-size: 14px;
+    min-width: 0;
+    flex: 1 1 220px;
+  }
+  .sezona-row button { min-height: 40px; }
+  .sezona-row select { max-width: 100%; }
+  @media (max-width: 600px) {
+    .aktivni-sezona { padding: 16px; }
+    .sezona-row { align-items: stretch; }
+    .sezona-row select, .sezona-row input, .sezona-row button { width: 100%; min-width: 0; }
+    .sezona-cur { width: 100%; }
+  }
   .sezona-cur {
     color: var(--text-muted);
     font-size: 13px;
